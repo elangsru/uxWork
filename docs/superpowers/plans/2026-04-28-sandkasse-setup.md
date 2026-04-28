@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Sett opp et kjørende Next.js 15 + Supabase sandkasse-prosjekt i `/Users/espenlangsrud/github/uxwork`
+**Goal:** Sett opp et kjørende Next.js 16 + Supabase sandkasse-prosjekt i `/Users/espenlangsrud/github/uxwork`
 
-**Architecture:** Next.js 15 App Router med TypeScript og Tailwind CSS. Supabase-klient settes opp som et delt singleton i `lib/supabase.ts`. Startsiden er en blank canvas.
+**Architecture:** Next.js 16 App Router med TypeScript og Tailwind CSS v4. Supabase-klient settes opp som et delt singleton i `lib/supabase.ts`. Startsiden er en blank canvas.
 
-**Tech Stack:** Next.js 15, TypeScript, Tailwind CSS, @supabase/supabase-js
+**Tech Stack:** Next.js 16, TypeScript, Tailwind CSS v4, @supabase/supabase-js
 
 ---
 
