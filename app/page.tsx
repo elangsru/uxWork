@@ -1,7 +1,26 @@
+import { Button } from "@dnb/eufemia/components";
+import { H1, P } from "@dnb/eufemia/elements";
+
 export default function Home() {
   return (
-    <main className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold">Sandkasse!</h1>
+    <main
+      style={{
+        background: "white",
+        minHeight: "100vh",
+        padding: "48px 96px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "32px",
+        alignItems: "flex-start",
+      }}
+    >
+      <H1 size="x-large" suppressHydrationWarning>Prosjekter</H1>
+      <P>On going projects by Espen Langsrud</P>
+      <Button
+        variant="tertiary"
+        text="Pending payments"
+        href="/paymentsOverview"
+      />
     </main>
   );
 }

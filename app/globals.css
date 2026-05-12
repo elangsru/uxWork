@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+/* Reset chevron rotation for action rows nested inside accordion */
+.dnb-list__item__action .dnb-list__item__chevron .dnb-icon {
+  transform: none;
+  transition: none;
+}
+
