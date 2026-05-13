@@ -526,7 +526,7 @@ export default function PaymentsOverview() {
                 onChange={({ checked }) => setShowSaldo(checked)}
               />
               <Tooltip targetElement={visSaldoRef}>
-                Viser saldo og estimering av fremtidige penger til overs
+                Viser hva du har til over etter at alle regninger er betalt
               </Tooltip>
             </div>
           </div>
