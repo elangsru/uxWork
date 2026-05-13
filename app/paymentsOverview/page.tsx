@@ -223,7 +223,7 @@ export default function PaymentsOverview() {
             {showSaldo && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
               <List.Cell.Title>
                 {sumLabel}
-                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>Penger til overs {lastPaymentDate}</List.Cell.Title.Subline>
+                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>Penger til overs {lastPaymentDate.replace(/\s+\d{4}$/, '')}</List.Cell.Title.Subline>
               </List.Cell.Title>
               <List.Cell.End>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", fontWeight: "400" }}>
