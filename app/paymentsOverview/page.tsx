@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tooltip } from "@dnb/eufemia/components";
+import { Button, Autocomplete, DatePicker, Switch, Checkbox, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tooltip } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
 import { transfer, pay_from, chevron_down, chevron_up, loan, trash, edit, filter, close } from "@dnb/eufemia/icons";
 
@@ -133,6 +133,7 @@ export default function PaymentsOverview() {
   const [groupBy, setGroupBy] = useState("konto");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const visSaldoRef = useRef<HTMLDivElement>(null);
+  const huskValgRef = useRef<HTMLDivElement>(null);
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
 
   const visibleTransactions = transactions.filter(t =>
@@ -187,6 +188,8 @@ export default function PaymentsOverview() {
       const sumLabel = `Sum ${txs.length} transaksjon${txs.length !== 1 ? "er" : ""}${unconfirmedCount > 0 ? ` (${unconfirmedCount} ubekreftet)` : ""}`;
       const open = isGroupOpen(accountKey);
 
+      const lastPaymentDate = txs.reduce((max, t) => t.dateValue > max.dateValue ? t : max, txs[0]).date;
+
       return (
         <div key={accountKey} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
           <List.Container>
@@ -209,7 +212,7 @@ export default function PaymentsOverview() {
             {showSaldo && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
               <List.Cell.Title>
                 {sumLabel}
-                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-error)" } : undefined}>Fremtidig saldo</List.Cell.Title.Subline>
+                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-error)" } : undefined}>Fremtidig saldo {lastPaymentDate}</List.Cell.Title.Subline>
               </List.Cell.Title>
               <List.Cell.End>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", fontWeight: "400" }}>
@@ -481,14 +484,10 @@ export default function PaymentsOverview() {
                   <ToggleButton variant="checkbox" text="eFaktura (1 ny)" value="efaktura" />
                 </ToggleButton.Group>
               </div>
-              <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
-                <Switch
-                  label="Vis saldo"
-                  checked={showSaldo}
-                  onChange={({ checked }) => setShowSaldo(checked)}
-                />
-                <Tooltip targetElement={visSaldoRef}>
-                  Viser saldo og estimering av fremtidig saldo
+              <div ref={huskValgRef} style={{ flexShrink: 0 }}>
+                <Switch label="Husk valg" disabled />
+                <Tooltip targetElement={huskValgRef}>
+                  Lagrer filtervalgene dine til neste innlogging
                 </Tooltip>
               </div>
             </div>
@@ -507,6 +506,17 @@ export default function PaymentsOverview() {
               <Radio label="Konto" value="konto" />
               <Radio label="Dato" value="dato" />
             </Radio.Group>
+            <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
+              <Checkbox
+                label="Vis saldo"
+                labelPosition="right"
+                checked={showSaldo}
+                onChange={({ checked }) => setShowSaldo(checked)}
+              />
+              <Tooltip targetElement={visSaldoRef}>
+                Viser saldo og estimering av fremtidig saldo
+              </Tooltip>
+            </div>
           </div>
           <Button
               variant="tertiary"
