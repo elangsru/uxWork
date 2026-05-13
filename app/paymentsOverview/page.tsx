@@ -398,11 +398,12 @@ export default function PaymentsOverview() {
                 placeholder="Alle"
                 stretch
                 showSubmitButton
-                submitButtonIcon={accountOpen ? chevron_up : chevron_down}
+                submitButtonIcon={<Icon icon={accountOpen ? chevron_up : chevron_down} />}
                 onOpen={() => setAccountOpen(true)}
                 onClose={() => setAccountOpen(false)}
-                onChange={({ data }: { data?: { content?: string[] } }) => {
-                  const name = data?.content?.[0];
+                onChange={(event) => {
+                  const data = typeof event.data === 'object' ? event.data : null;
+                  const name = Array.isArray(data?.content) ? String(data.content[0]) : null;
                   if (name === "Felleskonto") setSelectedAccountKey("felleskonto");
                   else if (name === "Lønnskonto") setSelectedAccountKey("lonnskonto");
                   else setSelectedAccountKey(null);
