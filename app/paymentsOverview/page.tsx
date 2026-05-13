@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import SubmitIndicator from "@dnb/eufemia/extensions/forms/Form/SubmitIndicator/SubmitIndicator";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, Autocomplete, DatePicker, Switch, Checkbox, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tooltip } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
@@ -51,6 +52,7 @@ function fmtNok(value: number): string {
 }
 
 function TransactionRow({ tx, overline, balanceAfter, warning }: { tx: Transaction; overline: string; balanceAfter?: number; warning?: string }) {
+  const [approving, setApproving] = useState(false);
   const negativeBalance = balanceAfter !== undefined && balanceAfter < 0;
   const balanceClass = balanceAfter !== undefined ? (negativeBalance ? "row-balance-negative" : "row-balance-positive") : "";
   const itemStyle = { "--item-rounded-corner": "0" } as React.CSSProperties;
@@ -101,7 +103,17 @@ function TransactionRow({ tx, overline, balanceAfter, warning }: { tx: Transacti
         <List.Cell.Footer>
           <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
             <Button variant="tertiary" text="Rediger" icon={edit} iconPosition="left" />
-            <Button variant="secondary" text="Godkjenn" />
+            <Button
+                variant="secondary"
+                disabled={approving}
+                onClick={() => {
+                  setApproving(true);
+                  setTimeout(() => setApproving(false), 5000);
+                }}
+              >
+                Godkjenn
+                <SubmitIndicator state={approving ? "pending" : "complete"} />
+              </Button>
           </div>
         </List.Cell.Footer>
       )}
