@@ -212,12 +212,12 @@ export default function PaymentsOverview() {
             {showSaldo && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
               <List.Cell.Title>
                 {sumLabel}
-                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-error)" } : undefined}>Fremtidig saldo {lastPaymentDate}</List.Cell.Title.Subline>
+                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>Fremtidig saldo {lastPaymentDate}</List.Cell.Title.Subline>
               </List.Cell.Title>
               <List.Cell.End>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", fontWeight: "400" }}>
                   <span className="dnb-t__size--basis">{fmtNok(totalNok)}</span>
-                  <span className="dnb-t__size--basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-error)" } : undefined}>{fmtNok(fremtidigSaldo)}</span>
+                  <span className="dnb-t__size--basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>{fmtNok(fremtidigSaldo)}</span>
                 </div>
               </List.Cell.End>
             </List.Item.Basic>}
