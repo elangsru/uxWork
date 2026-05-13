@@ -1,19 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag } from "@dnb/eufemia/components";
+import Theme from "@dnb/eufemia/shared/Theme";
+import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
-import { transfer, pay_from, chevron_down, chevron_up, loan, trash, edit } from "@dnb/eufemia/icons";
+import { transfer, pay_from, chevron_down, chevron_up, loan, trash, edit, filter, close } from "@dnb/eufemia/icons";
 
 const accounts = [
   { content: ["Alle kontoer"], value: "alle" },
   { content: ["Felleskonto", "1503 24 78612"], suffixValue: "42 500 kr" },
-  { content: ["Lønnskonto", "6082 19 47531"], suffixValue: "18 750 kr" },
+  { content: ["Lønnskonto", "6082 19 47531"], suffixValue: "789 kr" },
 ];
 
 const accountDetails = {
   felleskonto: { name: "Felleskonto", number: "1503.24.78612", balance: 42500 },
-  lonnskonto: { name: "Lønnskonto", number: "6082.19.47531", balance: 18750 },
+  lonnskonto: { name: "Lønnskonto", number: "6082.19.47531", balance: 789 },
 } as const;
 type AccountKey = keyof typeof accountDetails;
 
@@ -49,7 +50,9 @@ function fmtNok(value: number): string {
   return value.toLocaleString("no-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " NOK";
 }
 
-function TransactionRow({ tx, overline }: { tx: Transaction; overline: string }) {
+function TransactionRow({ tx, overline, balanceAfter, warning }: { tx: Transaction; overline: string; balanceAfter?: number; warning?: string }) {
+  const negativeBalance = balanceAfter !== undefined && balanceAfter < 0;
+  const balanceClass = balanceAfter !== undefined ? (negativeBalance ? "row-balance-negative" : "row-balance-positive") : "";
   const itemStyle = { "--item-rounded-corner": "0" } as React.CSSProperties;
   const unconfirmedStyle = tx.unconfirmed
     ? { ...itemStyle, backgroundImage: "repeating-linear-gradient(-45deg, var(--token-color-stroke-neutral-subtle) 1px 2px, transparent 0 6px)" }
@@ -78,7 +81,11 @@ function TransactionRow({ tx, overline }: { tx: Transaction; overline: string })
   ) : tx.amountDisplay;
 
   return (
-    <List.Item.Action chevronPosition="right" style={unconfirmedStyle}>
+    <List.Item.Action
+      className={balanceClass}
+      chevronPosition="right"
+      style={unconfirmedStyle}
+    >
       <List.Cell.Start>{startNode}</List.Cell.Start>
       <List.Cell.Title>
         <List.Cell.Title.Overline>{overline}</List.Cell.Title.Overline>
@@ -98,6 +105,11 @@ function TransactionRow({ tx, overline }: { tx: Transaction; overline: string })
           </div>
         </List.Cell.Footer>
       )}
+      {warning && (
+        <List.Cell.Footer className="warning-footer">
+          <FormStatus state="warning" text={warning} stretch />
+        </List.Cell.Footer>
+      )}
     </List.Item.Action>
   );
 }
@@ -111,7 +123,10 @@ export default function PaymentsOverview() {
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
   const [paymentTypes, setPaymentTypes] = useState<string[]>([]);
-  const [rememberChoice, setRememberChoice] = useState(false);
+  const [showSaldo, setShowSaldo] = useState(true);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  const [showWarnings, setShowWarnings] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [startDate, setStartDate] = useState(fmt(today));
   const [endDate, setEndDate] = useState(fmt(in30Days));
@@ -141,6 +156,19 @@ export default function PaymentsOverview() {
   const currentGroupKeys = groupBy === "konto" ? kontoKeys : dateKeys;
   const allOpen = currentGroupKeys.every(k => isGroupOpen(k));
 
+  const runningBalanceMap = (() => {
+    const map: Record<string, number> = {};
+    (Object.keys(accountDetails) as AccountKey[]).forEach(accountKey => {
+      const acct = accountDetails[accountKey];
+      let running = acct.balance;
+      visibleTransactions.filter(t => t.accountKey === accountKey).forEach(tx => {
+        running -= tx.amountNok;
+        map[tx.id] = running;
+      });
+    });
+    return map;
+  })();
+
   function toggleAll() {
     const newState = !allOpen;
     const updates: Record<string, boolean> = {};
@@ -159,36 +187,36 @@ export default function PaymentsOverview() {
       const open = isGroupOpen(accountKey);
 
       return (
-        <div key={accountKey} style={{ outline: "1px solid #f2f2f5", borderRadius: "8px", overflow: "hidden" }}>
+        <div key={accountKey} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
           <List.Container>
             <List.Item.Accordion
               open={open}
               chevronPosition="right"
-              style={{ background: "#f2f2f5", "--item-rounded-corner": "0", borderTopLeftRadius: "8px", borderTopRightRadius: "8px" } as React.CSSProperties}
+              style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-md)", borderTopRightRadius: "var(--token-radius-md)", ...(!showSaldo ? { borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } : {}) } as React.CSSProperties}
             >
               <List.Item.Accordion.Header onClick={() => toggleGroup(accountKey)}>
-                <List.Cell.Title fontWeight="medium">{acct.name} {acct.number} ({acct.balance.toLocaleString("no-NO", { minimumFractionDigits: 2 })} kr)</List.Cell.Title>
+                <List.Cell.Title fontWeight="medium">{acct.name} {acct.number}{showSaldo ? ` (${acct.balance.toLocaleString("no-NO", { minimumFractionDigits: 2 })} kr)` : ""}</List.Cell.Title>
               </List.Item.Accordion.Header>
               <List.Item.Accordion.Content>
                 <List.Container>
                   {txs.map(tx => (
-                    <TransactionRow key={tx.id} tx={tx} overline={tx.date} />
+                    <TransactionRow key={tx.id} tx={tx} overline={tx.date} balanceAfter={showSaldo ? runningBalanceMap[tx.id] : undefined} warning={showWarnings && tx.id === "intro-aksel" ? "Betaling stoppet, det var ikke nok penger på konto." : undefined} />
                   ))}
                 </List.Container>
               </List.Item.Accordion.Content>
             </List.Item.Accordion>
-            <List.Item.Basic style={{ background: "#f2f2f5", "--item-rounded-corner": "0", borderBottomLeftRadius: "8px", borderBottomRightRadius: "8px" } as React.CSSProperties}>
+            {showSaldo && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
               <List.Cell.Title>
                 {sumLabel}
-                <List.Cell.Title.Subline fontSize="basis">Fremtidig saldo</List.Cell.Title.Subline>
+                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-error)" } : undefined}>Fremtidig saldo</List.Cell.Title.Subline>
               </List.Cell.Title>
               <List.Cell.End>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", fontWeight: "400" }}>
                   <span className="dnb-t__size--basis">{fmtNok(totalNok)}</span>
-                  <span className="dnb-t__size--basis">{fmtNok(fremtidigSaldo)}</span>
+                  <span className="dnb-t__size--basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-error)" } : undefined}>{fmtNok(fremtidigSaldo)}</span>
                 </div>
               </List.Cell.End>
-            </List.Item.Basic>
+            </List.Item.Basic>}
           </List.Container>
         </div>
       );
@@ -205,12 +233,12 @@ export default function PaymentsOverview() {
       const sumLabel = `Sum ${txs.length} transaksjon${txs.length !== 1 ? "er" : ""}${unconfirmedCount > 0 ? ` (${unconfirmedCount} ubekreftet)` : ""}`;
 
       return (
-        <div key={dateValue} style={{ outline: "1px solid #f2f2f5", borderRadius: "8px", overflow: "hidden" }}>
+        <div key={dateValue} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
           <List.Container>
             <List.Item.Accordion
               open={open}
               chevronPosition="right"
-              style={{ background: "#f2f2f5", "--item-rounded-corner": "0", borderTopLeftRadius: "8px", borderTopRightRadius: "8px" } as React.CSSProperties}
+              style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-md)", borderTopRightRadius: "var(--token-radius-md)", ...(!showSaldo ? { borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } : {}) } as React.CSSProperties}
             >
               <List.Item.Accordion.Header onClick={() => toggleGroup(dateValue)}>
                 <List.Cell.Title fontWeight="medium">{dateLabel}</List.Cell.Title>
@@ -220,19 +248,19 @@ export default function PaymentsOverview() {
                   {txs.map(tx => {
                     const acct = accountDetails[tx.accountKey];
                     const overline = `${acct.name} ${acct.number}`;
-                    return <TransactionRow key={tx.id} tx={tx} overline={overline} />;
+                    return <TransactionRow key={tx.id} tx={tx} overline={overline} balanceAfter={showSaldo ? runningBalanceMap[tx.id] : undefined} warning={showWarnings && tx.id === "intro-aksel" ? "Betaling stoppet, det var ikke nok penger på konto." : undefined} />;
                   })}
                 </List.Container>
               </List.Item.Accordion.Content>
             </List.Item.Accordion>
-            <List.Item.Basic style={{ background: "#f2f2f5", "--item-rounded-corner": "0", borderBottomLeftRadius: "8px", borderBottomRightRadius: "8px" } as React.CSSProperties}>
+            {showSaldo && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
               <List.Cell.Title>{sumLabel}</List.Cell.Title>
               <List.Cell.End>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", fontWeight: "400" }}>
                   <span className="dnb-t__size--basis">{fmtNok(totalNok)}</span>
                 </div>
               </List.Cell.End>
-            </List.Item.Basic>
+            </List.Item.Basic>}
           </List.Container>
         </div>
       );
@@ -240,6 +268,7 @@ export default function PaymentsOverview() {
   }
 
   return (
+    <Theme colorScheme={darkMode ? 'dark' : 'light'}>
     <>
     <style>{`
       .dnb-list__item__action .dnb-list__item__chevron .dnb-icon { transform: none !important; transition: none !important; }
@@ -264,11 +293,59 @@ export default function PaymentsOverview() {
       .dnb-list__item__accordion:has(.dnb-list__item__action:hover) {
         z-index: 3;
       }
+      .dnb-list__item__footer-separator:has(+ .dnb-list__item__footer.warning-footer) {
+        display: none;
+      }
+      .row-balance-positive::before,
+      .row-balance-negative::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 5px;
+        z-index: 1;
+        pointer-events: none;
+      }
+      .row-balance-positive::before {
+        background-color: var(--token-color-stroke-positive);
+      }
+      .row-balance-negative::before {
+        background-color: var(--token-color-stroke-error);
+      }      .eufemia-theme__color-scheme--dark .dnb-date-picker__container {
+        background-color: var(--token-color-background-neutral);
+      }
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__portal .dnb-popover {
+        --popover-background-color: var(--token-color-background-neutral);
+      }
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__header::after,
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__addon::after,
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__calendar::after {
+        background-color: var(--token-color-stroke-neutral-subtle);
+      }
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__header__title,
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__labels__day {
+        color: var(--token-color-text-neutral);
+      }
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__day--inactive .dnb-button {
+        color: var(--token-color-text-neutral-subtle);
+      }
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__day--end-date:not(.dnb-date-picker__day--inactive)::after,
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__day--preview:not(.dnb-date-picker__day--inactive):not(.dnb-date-picker__day--start-date):not(.dnb-date-picker__day--end-date),
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__day--start-date:not(.dnb-date-picker__day--inactive)::after,
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__day--within-selection:not(.dnb-date-picker__day--inactive):not(.dnb-date-picker__day--start-date):not(.dnb-date-picker__day--end-date) {
+        background-color: var(--token-color-background-selected-subtle);
+      }
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__day--end-date:not(.dnb-date-picker__day--inactive) .dnb-button,
+      .eufemia-theme__color-scheme--dark .dnb-date-picker__day--start-date:not(.dnb-date-picker__day--inactive) .dnb-button {
+        background-color: var(--token-color-background-selected);
+        color: var(--token-color-text-neutral-inverse);
+      }
     `}</style>
-    <div style={{ background: "#f0f0f0", minHeight: "100vh", padding: "48px", boxSizing: "border-box" }}>
+    <div style={{ background: "var(--token-color-background-neutral-subtle)", minHeight: "100vh", padding: "48px", boxSizing: "border-box" }}>
       <div
         style={{
-          background: "white",
+          background: "var(--token-color-background-neutral)",
           boxShadow: "0px 8px 16px 0px rgba(51,51,51,0.08)",
           padding: "48px 96px",
           display: "flex",
@@ -302,9 +379,9 @@ export default function PaymentsOverview() {
         {/* Filter */}
         <div
           style={{
-            background: "#f8f8f8",
-            border: "1px solid #f2f2f5",
-            borderRadius: "8px",
+            background: "var(--token-color-background-neutral-subtle)",
+            border: "1px solid var(--token-color-stroke-neutral-alternative)",
+            borderRadius: "var(--token-radius-md)",
             padding: "16px",
             display: "flex",
             flexDirection: "column",
@@ -404,9 +481,9 @@ export default function PaymentsOverview() {
               </div>
               <div style={{ flexShrink: 0 }}>
                 <Switch
-                  label="Husk valg"
-                  checked={rememberChoice}
-                  onChange={({ checked }) => setRememberChoice(checked)}
+                  label="Vis saldo"
+                  checked={showSaldo}
+                  onChange={({ checked }) => setShowSaldo(checked)}
                 />
               </div>
             </div>
@@ -440,6 +517,69 @@ export default function PaymentsOverview() {
         </div>
       </div>
     </div>
-    </>
+
+    {/* Tools button */}
+    <div style={{ position: "fixed", top: "32px", right: "32px", zIndex: 100 }}>
+      <Button
+        variant="secondary"
+        icon={filter}
+        aria-label="Tools menu"
+        onClick={() => setToolsOpen(o => !o)}
+        style={{ borderRadius: "50%", width: "48px", height: "48px", padding: 0 }}
+      />
+    </div>
+
+    {/* Tools popover */}
+    {toolsOpen && (
+      <div
+        style={{
+          position: "fixed",
+          top: "92px",
+          right: "32px",
+          background: "var(--token-color-background-neutral)",
+          border: "1px solid var(--token-color-stroke-neutral-subtle, #ebebeb)",
+          filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.08))",
+          borderRadius: "var(--token-radius-md, 8px)",
+          minWidth: "340px",
+          maxWidth: "560px",
+          padding: "24px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+          zIndex: 99,
+        }}
+      >
+        {/* Header + subtitle */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <P size="basis" style={{ fontWeight: 500, margin: 0 }}>Configurations</P>
+            <button
+              onClick={() => setToolsOpen(false)}
+              aria-label="Lukk"
+              style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}
+            >
+              <Icon icon={close} size="small" />
+            </button>
+          </div>
+          <P size="basis" style={{ margin: 0 }}>
+            For experimening purposes only...
+          </P>
+        </div>
+
+        {/* Dark mode row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+          <P size="basis" style={{ margin: 0 }}>Dark mode</P>
+          <Switch label="Dark mode" labelSrOnly checked={darkMode} onChange={({ checked }) => setDarkMode(checked)} />
+        </div>
+
+        {/* Show warnings row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+          <P size="basis" style={{ margin: 0 }}>Show warnings</P>
+          <Switch label="Show warnings" labelSrOnly checked={showWarnings} onChange={({ checked }) => setShowWarnings(checked)} />
+        </div>
+      </div>
+    )}
+</>
+    </Theme>
   );
 }
