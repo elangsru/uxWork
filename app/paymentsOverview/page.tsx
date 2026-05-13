@@ -5,7 +5,7 @@ import SubmitIndicator from "@dnb/eufemia/extensions/forms/Form/SubmitIndicator/
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tooltip } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
-import { transfer, pay_from, chevron_down, chevron_up, loan, trash, edit, filter, close } from "@dnb/eufemia/icons";
+import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan, loan_medium, trash, edit, filter, close } from "@dnb/eufemia/icons";
 
 const accounts = [
   { content: ["Alle kontoer"], value: "alle" },
@@ -63,16 +63,14 @@ function TransactionRow({ tx, overline, balanceAfter, warning }: { tx: Transacti
   let startNode: React.ReactNode;
   if (tx.flagIso && tx.avatarLetter) {
     startNode = (
-      <Badge content={<CountryFlag iso={tx.flagIso} size="x-small" />} vertical="bottom" horizontal="right" variant="content">
-        <Avatar.Group label={tx.recipient}>
-          <Avatar size="small" backgroundColor="ocean-green" color="white">{tx.avatarLetter}</Avatar>
-        </Avatar.Group>
+      <Badge content={<CountryFlag iso={tx.flagIso} size="xx-small" />} vertical="bottom" horizontal="right" variant="content">
+        <Avatar size="small" backgroundColor="ocean-green" color="white">{tx.avatarLetter}</Avatar>
       </Badge>
     );
   } else if (tx.avatarLetter) {
-    startNode = <Avatar size="small" hasLabel backgroundColor="ocean-green" color="white">{tx.avatarLetter}</Avatar>;
+    startNode = <Avatar size="small" backgroundColor="ocean-green" color="white">{tx.avatarLetter}</Avatar>;
   } else if (tx.icon) {
-    startNode = <Icon icon={tx.icon === "transfer" ? transfer : loan} size="medium" />;
+    startNode = <Icon icon={tx.icon === "transfer" ? transfer_medium : loan_medium} />;
   }
 
   const endNode = tx.nokEquivalent ? (
@@ -294,6 +292,7 @@ export default function PaymentsOverview() {
       .dnb-list__item__accordion__header .dnb-list__item__title { align-self: center !important; justify-self: stretch !important; }
       .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__chevron,
       .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__icon { place-self: end !important; }
+      .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline):not(:has(> .dnb-list__item__action__button .dnb-list__item__subline)) .dnb-list__item__start { align-self: end !important; justify-self: center !important; }
       .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__chevron,
       .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__icon { place-self: center !important; }
       .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__title { align-self: start !important; }
