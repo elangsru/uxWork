@@ -522,7 +522,7 @@ export default function PaymentsOverview() {
               variant="tertiary"
               text={allOpen ? "Lukk alle" : "Åpne alle"}
               icon={allOpen ? chevron_up : chevron_down}
-              iconPosition="left"
+              iconPosition="right"
               onClick={toggleAll}
             />
         </div>
@@ -577,7 +577,7 @@ export default function PaymentsOverview() {
             </button>
           </div>
           <P size="basis" style={{ margin: 0 }}>
-            For experimening purposes only...
+            For experimenting purposes only...
           </P>
         </div>
 
