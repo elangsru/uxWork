@@ -143,7 +143,6 @@ export default function PaymentsOverview() {
   const [groupBy, setGroupBy] = useState("konto");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const visSaldoRef = useRef<HTMLDivElement>(null);
-  const huskValgRef = useRef<HTMLDivElement>(null);
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
 
   const visibleTransactions = transactions.filter(t =>
@@ -497,10 +496,14 @@ export default function PaymentsOverview() {
                   <ToggleButton variant="checkbox" text="eFaktura (1 ny)" value="efaktura" />
                 </ToggleButton.Group>
               </div>
-              <div ref={huskValgRef} style={{ flexShrink: 0 }}>
-                <Switch label="Husk valg" disabled />
-                <Tooltip targetElement={huskValgRef}>
-                  Lagrer filtervalgene dine til neste innlogging
+              <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
+                <Switch
+                  label="Penger til overs"
+                  checked={showSaldo}
+                  onChange={({ checked }) => setShowSaldo(checked)}
+                />
+                <Tooltip targetElement={visSaldoRef}>
+                  Viser hva du har til over etter at alle regninger er betalt
                 </Tooltip>
               </div>
             </div>
@@ -519,16 +522,6 @@ export default function PaymentsOverview() {
               <Radio label="Konto" value="konto" />
               <Radio label="Dato" value="dato" />
             </Radio.Group>
-            <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
-              <Switch
-                label="Penger til overs"
-                checked={showSaldo}
-                onChange={({ checked }) => setShowSaldo(checked)}
-              />
-              <Tooltip targetElement={visSaldoRef}>
-                Viser hva du har til over etter at alle regninger er betalt
-              </Tooltip>
-            </div>
           </div>
           <Button
               variant="tertiary"
