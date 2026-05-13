@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import SubmitIndicator from "@dnb/eufemia/extensions/forms/Form/SubmitIndicator/SubmitIndicator";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Autocomplete, DatePicker, Switch, Checkbox, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tooltip } from "@dnb/eufemia/components";
+import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tooltip } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
 import { transfer, pay_from, chevron_down, chevron_up, loan, trash, edit, filter, close } from "@dnb/eufemia/icons";
 
@@ -414,6 +414,7 @@ export default function PaymentsOverview() {
                 placeholder="Alle"
                 stretch
                 showSubmitButton
+                submitButtonTitle=""
                 submitButtonIcon={<Icon icon={accountOpen ? chevron_up : chevron_down} />}
                 onOpen={() => setAccountOpen(true)}
                 onClose={() => setAccountOpen(false)}
@@ -520,9 +521,8 @@ export default function PaymentsOverview() {
               <Radio label="Dato" value="dato" />
             </Radio.Group>
             <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
-              <Checkbox
-                label="Vis saldo"
-                labelPosition="right"
+              <Switch
+                label="Penger til overs"
                 checked={showSaldo}
                 onChange={({ checked }) => setShowSaldo(checked)}
               />
