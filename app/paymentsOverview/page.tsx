@@ -211,7 +211,8 @@ export default function PaymentsOverview() {
               style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-md)", borderTopRightRadius: "var(--token-radius-md)", ...(!showSaldo ? { borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } : {}) } as React.CSSProperties}
             >
               <List.Item.Accordion.Header onClick={() => toggleGroup(accountKey)}>
-                <List.Cell.Title fontWeight="medium">{acct.name} {acct.number}{showSaldo ? ` (${acct.balance.toLocaleString("no-NO", { minimumFractionDigits: 2 })} kr)` : ""}</List.Cell.Title>
+                <List.Cell.Title fontWeight="medium">{acct.name} {acct.number}</List.Cell.Title>
+                {showSaldo && <List.Cell.End><span style={{ fontWeight: 400 }}>{fmtNok(acct.balance)}</span></List.Cell.End>}
               </List.Item.Accordion.Header>
               <List.Item.Accordion.Content>
                 <List.Container>
@@ -224,7 +225,7 @@ export default function PaymentsOverview() {
             {showSaldo && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
               <List.Cell.Title>
                 {sumLabel}
-                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>Fremtidig saldo {lastPaymentDate}</List.Cell.Title.Subline>
+                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>Penger til overs {lastPaymentDate}</List.Cell.Title.Subline>
               </List.Cell.Title>
               <List.Cell.End>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", fontWeight: "400" }}>
@@ -526,7 +527,7 @@ export default function PaymentsOverview() {
                 onChange={({ checked }) => setShowSaldo(checked)}
               />
               <Tooltip targetElement={visSaldoRef}>
-                Viser saldo og estimering av fremtidig saldo
+                Viser saldo og estimering av fremtidige penger til overs
               </Tooltip>
             </div>
           </div>
