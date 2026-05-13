@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus } from "@dnb/eufemia/components";
+import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tooltip } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
 import { transfer, pay_from, chevron_down, chevron_up, loan, trash, edit, filter, close } from "@dnb/eufemia/icons";
 
@@ -132,6 +132,7 @@ export default function PaymentsOverview() {
   const [endDate, setEndDate] = useState(fmt(in30Days));
   const [groupBy, setGroupBy] = useState("konto");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const visSaldoRef = useRef<HTMLDivElement>(null);
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
 
   const visibleTransactions = transactions.filter(t =>
@@ -479,12 +480,15 @@ export default function PaymentsOverview() {
                   <ToggleButton variant="checkbox" text="eFaktura (1 ny)" value="efaktura" />
                 </ToggleButton.Group>
               </div>
-              <div style={{ flexShrink: 0 }}>
+              <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
                 <Switch
                   label="Vis saldo"
                   checked={showSaldo}
                   onChange={({ checked }) => setShowSaldo(checked)}
                 />
+                <Tooltip targetElement={visSaldoRef}>
+                  Viser saldo og estimering av fremtidig saldo
+                </Tooltip>
               </div>
             </div>
           </div>
