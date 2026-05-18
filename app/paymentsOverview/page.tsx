@@ -491,19 +491,17 @@ export default function PaymentsOverview() {
 
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <P>Betalingstype</P>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center", justifyContent: "flex-end" }}>
-              <div style={{ flex: "1 0 0", minWidth: "200px" }}>
-                <ToggleButton.Group
-                  multiselect
-                  values={paymentTypes}
-                  onChange={({ values }) => setPaymentTypes(values as string[])}
-                >
-                  <ToggleButton variant="checkbox" text="Overføring" value="overforing" />
-                  <ToggleButton variant="checkbox" text="Betaling" value="betaling" />
-                  <ToggleButton variant="checkbox" text="AvtaleGiro" value="avtalegiro" />
-                  <ToggleButton variant="checkbox" text="eFaktura (1 ny)" value="efaktura" />
-                </ToggleButton.Group>
-              </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
+              <ToggleButton.Group
+                multiselect
+                values={paymentTypes}
+                onChange={({ values }) => setPaymentTypes(values as string[])}
+              >
+                <ToggleButton variant="checkbox" text="Overføring" value="overforing" />
+                <ToggleButton variant="checkbox" text="Betaling" value="betaling" />
+                <ToggleButton variant="checkbox" text="AvtaleGiro" value="avtalegiro" />
+                <ToggleButton variant="checkbox" text="eFaktura (1 ny)" value="efaktura" />
+              </ToggleButton.Group>
               <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
                 <Switch
                   label="Penger til overs"
