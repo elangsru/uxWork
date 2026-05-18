@@ -59,12 +59,13 @@ function fmtNok(value: number): string {
   return value.toLocaleString("no-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " NOK";
 }
 
-function TransactionRow({ tx, overline, balanceAfter, warning }: { tx: Transaction; overline: string; balanceAfter?: number; warning?: string }) {
+function TransactionRow({ tx, overline, balanceAfter, warning, isConfirmed, onConfirm }: { tx: Transaction; overline: string; balanceAfter?: number; warning?: string; isConfirmed?: boolean; onConfirm?: () => void }) {
   const [approving, setApproving] = useState(false);
   const negativeBalance = balanceAfter !== undefined && balanceAfter < 0;
   const balanceClass = balanceAfter !== undefined ? (negativeBalance ? "row-balance-negative" : "row-balance-positive") : "";
   const itemStyle = { "--item-rounded-corner": "0" } as React.CSSProperties;
-  const unconfirmedStyle = tx.unconfirmed
+  const effectivelyUnconfirmed = tx.unconfirmed && !isConfirmed;
+  const unconfirmedStyle = effectivelyUnconfirmed
     ? { ...itemStyle, backgroundImage: "repeating-linear-gradient(-45deg, var(--token-color-stroke-neutral-subtle) 1px 2px, transparent 0 6px)" }
     : itemStyle;
 
@@ -72,11 +73,11 @@ function TransactionRow({ tx, overline, balanceAfter, warning }: { tx: Transacti
   if (tx.flagIso && tx.avatarLetter) {
     startNode = (
       <Badge content={<CountryFlag iso={tx.flagIso} size="xx-small" />} vertical="bottom" horizontal="right" variant="content">
-        <Avatar size="small" backgroundColor="ocean-green" color="white">{tx.avatarLetter}</Avatar>
+        <Avatar size="small" variant="primary">{tx.avatarLetter}</Avatar>
       </Badge>
     );
   } else if (tx.avatarLetter) {
-    startNode = <Avatar size="small" backgroundColor="ocean-green" color="white">{tx.avatarLetter}</Avatar>;
+    startNode = <Avatar size="small" variant="primary">{tx.avatarLetter}</Avatar>;
   } else if (tx.icon) {
     startNode = <Icon icon={tx.icon === "transfer" ? transfer_medium : loan_medium} />;
   }
@@ -105,7 +106,7 @@ function TransactionRow({ tx, overline, balanceAfter, warning }: { tx: Transacti
         )}
       </List.Cell.Title>
       <List.Cell.End>{endNode}</List.Cell.End>
-      {tx.unconfirmed && (
+      {effectivelyUnconfirmed && (
         <List.Cell.Footer>
           <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
             <Button variant="tertiary" text="Rediger" icon={edit} iconPosition="left" />
@@ -114,7 +115,10 @@ function TransactionRow({ tx, overline, balanceAfter, warning }: { tx: Transacti
                 disabled={approving}
                 onClick={() => {
                   setApproving(true);
-                  setTimeout(() => setApproving(false), 5000);
+                  setTimeout(() => {
+                    setApproving(false);
+                    onConfirm?.();
+                  }, 5000);
                 }}
               >
                 Godkjenn
@@ -145,6 +149,8 @@ export default function PaymentsOverview() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
+  const [showUnconfirmed, setShowUnconfirmed] = useState(true);
+  const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [accountOpen, setAccountOpen] = useState(false);
   const [startDate, setStartDate] = useState(fmt(today));
   const [endDate, setEndDate] = useState(fmt(in30Days));
@@ -157,8 +163,14 @@ export default function PaymentsOverview() {
     (selectedAccountKey === null || t.accountKey === selectedAccountKey) &&
     (paymentTypes.length === 0 || paymentTypes.includes(t.type)) &&
     t.dateValue >= startDate &&
-    t.dateValue <= endDate
+    t.dateValue <= endDate &&
+    (showUnconfirmed || !t.unconfirmed || confirmedIds.has(t.id))
   );
+
+  const unconfirmedEfakturaCount = transactions.filter(t => t.unconfirmed && !confirmedIds.has(t.id) && t.type === "efaktura").length;
+  const efakturaLabel = unconfirmedEfakturaCount > 0 && showUnconfirmed
+    ? `eFaktura (${unconfirmedEfakturaCount} ny)`
+    : "eFaktura";
 
   function isGroupOpen(key: string) {
     return key in openGroups ? openGroups[key] : true;
@@ -180,7 +192,7 @@ export default function PaymentsOverview() {
     (Object.keys(accountDetails) as AccountKey[]).forEach(accountKey => {
       const acct = accountDetails[accountKey];
       let running = acct.balance;
-      visibleTransactions.filter(t => t.accountKey === accountKey).forEach(tx => {
+      visibleTransactions.filter(t => t.accountKey === accountKey && (!t.unconfirmed || confirmedIds.has(t.id))).forEach(tx => {
         running -= tx.amountNok;
         map[tx.id] = running;
       });
@@ -199,10 +211,11 @@ export default function PaymentsOverview() {
     return kontoKeys.map(accountKey => {
       const acct = accountDetails[accountKey];
       const txs = visibleTransactions.filter(t => t.accountKey === accountKey);
-      const totalNok = txs.reduce((s, t) => s + t.amountNok, 0);
+      const confirmedTxs = txs.filter(t => !t.unconfirmed || confirmedIds.has(t.id));
+      const totalNok = confirmedTxs.reduce((s, t) => s + t.amountNok, 0);
       const fremtidigSaldo = acct.balance - totalNok;
-      const unconfirmedCount = txs.filter(t => t.unconfirmed).length;
-      const sumLabel = `Sum ${txs.length} transaksjon${txs.length !== 1 ? "er" : ""}${unconfirmedCount > 0 ? ` (${unconfirmedCount} ubekreftet)` : ""}`;
+      const unconfirmedCount = txs.filter(t => t.unconfirmed && !confirmedIds.has(t.id)).length;
+      const sumLabel = `Sum ${confirmedTxs.length} transaksjon${confirmedTxs.length !== 1 ? "er" : ""}${unconfirmedCount > 0 ? ` (${unconfirmedCount} ubekreftet)` : ""}`;
       const open = isGroupOpen(accountKey);
 
       const lastPaymentDate = txs.reduce((max, t) => t.dateValue > max.dateValue ? t : max, txs[0]).date;
@@ -222,7 +235,7 @@ export default function PaymentsOverview() {
               <List.Item.Accordion.Content>
                 <List.Container>
                   {txs.map(tx => (
-                    <TransactionRow key={tx.id} tx={tx} overline={tx.date} balanceAfter={showSaldo ? runningBalanceMap[tx.id] : undefined} warning={showWarnings && tx.id === "intro-aksel" ? "Betaling stoppet, det var ikke nok penger på konto." : undefined} />
+                    <TransactionRow key={tx.id} tx={tx} overline={tx.date} balanceAfter={showSaldo ? runningBalanceMap[tx.id] : undefined} warning={showWarnings && tx.id === "intro-aksel" ? "Betaling stoppet, det var ikke nok penger på konto." : showWarnings && tx.id === "happybytes" ? "Betalingen ble stoppet fordi beløpet overstiger den månedlige beløpsgrensen for AvtaleGiro." : undefined} isConfirmed={confirmedIds.has(tx.id)} onConfirm={() => setConfirmedIds(prev => new Set([...prev, tx.id]))} />
                   ))}
                 </List.Container>
               </List.Item.Accordion.Content>
@@ -248,11 +261,12 @@ export default function PaymentsOverview() {
   function renderDatoGroups() {
     return dateKeys.map(dateValue => {
       const txs = visibleTransactions.filter(t => t.dateValue === dateValue);
-      const totalNok = txs.reduce((s, t) => s + t.amountNok, 0);
+      const confirmedTxs = txs.filter(t => !t.unconfirmed || confirmedIds.has(t.id));
+      const totalNok = confirmedTxs.reduce((s, t) => s + t.amountNok, 0);
       const dateLabel = txs[0].date;
       const open = isGroupOpen(dateValue);
-      const unconfirmedCount = txs.filter(t => t.unconfirmed).length;
-      const sumLabel = `Sum ${txs.length} transaksjon${txs.length !== 1 ? "er" : ""}${unconfirmedCount > 0 ? ` (${unconfirmedCount} ubekreftet)` : ""}`;
+      const unconfirmedCount = txs.filter(t => t.unconfirmed && !confirmedIds.has(t.id)).length;
+      const sumLabel = `Sum ${confirmedTxs.length} transaksjon${confirmedTxs.length !== 1 ? "er" : ""}${unconfirmedCount > 0 ? ` (${unconfirmedCount} ubekreftet)` : ""}`;
 
       return (
         <div key={dateValue} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
@@ -270,7 +284,7 @@ export default function PaymentsOverview() {
                   {txs.map(tx => {
                     const acct = accountDetails[tx.accountKey];
                     const overline = `${acct.name} ${acct.number}`;
-                    return <TransactionRow key={tx.id} tx={tx} overline={overline} balanceAfter={showSaldo ? runningBalanceMap[tx.id] : undefined} warning={showWarnings && tx.id === "intro-aksel" ? "Betaling stoppet, det var ikke nok penger på konto." : undefined} />;
+                    return <TransactionRow key={tx.id} tx={tx} overline={overline} balanceAfter={showSaldo ? runningBalanceMap[tx.id] : undefined} warning={showWarnings && tx.id === "intro-aksel" ? "Betaling stoppet, det var ikke nok penger på konto." : showWarnings && tx.id === "happybytes" ? "Betalingen ble stoppet fordi beløpet overstiger den månedlige beløpsgrensen for AvtaleGiro." : undefined} isConfirmed={confirmedIds.has(tx.id)} onConfirm={() => setConfirmedIds(prev => new Set([...prev, tx.id]))} />;
                   })}
                 </List.Container>
               </List.Item.Accordion.Content>
@@ -500,7 +514,7 @@ export default function PaymentsOverview() {
                 <ToggleButton variant="checkbox" text="Overføring" value="overforing" />
                 <ToggleButton variant="checkbox" text="Betaling" value="betaling" />
                 <ToggleButton variant="checkbox" text="AvtaleGiro" value="avtalegiro" />
-                <ToggleButton variant="checkbox" text="eFaktura (1 ny)" value="efaktura" />
+                <ToggleButton variant="checkbox" text={efakturaLabel} value="efaktura" />
               </ToggleButton.Group>
               <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
                 <Switch
@@ -566,7 +580,7 @@ export default function PaymentsOverview() {
           border: "1px solid var(--token-color-stroke-neutral-subtle, #ebebeb)",
           filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.08))",
           borderRadius: "var(--token-radius-md, 8px)",
-          minWidth: "340px",
+          minWidth: "440px",
           maxWidth: "560px",
           padding: "24px",
           display: "flex",
@@ -602,6 +616,12 @@ export default function PaymentsOverview() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
           <P size="basis" style={{ margin: 0 }}>Show warnings</P>
           <Switch label="Show warnings" labelSrOnly checked={showWarnings} onChange={({ checked }) => setShowWarnings(checked)} />
+        </div>
+
+        {/* Show unconfirmed eInvoices row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+          <P size="basis" style={{ margin: 0 }}>Show unconfirmed eInvoices</P>
+          <Switch label="Show unconfirmed eInvoices" labelSrOnly checked={showUnconfirmed} onChange={({ checked }) => setShowUnconfirmed(checked)} />
         </div>
       </div>
     )}
