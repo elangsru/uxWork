@@ -37,14 +37,22 @@ interface Transaction {
   nokEquivalent?: string;
 }
 
+function relativeDate(daysFromToday: number): { date: string; dateValue: string } {
+  const d = new Date();
+  d.setDate(d.getDate() + daysFromToday);
+  const dateValue = d.toISOString().slice(0, 10);
+  const date = d.toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" });
+  return { date, dateValue };
+}
+
 const transactions: Transaction[] = [
-  { id: "kim-olsen", date: "14. mai 2026", dateValue: "2026-05-14", recipient: "Kim Olsen", amountNok: 500, amountDisplay: "500,00 NOK", accountKey: "felleskonto", type: "betaling", avatarLetter: "K" },
-  { id: "intro-aksel", date: "17. mai 2026", dateValue: "2026-05-17", recipient: "Intro Aksel", amountNok: 300, amountDisplay: "300,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "transfer" },
-  { id: "happybytes", date: "17. mai 2026", dateValue: "2026-05-17", recipient: "Happybytes", amountNok: 299, amountDisplay: "299,00 NOK", accountKey: "lonnskonto", type: "avtalegiro", avatarLetter: "H", badge: "AvtaleGiro" },
-  { id: "asker-kommune", date: "23. mai 2026", dateValue: "2026-05-23", recipient: "Asker Kommune", amountNok: 1545, amountDisplay: "1 545,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "A", badge: "eFaktura", unconfirmed: true },
-  { id: "boliglaanet", date: "26. mai 2026", dateValue: "2026-05-26", recipient: "Boliglånet", amountNok: 12345, amountDisplay: "12 345,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "loan" },
-  { id: "jose-martinez", date: "1. juni 2026", dateValue: "2026-06-01", recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarLetter: "J", flagIso: "ES", foreignAmount: "500,00 EUR", nokEquivalent: "ca 5234,98 NOK" },
-  { id: "tibber", date: "6. juni 2026", dateValue: "2026-06-06", recipient: "Tibber AS", amountNok: 2445, amountDisplay: "2 445,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "T", badge: "eFaktura" },
+  { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, amountDisplay: "500,00 NOK", accountKey: "felleskonto", type: "betaling", avatarLetter: "K" },
+  { id: "intro-aksel", ...relativeDate(9), recipient: "Intro Aksel", amountNok: 300, amountDisplay: "300,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "transfer" },
+  { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, amountDisplay: "299,00 NOK", accountKey: "lonnskonto", type: "avtalegiro", avatarLetter: "H", badge: "AvtaleGiro" },
+  { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, amountDisplay: "1 545,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "A", badge: "eFaktura", unconfirmed: true },
+  { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, amountDisplay: "12 345,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "loan" },
+  { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarLetter: "J", flagIso: "ES", foreignAmount: "500,00 EUR", nokEquivalent: "ca 5234,98 NOK" },
+  { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, amountDisplay: "2 445,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "T", badge: "eFaktura" },
 ];
 
 function fmtNok(value: number): string {
