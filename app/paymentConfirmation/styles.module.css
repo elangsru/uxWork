@@ -462,8 +462,18 @@
   height: 104px;
   left: -9px;
   top: -9px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 180deg,
+    rgba(20, 211, 144, 0.9) 340deg,
+    transparent 360deg
+  );
+  -webkit-mask: radial-gradient(circle, transparent 48.5px, #000 51px);
+          mask: radial-gradient(circle, transparent 48.5px, #000 51px);
   transform-origin: center;
-  animation: spin 900ms linear infinite, fadeInQuick 280ms ease both;
+  animation: spin 1300ms linear infinite, fadeInQuick 280ms ease both;
 }
 
 @keyframes spin {

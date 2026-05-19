@@ -203,18 +203,7 @@ function CheckGraphic({ phase }: { phase: Step }) {
         <circle cx="43" cy="43" r="43" fill="#003C3D" />
       </svg>
       {showSpinner && (
-        <svg className={styles.checkSpinner} viewBox="0 0 104 104" xmlns="http://www.w3.org/2000/svg">
-          <circle
-            cx="52"
-            cy="52"
-            r="50"
-            fill="none"
-            stroke="#14D390"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray="90 314"
-          />
-        </svg>
+        <div className={styles.checkSpinner} aria-hidden="true" />
       )}
       {showCheck && (
         <svg className={styles.checkPath} viewBox="0 0 96 86" xmlns="http://www.w3.org/2000/svg">
