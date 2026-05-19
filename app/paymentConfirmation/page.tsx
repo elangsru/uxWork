@@ -38,10 +38,6 @@ export default function PaymentConfirmationPage() {
 
   return (
     <main className={styles.scene}>
-      <Link href="/" className={styles.backLink}>
-        ← Tilbake til prosjekter
-      </Link>
-
       <div className={styles.phone}>
         <div className={styles.screen}>
           <div className={styles.backdrop} />
@@ -63,7 +59,7 @@ export default function PaymentConfirmationPage() {
             />
           )}
 
-          {step === "receipt" && <ReceiptSheet />}
+          {step === "receipt" && <ReceiptSheet onClose={() => setStep("review")} />}
 
           <div
             className={`${styles.dimmer} ${showDimmer ? styles.dimmerActive : ""}`}
@@ -222,13 +218,18 @@ function CheckGraphic({ phase }: { phase: Step }) {
   );
 }
 
-function ReceiptSheet() {
+function ReceiptSheet({ onClose }: { onClose: () => void }) {
   return (
-    <section className={styles.sheet}>
+    <section className={`${styles.sheet} ${styles.sheetIn}`}>
       <header className={styles.sheetHeader}>
-        <Link href="/" className={`${styles.navButton} ${styles.navClose}`} aria-label="Lukk">
+        <button
+          type="button"
+          className={`${styles.navButton} ${styles.navClose}`}
+          aria-label="Lukk"
+          onClick={onClose}
+        >
           <CloseIcon />
-        </Link>
+        </button>
         <h2 className={styles.sheetTitle}>Receipt</h2>
       </header>
 
@@ -236,7 +237,6 @@ function ReceiptSheet() {
         <div className={styles.receiptHero}>
           <div style={{ width: 96, height: 86 }} aria-hidden="true" />
           <h3 className={styles.receiptTitle}>Payment complete</h3>
-          <p className={styles.receiptSubtitle}>Reference 8842 1907</p>
         </div>
 
         <div className={`${styles.card} ${styles.receiptDetailList}`}>
@@ -272,9 +272,9 @@ function ReceiptSheet() {
           </div>
         </div>
 
-        <Link href="/" className={styles.primaryButton} style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>
-          Close
-        </Link>
+        <button type="button" className={styles.primaryButton} onClick={onClose}>
+          Done
+        </button>
       </div>
     </section>
   );
