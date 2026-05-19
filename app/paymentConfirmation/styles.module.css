@@ -1,0 +1,566 @@
+/* ---------- Layout / iPhone frame ---------- */
+
+.scene {
+  min-height: 100vh;
+  background: #f0f0f3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px 64px;
+  gap: 24px;
+  font-family: 'DNB', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  color: #333;
+}
+
+.backLink {
+  align-self: flex-start;
+  max-width: 480px;
+  width: 100%;
+  margin: 0 auto 0 auto;
+  font-size: 14px;
+  color: #007272;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.phone {
+  position: relative;
+  width: 399px;
+  height: 836px;
+  border-radius: 56px;
+  background: #1a1a1c;
+  padding: 12px;
+  box-shadow:
+    0 30px 60px -20px rgba(0, 0, 0, 0.45),
+    0 10px 25px -10px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 2px #2a2a2c;
+}
+
+.screen {
+  position: relative;
+  width: 375px;
+  height: 812px;
+  border-radius: 44px;
+  overflow: hidden;
+  background: #c8c8c8; /* dimmed "previous screen" backdrop visible above the sheet */
+}
+
+.dynamicIsland {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 36px;
+  background: #000;
+  border-radius: 22px;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.statusBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1c;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.statusRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.homeIndicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 30;
+}
+
+/* Behind-the-modal blurred backdrop suggesting a previous screen */
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.32) 100%),
+    radial-gradient(ellipse at 30% 20%, #d6dadd 0%, #a8acb0 100%);
+}
+
+.dimmer {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 5;
+}
+
+/* ---------- iOS bottom sheet ---------- */
+
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 64px;
+  background: #f8f8f8;
+  border-radius: 24px 24px 0 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.sheetIn {
+  animation: sheetIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sheetIn {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.sheetHeader {
+  position: relative;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  margin-top: 16px;
+  flex-shrink: 0;
+}
+
+.sheetTitle {
+  font-size: 17px;
+  font-weight: 500;
+  color: #333;
+  margin: 0;
+}
+
+.navButton {
+  position: absolute;
+  top: 5px;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(247, 247, 247, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 2px 0 rgba(0, 0, 0, 0.1),
+    0 1px 8px 0 rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #333;
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.navButton:hover { background: rgba(255, 255, 255, 0.9); }
+.navButton:active { transform: scale(0.94); }
+
+.navClose { left: 16px; }
+.navConfirm {
+  right: 16px;
+  background: #007272;
+  color: #fff;
+}
+.navConfirm:hover { background: #005a5a; }
+
+.sheetBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sheetBodyCentered {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  align-items: center;
+}
+
+/* ---------- Step 1: Pay ---------- */
+
+.amountField {
+  width: 100%;
+  height: 80px;
+  background: #fff;
+  border: 0.5px solid #14555a;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 44px;
+  color: #007272;
+  font-family: inherit;
+}
+
+.card {
+  background: #fff;
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  position: relative;
+}
+
+.cell + .cell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 0;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.cellIcon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: #14555a;
+}
+
+.cellAvatar {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #14555a;
+  color: #d8f3ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.cellText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cellTitle {
+  font-size: 17px;
+  font-weight: 400;
+  color: #333;
+  line-height: 24px;
+  margin: 0;
+}
+
+.cellSub {
+  font-size: 13px;
+  font-weight: 400;
+  color: #737373;
+  line-height: 16px;
+  margin: 0;
+}
+
+.cellChevron {
+  flex-shrink: 0;
+  color: #737373;
+  width: 16px;
+  height: 16px;
+}
+
+.iosSwitch {
+  flex-shrink: 0;
+  width: 64px;
+  height: 32px;
+  background: #ebebeb;
+  border-radius: 100px;
+  position: relative;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 200ms ease;
+}
+
+.iosSwitch[data-on='true'] { background: #34c759; }
+
+.iosSwitchHandle {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.iosSwitch[data-on='true'] .iosSwitchHandle {
+  transform: translateX(32px);
+}
+
+.bottomToolbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 88px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 4px 16px 36px;
+  z-index: 11;
+  pointer-events: none;
+}
+
+.toolbarButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: rgba(247, 247, 247, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 0 2px 0 rgba(0, 0, 0, 0.1),
+    0 1px 8px 0 rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  pointer-events: auto;
+  border: none;
+  cursor: pointer;
+}
+
+/* ---------- Step 2: Confirmation animation ---------- */
+
+.dimmer {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 30;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 380ms ease;
+}
+
+.dimmerActive {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Check is shared across step 2 and step 3 — translates between positions */
+.sharedCheck {
+  position: absolute;
+  width: 96px;
+  height: 86px;
+  left: 50%;
+  z-index: 50;
+  transition: top 560ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 560ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.sharedCheckCenter {
+  top: 377px;
+  transform: translateX(-50%);
+}
+
+.sharedCheckTop {
+  top: 150px;
+  transform: translateX(-50%);
+}
+
+.checkWrap {
+  width: 96px;
+  height: 86px;
+  position: relative;
+}
+
+.checkCircle {
+  width: 86px;
+  height: 86px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: center;
+  animation: circlePop 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes circlePop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.checkPath {
+  position: absolute;
+  inset: 0;
+  width: 96px;
+  height: 86px;
+  overflow: visible;
+}
+
+.checkPath path {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: drawCheck 420ms cubic-bezier(0.65, 0, 0.35, 1) 80ms both;
+}
+
+@keyframes drawCheck {
+  from { stroke-dashoffset: 100; }
+  to { stroke-dashoffset: 0; }
+}
+
+.checkSpinner {
+  position: absolute;
+  width: 104px;
+  height: 104px;
+  left: -9px;
+  top: -9px;
+  transform-origin: center;
+  animation: spin 900ms linear infinite, fadeInQuick 280ms ease both;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInQuick {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirmationText {
+  position: absolute;
+  top: 471px;
+  left: 50%;
+  font-family: inherit;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  margin: 0;
+  text-align: center;
+  z-index: 51;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(-50%, 6px);
+  transition: opacity 280ms ease, transform 280ms ease;
+}
+
+.confirmationTextActive {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  transition: opacity 320ms ease 480ms, transform 320ms ease 480ms;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translate(-50%, 6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ---------- Step 3: Receipt ---------- */
+
+.receiptHero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+}
+
+.receiptTitle {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+  color: #333;
+  margin: 0;
+}
+
+.receiptSubtitle {
+  font-size: 17px;
+  color: #737373;
+  line-height: 24px;
+  margin: 0;
+}
+
+.primaryButton {
+  height: 48px;
+  background: #007272;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0 24px;
+  font-size: 16px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+
+.primaryButton:hover { background: #005a5a; }
+.primaryButton:active { transform: scale(0.97); }
+
+.receiptDetailList {
+  width: 100%;
+}
+
+.receiptCellTitle {
+  font-size: 13px;
+  color: #737373;
+  line-height: 16px;
+  margin: 0;
+}
+
+.receiptCellValue {
+  font-size: 17px;
+  color: #333;
+  line-height: 24px;
+  margin: 0;
+}

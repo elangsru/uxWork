@@ -21,6 +21,11 @@ export default function Home() {
         text="Pending payments"
         href="/paymentsOverview"
       />
+      <Button
+        variant="tertiary"
+        text="Payment confirmation"
+        href="/paymentConfirmation"
+      />
     </main>
   );
 }
