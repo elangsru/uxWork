@@ -1,5 +1,21 @@
+"use client";
+
 import { Button } from "@dnb/eufemia/components";
 import { H1, P } from "@dnb/eufemia/elements";
+import { chevron_right, launch } from "@dnb/eufemia/icons";
+
+const projects = [
+  {
+    label: "Pending payments overview",
+    href: "/paymentsOverview",
+    jiraUrl: "https://dnb-asa.atlassian.net/browse/RCP-5048",
+  },
+  {
+    label: "Payment confirmation (concept)",
+    href: "/paymentConfirmation",
+    jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-49516",
+  },
+];
 
 export default function Home() {
   return (
@@ -14,18 +30,32 @@ export default function Home() {
         alignItems: "flex-start",
       }}
     >
-      <H1 size="x-large" suppressHydrationWarning>Prosjekter</H1>
-      <P>On going projects by Espen Langsrud</P>
-      <Button
-        variant="tertiary"
-        text="Pending payments"
-        href="/paymentsOverview"
-      />
-      <Button
-        variant="tertiary"
-        text="Payment confirmation"
-        href="/paymentConfirmation"
-      />
+      <H1 size="x-large" suppressHydrationWarning>Design to code projects</H1>
+      <P>by Espen Langsrud</P>
+      {projects.map((p) => (
+        <div
+          key={p.href}
+          style={{ display: "flex", gap: "16px", alignItems: "center" }}
+        >
+          <Button
+            variant="secondary"
+            text={p.label}
+            icon={chevron_right}
+            icon_position="right"
+            href={p.href}
+          />
+          <Button
+            variant="tertiary"
+            text={p.jiraUrl}
+            icon={launch}
+            icon_position="right"
+            icon_size="medium"
+            href={p.jiraUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          />
+        </div>
+      ))}
     </main>
   );
 }
