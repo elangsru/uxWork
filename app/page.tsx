@@ -41,15 +41,15 @@ export default function Home() {
             variant="secondary"
             text={p.label}
             icon={chevron_right}
-            icon_position="right"
+            iconPosition="right"
             href={p.href}
           />
           <Button
             variant="tertiary"
             text={p.jiraUrl}
             icon={launch}
-            icon_position="right"
-            icon_size="medium"
+            iconPosition="right"
+            iconSize="medium"
             href={p.jiraUrl}
             target="_blank"
             rel="noopener noreferrer"
