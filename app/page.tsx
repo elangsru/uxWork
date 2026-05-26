@@ -15,6 +15,11 @@ const projects = [
     href: "/paymentConfirmation",
     jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-49516",
   },
+  {
+    label: "International payments",
+    href: "/internationalPayment",
+    jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-48322",
+  },
 ];
 
 export default function Home() {
@@ -44,16 +49,18 @@ export default function Home() {
             iconPosition="right"
             href={p.href}
           />
-          <Button
-            variant="tertiary"
-            text={p.jiraUrl}
-            icon={launch}
-            iconPosition="right"
-            iconSize="medium"
-            href={p.jiraUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          />
+          {p.jiraUrl && (
+            <Button
+              variant="tertiary"
+              text={p.jiraUrl}
+              icon={launch}
+              iconPosition="right"
+              iconSize="medium"
+              href={p.jiraUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            />
+          )}
         </div>
       ))}
     </main>
