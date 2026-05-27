@@ -140,6 +140,7 @@ function SummaryStep({
   amountInNok,
   showFixedRate,
   showPurpose,
+  customInfoStyle,
   paymentType,
   costOption,
   setCostOption,
@@ -160,6 +161,7 @@ function SummaryStep({
   amountInNok: boolean;
   showFixedRate: boolean;
   showPurpose: boolean;
+  customInfoStyle: boolean;
   paymentType: string;
   costOption: string;
   setCostOption: (value: string) => void;
@@ -228,6 +230,8 @@ function SummaryStep({
         .summary-container .dnb-list__item:not(:last-child) {
           border-bottom: 1px solid var(--token-color-stroke-neutral-subtle);
         }
+        .summary-container .dnb-list__item__footer-separator { display: none; }
+        .summary-container .dnb-list__item__footer { padding-top: 0; }
       `}</style>
 
       {/* Oppsummering */}
@@ -257,14 +261,25 @@ function SummaryStep({
             <List.Item.Basic>
               <List.Cell.Title>Valutakurs ({currencyCode} 1)</List.Cell.Title>
               <List.Cell.End>NOK {fmtAmount(rate)}</List.Cell.End>
+              {!customInfoStyle && (
+                <List.Cell.Footer>
+                  <FormStatus
+                    state="information"
+                    stretch
+                    text="Valutakurs er kun foreløpig. Endelig kurs settes når betalingen gjennomføres."
+                  />
+                </List.Cell.Footer>
+              )}
             </List.Item.Basic>
           </List.Container>
-          <FormStatus
-            state="information"
-            stretch
-            text="Valutakurs er kun foreløpig. Endelig kurs settes når betalingen gjennomføres."
-            style={{ "--form-status-radius": "0" } as CSSProperties}
-          />
+          {customInfoStyle && (
+            <FormStatus
+              state="information"
+              stretch
+              text="Valutakurs er kun foreløpig. Endelig kurs settes når betalingen gjennomføres."
+              style={{ "--form-status-radius": "0" } as CSSProperties}
+            />
+          )}
         </div>
       </div>
 
@@ -300,14 +315,24 @@ function SummaryStep({
               </List.Cell.Start>
               <List.Cell.Title>{costLabel}</List.Cell.Title>
               <List.Cell.End>{costDisplay}</List.Cell.End>
+              {!customInfoStyle && costMessage && (
+                <List.Cell.Footer>
+                  <FormStatus state="information" stretch text={costMessage} />
+                </List.Cell.Footer>
+              )}
             </List.Item.Basic>
           </List.Container>
-          <FormStatus
-            state="information"
-            stretch
-            text={costMessage ?? ""}
-            style={{ "--form-status-radius": "0", display: costMessage ? undefined : "none" } as CSSProperties}
-          />
+          {customInfoStyle && (
+            <FormStatus
+              state="information"
+              stretch
+              text={costMessage ?? ""}
+              style={{
+                "--form-status-radius": "0",
+                display: costMessage ? undefined : "none",
+              } as CSSProperties}
+            />
+          )}
         </div>
       </div>
 
@@ -416,6 +441,7 @@ export default function InternationalPayment() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showFixedRate, setShowFixedRate] = useState(false);
   const [showPurpose, setShowPurpose] = useState(false);
+  const [customInfoStyle, setCustomInfoStyle] = useState(false);
   const [paymentType, setPaymentType] = useState("sepa");
   const [costOption, setCostOption] = useState("delt");
   const [agreedRate, setAgreedRate] = useState("");
@@ -710,6 +736,7 @@ export default function InternationalPayment() {
               amountInNok={amountInNok}
               showFixedRate={showFixedRate}
               showPurpose={showPurpose}
+              customInfoStyle={customInfoStyle}
               paymentType={paymentType}
               costOption={costOption}
               setCostOption={setCostOption}
@@ -782,6 +809,11 @@ export default function InternationalPayment() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>Show purpose</P>
             <Switch label="Show purpose" labelSrOnly checked={showPurpose} onChange={({ checked }) => setShowPurpose(checked)} />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Info message filled</P>
+            <Switch label="Info message filled" labelSrOnly checked={customInfoStyle} onChange={({ checked }) => setCustomInfoStyle(checked)} />
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
