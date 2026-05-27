@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown } from "@dnb/eufemia/components";
+import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown } from "@dnb/eufemia/components";
 import { H1, H3, P } from "@dnb/eufemia/elements";
 import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close } from "@dnb/eufemia/icons";
 
@@ -535,12 +535,21 @@ export default function InternationalPayment() {
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: "16px" }}>
                   <div style={{ flex: 1 }}>
-                    <Input
+                    <InputMasked
                       label="Beløp"
                       size="medium"
                       stretch
+                      numberMask={{
+                        prefix: `${amountInNok ? "NOK" : selectedCurrency?.code ?? "NOK"} `,
+                        suffix: "",
+                        allowDecimal: true,
+                        decimalLimit: 2,
+                        thousandsSeparatorSymbol: " ",
+                        decimalSymbol: ",",
+                      }}
+                      placeholder={amountInNok ? "NOK" : selectedCurrency?.code ?? ""}
                       value={amount}
-                      onChange={({ value }) => setAmount(value)}
+                      onChange={({ numberValue }) => setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")}
                     />
                   </div>
                   <div style={{ height: "2.5rem", display: "flex", alignItems: "center" }}>
