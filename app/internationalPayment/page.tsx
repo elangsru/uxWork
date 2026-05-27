@@ -814,21 +814,6 @@ export default function InternationalPayment() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Show fixed rate</P>
-            <Switch label="Show fixed rate" labelSrOnly checked={showFixedRate} onChange={({ checked }) => setShowFixedRate(checked)} />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Show purpose</P>
-            <Switch label="Show purpose" labelSrOnly checked={showPurpose} onChange={({ checked }) => setShowPurpose(checked)} />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Info message filled</P>
-            <Switch label="Info message filled" labelSrOnly checked={customInfoStyle} onChange={({ checked }) => setCustomInfoStyle(checked)} />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>Payment type</P>
             <div className="narrow-dropdown">
               <style>{`
@@ -847,6 +832,21 @@ export default function InternationalPayment() {
                 onChange={({ data }) => setPaymentType(typeof data?.selectedKey === "string" ? data.selectedKey : "cross-border")}
               />
             </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Show purpose</P>
+            <Switch label="Show purpose" labelSrOnly checked={showPurpose} onChange={({ checked }) => setShowPurpose(checked)} />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Show fixed rate</P>
+            <Switch label="Show fixed rate" labelSrOnly checked={showFixedRate} onChange={({ checked }) => setShowFixedRate(checked)} />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Info message filled</P>
+            <Switch label="Info message filled" labelSrOnly checked={customInfoStyle} onChange={({ checked }) => setCustomInfoStyle(checked)} />
           </div>
         </div>
       )}
