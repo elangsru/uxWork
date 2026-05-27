@@ -2,9 +2,9 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown } from "@dnb/eufemia/components";
+import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown, Popover } from "@dnb/eufemia/components";
 import { H1, H3, P } from "@dnb/eufemia/elements";
-import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close } from "@dnb/eufemia/icons";
+import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close, bank_medium, location_medium, edit } from "@dnb/eufemia/icons";
 
 const fromAccountList = [
   { content: ["Lønnskonto", "7001 19 60764"], suffixValue: "NOK 7 804,46" },
@@ -18,13 +18,63 @@ const fromAccounts = fromAccountList.map((a, i) => ({
   selectedKey: String(i),
 }));
 
-type Recipient = { name: string; iban: string; iso: string; currencies: string[]; defaultCurrency: string };
+type Recipient = {
+  name: string;
+  iban: string;
+  iso: string;
+  currencies: string[];
+  defaultCurrency: string;
+  bankName: string;
+  bankAddress: string[];
+  swift: string;
+  address: string[];
+};
 
 const recipients: Recipient[] = [
-  { name: "Didrich Stökl", iban: "AT48 3200 0000 1234 5864", iso: "AT", currencies: ["EUR"], defaultCurrency: "EUR" },
-  { name: "John Jones", iban: "GB33 BUKB 2020 1555 5555 55", iso: "GB", currencies: ["EUR", "GBP"], defaultCurrency: "GBP" },
-  { name: "Jose Martinez", iban: "ES79 2100 0813 6101 2345 6789", iso: "ES", currencies: ["EUR"], defaultCurrency: "EUR" },
-  { name: "Medel Svedsson", iban: "SE72 8000 0810 3400 0978 3242", iso: "SE", currencies: ["EUR", "SEK"], defaultCurrency: "SEK" },
+  {
+    name: "Didrich Stökl",
+    iban: "AT48 3200 0000 1234 5864",
+    iso: "AT",
+    currencies: ["EUR"],
+    defaultCurrency: "EUR",
+    bankName: "RAIFFEISENLANDESBANK NIEDEROESTERREICH-WIEN AG",
+    bankAddress: ["Friedrich-Wilhelm-Raiffeisenplatz 1", "Austria"],
+    swift: "RLNWATWWXXX",
+    address: ["Streetname 123", "12345 Vienna", "Austria"],
+  },
+  {
+    name: "John Jones",
+    iban: "GB33 BUKB 2020 1555 5555 55",
+    iso: "GB",
+    currencies: ["EUR", "GBP"],
+    defaultCurrency: "GBP",
+    bankName: "BARCLAYS BANK PLC",
+    bankAddress: ["1 Churchill Place", "London", "United Kingdom"],
+    swift: "BUKBGB22",
+    address: ["12 Baker Street", "W1U 6TT London", "United Kingdom"],
+  },
+  {
+    name: "Jose Martinez",
+    iban: "ES79 2100 0813 6101 2345 6789",
+    iso: "ES",
+    currencies: ["EUR"],
+    defaultCurrency: "EUR",
+    bankName: "CAIXABANK S.A.",
+    bankAddress: ["Av. Diagonal 621", "Barcelona", "Spain"],
+    swift: "CAIXESBBXXX",
+    address: ["Carrer de Mallorca 401", "08013 Barcelona", "Spain"],
+  },
+  {
+    name: "Medel Svedsson",
+    iban: "SE72 8000 0810 3400 0978 3242",
+    iso: "SE",
+    currencies: ["EUR", "SEK"],
+    defaultCurrency: "SEK",
+    bankName: "SVENSKA HANDELSBANKEN AB",
+    bankAddress: ["Kungsträdgårdsgatan 2", "Stockholm", "Sweden"],
+    swift: "HANDSESS",
+    address: ["Drottninggatan 15", "111 51 Stockholm", "Sweden"],
+  },
 ];
 
 const toAccounts = recipients.map((r) => ({
@@ -505,7 +555,59 @@ export default function InternationalPayment() {
               </div>
               {selectedRecipient && (
                 <div style={{ marginTop: "-16px" }}>
-                  <Button variant="tertiary" text={selectedRecipient.name} icon={chevron_right} iconPosition="right" />
+                  <Popover
+                    title="Info om betalingsmottaker"
+                    placement="bottom"
+                    alignOnTarget="left"
+                    arrowPosition="left"
+                    arrowEdgeOffset={16}
+                    trigger={({ ref, toggle }) => (
+                      <Button
+                        ref={ref as React.Ref<HTMLButtonElement>}
+                        variant="tertiary"
+                        text={selectedRecipient.name}
+                        icon={chevron_right}
+                        iconPosition="right"
+                        onClick={() => toggle()}
+                      />
+                    )}
+                  >
+                    <div
+                      style={{
+                        outline: "1px solid var(--token-color-stroke-neutral-alternative)",
+                        borderRadius: "var(--token-radius-md)",
+                        padding: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "16px",
+                      }}
+                    >
+                      <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                        <Icon icon={bank_medium} size="medium" />
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <P style={{ fontWeight: 500, margin: 0 }}>Mottakers bank:</P>
+                          <P style={{ margin: 0 }}>{selectedRecipient.bankName}</P>
+                          {selectedRecipient.bankAddress.map((line) => (
+                            <P key={line} style={{ margin: 0 }}>{line}</P>
+                          ))}
+                          <P style={{ fontWeight: 500, margin: 0, marginTop: "8px" }}>SWIFT/BIC-kode:</P>
+                          <P style={{ margin: 0 }}>{selectedRecipient.swift}</P>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                        <Icon icon={location_medium} size="medium" />
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          <P style={{ fontWeight: 500, margin: 0 }}>Mottakers adresse:</P>
+                          {selectedRecipient.address.map((line) => (
+                            <P key={line} style={{ margin: 0 }}>{line}</P>
+                          ))}
+                        </div>
+                      </div>
+                      <div style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)", paddingTop: "12px" }}>
+                        <Button variant="tertiary" text="Endre" icon={edit} iconPosition="left" />
+                      </div>
+                    </div>
+                  </Popover>
                 </div>
               )}
               <Autocomplete
