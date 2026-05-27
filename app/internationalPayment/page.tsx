@@ -690,7 +690,19 @@ export default function InternationalPayment() {
                   </div>
                 </div>
                 <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-                  Du blir belastet ca NOK -,--. Korrekt kurs fastsettes når betalingen gjennomføres.
+                  {(() => {
+                    const amountNum = parseFloat(amount.replace(",", ".")) || 0;
+                    const rate = selectedCurrency ? exchangeRates[selectedCurrency.code] ?? 1 : 1;
+                    const formatted = (v: number) => v > 0 ? fmtAmount(v) : "-,--";
+                    if (amountInNok) {
+                      const foreign = rate ? amountNum / rate : 0;
+                      const recipientName = selectedRecipient?.name ?? "Mottaker";
+                      const code = selectedCurrency?.code ?? "—";
+                      return `${recipientName} mottar ca ${code} ${formatted(foreign)}. Korrekt kurs fastsettes når betalingen gjennomføres.`;
+                    }
+                    const nok = amountNum * rate;
+                    return `Du blir belastet ca NOK ${formatted(nok)}. Korrekt kurs fastsettes når betalingen gjennomføres.`;
+                  })()}
                 </P>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
