@@ -1,27 +1,30 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown } from "@dnb/eufemia/components";
 import { H1, H3, P } from "@dnb/eufemia/elements";
-import { chevron_down, chevron_up, chevron_right, add, globe_medium, filter, close } from "@dnb/eufemia/icons";
+import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close } from "@dnb/eufemia/icons";
 
-const fromAccounts = [
+const fromAccountList = [
   { content: ["Lønnskonto", "7001 19 60764"], suffixValue: "NOK 7 804,46" },
   { content: ["Brukskonto", "0539 52 33566"], suffixValue: "NOK 0,00" },
   { content: ["Sparekonto", "1234 56 78901"], suffixValue: "NOK 152 300,00" },
   { content: ["Felleskonto", "1503 24 78612"], suffixValue: "NOK 42 500,00" },
 ];
 
-type Recipient = { name: string; iban: string; iso: string };
+const fromAccounts = fromAccountList.map((a, i) => ({
+  ...a,
+  selectedKey: String(i),
+}));
+
+type Recipient = { name: string; iban: string; iso: string; currencies: string[]; defaultCurrency: string };
 
 const recipients: Recipient[] = [
-  { name: "Didrich Stökl", iban: "AT48 3200 0000 1234 5864", iso: "AT" },
-  { name: "John Jones", iban: "GB33 BUKB 2020 1555 5555 55", iso: "GB" },
-  { name: "Jose Martinez", iban: "ES79 2100 0813 6101 2345 6789", iso: "ES" },
-  { name: "Medel Svedsson", iban: "SE72 8000 0810 3400 0978 3242", iso: "SE" },
-  { name: "Anna Schmidt", iban: "DE89 3704 0044 0532 0130 00", iso: "DE" },
-  { name: "Sophie Laurent", iban: "FR14 2004 1010 0505 0001 3M02 606", iso: "FR" },
+  { name: "Didrich Stökl", iban: "AT48 3200 0000 1234 5864", iso: "AT", currencies: ["EUR"], defaultCurrency: "EUR" },
+  { name: "John Jones", iban: "GB33 BUKB 2020 1555 5555 55", iso: "GB", currencies: ["EUR", "GBP"], defaultCurrency: "GBP" },
+  { name: "Jose Martinez", iban: "ES79 2100 0813 6101 2345 6789", iso: "ES", currencies: ["EUR"], defaultCurrency: "EUR" },
+  { name: "Medel Svedsson", iban: "SE72 8000 0810 3400 0978 3242", iso: "SE", currencies: ["EUR", "SEK"], defaultCurrency: "SEK" },
 ];
 
 const toAccounts = recipients.map((r) => ({
@@ -87,6 +90,18 @@ function SummaryStep({
   amountInNok,
   showFixedRate,
   showPurpose,
+  paymentType,
+  costOption,
+  setCostOption,
+  agreedRate,
+  setAgreedRate,
+  reference,
+  setReference,
+  purpose,
+  setPurpose,
+  description,
+  setDescription,
+  onBack,
 }: {
   paymentDate: string;
   recipient: Recipient | null;
@@ -95,6 +110,18 @@ function SummaryStep({
   amountInNok: boolean;
   showFixedRate: boolean;
   showPurpose: boolean;
+  paymentType: string;
+  costOption: string;
+  setCostOption: (value: string) => void;
+  agreedRate: string;
+  setAgreedRate: (value: string) => void;
+  reference: string;
+  setReference: (value: string) => void;
+  purpose: string;
+  setPurpose: (value: string) => void;
+  description: string;
+  setDescription: (value: string) => void;
+  onBack: () => void;
 }) {
   const rate = currency ? exchangeRates[currency.code] ?? 1 : 1;
   const amountNum = parseFloat(amount.replace(",", ".")) || 0;
@@ -102,18 +129,37 @@ function SummaryStep({
   const nokAmount = amountInNok ? amountNum : amountNum * rate;
   const currencyCode = currency?.code ?? "—";
 
-  const [costOption, setCostOption] = useState("delt");
-  const cost = costOption === "jeg" ? 410 : costOption === "mottaker" ? 0 : 60;
-  const costMessage = costOption === "jeg"
+  const isEuropa = paymentType === "europa";
+  const isSepa = paymentType === "sepa";
+  const isCrossBorder = !isEuropa && !isSepa;
+  const cost = isEuropa
+    ? 30
+    : isSepa
+    ? 0
+    : costOption === "jeg"
+    ? 410
+    : costOption === "mottaker"
+    ? 0
+    : 60;
+  const costLabel = isEuropa
+    ? "Europa-betaling"
+    : isSepa
+    ? "SEPA-betaling"
+    : "Cross border-betaling";
+  const costDisplay = isEuropa
+    ? "kr 30,00"
+    : isSepa
+    ? "kr 0,00"
+    : `NOK ${fmtAmount(cost)}`;
+  const costMessage = isSepa
+    ? null
+    : isEuropa
+    ? "Transaksjonskostnaden er delt mellom deg og mottaker. Dette er din pris."
+    : costOption === "jeg"
     ? "Ekstra gebyr (NOK 350,00) legges til prisen (NOK 60,00) for å dekke kostnader belastet i andre banker."
     : costOption === "mottaker"
     ? `Kostnader belastet av andre banker blir trukket fra beløpet som sendes (${currencyCode} ${fmtAmount(foreignAmount)}). Sørg for å ha nok til å dekke det du skal betale for.`
     : "Transaksjonskostnaden er delt mellom deg og mottaker. Dette er din pris.";
-
-  const [agreedRate, setAgreedRate] = useState("");
-  const [reference, setReference] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [description, setDescription] = useState("");
 
   const optionalLabel = (text: string) => (
     <>
@@ -151,11 +197,11 @@ function SummaryStep({
               <List.Cell.End>{fmtDate(paymentDate)}</List.Cell.End>
             </List.Item.Basic>
             <List.Item.Basic>
-              <List.Cell.Title>Du sender (ca)</List.Cell.Title>
+              <List.Cell.Title>Du sender{amountInNok ? "" : " (ca)"}</List.Cell.Title>
               <List.Cell.End>NOK {fmtAmount(nokAmount)}</List.Cell.End>
             </List.Item.Basic>
             <List.Item.Basic>
-              <List.Cell.Title>{recipient ? `${recipient.name} mottar` : "Mottaker mottar"}</List.Cell.Title>
+              <List.Cell.Title>{recipient ? `${recipient.name} mottar` : "Mottaker mottar"}{amountInNok ? " (ca)" : ""}</List.Cell.Title>
               <List.Cell.End>{currencyCode} {fmtAmount(foreignAmount)}</List.Cell.End>
             </List.Item.Basic>
             <List.Item.Basic>
@@ -175,18 +221,20 @@ function SummaryStep({
       {/* Pris */}
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <H3>Pris</H3>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <P>Hvem dekker omkostninger?</P>
-          <Radio.Group
-            layoutDirection="row"
-            value={costOption}
-            onChange={({ value }) => setCostOption(value)}
-          >
-            <Radio label="Delt (anbefalt)" value="delt" />
-            <Radio label="Jeg (+NOK 350)" value="jeg" />
-            <Radio label="Mottaker" value="mottaker" />
-          </Radio.Group>
-        </div>
+        {isCrossBorder && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <P>Hvem dekker omkostninger?</P>
+            <Radio.Group
+              layoutDirection="row"
+              value={costOption}
+              onChange={({ value }) => setCostOption(value)}
+            >
+              <Radio label="Delt (anbefalt)" value="delt" />
+              <Radio label="Jeg (+NOK 350)" value="jeg" />
+              <Radio label="Mottaker" value="mottaker" />
+            </Radio.Group>
+          </div>
+        )}
         <div
           className="summary-container"
           style={{
@@ -200,15 +248,15 @@ function SummaryStep({
               <List.Cell.Start>
                 <Icon icon={globe_medium} color="var(--token-color-icon-action)" />
               </List.Cell.Start>
-              <List.Cell.Title>Cross border-betaling</List.Cell.Title>
-              <List.Cell.End>NOK {fmtAmount(cost)}</List.Cell.End>
+              <List.Cell.Title>{costLabel}</List.Cell.Title>
+              <List.Cell.End>{costDisplay}</List.Cell.End>
             </List.Item.Basic>
           </List.Container>
           <FormStatus
             state="information"
             stretch
-            text={costMessage}
-            style={{ "--form-status-radius": "0" } as CSSProperties}
+            text={costMessage ?? ""}
+            style={{ "--form-status-radius": "0", display: costMessage ? undefined : "none" } as CSSProperties}
           />
         </div>
       </div>
@@ -272,6 +320,18 @@ function SummaryStep({
           />
         </div>
       )}
+
+      {/* Action buttons */}
+      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <Button
+          variant="tertiary"
+          text="Tilbake"
+          icon={chevron_left}
+          iconPosition="left"
+          onClick={onBack}
+        />
+        <Button variant="primary" text="Betal" />
+      </div>
     </div>
   );
 }
@@ -294,6 +354,7 @@ export default function InternationalPayment() {
   const [currencyOpen, setCurrencyOpen] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null);
+  const [selectedFromKey, setSelectedFromKey] = useState<string | null>(null);
   const [amountInNok, setAmountInNok] = useState(false);
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
@@ -305,9 +366,35 @@ export default function InternationalPayment() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showFixedRate, setShowFixedRate] = useState(false);
   const [showPurpose, setShowPurpose] = useState(false);
-  const [paymentType, setPaymentType] = useState("cross-border");
+  const [paymentType, setPaymentType] = useState("sepa");
+  const [costOption, setCostOption] = useState("delt");
+  const [agreedRate, setAgreedRate] = useState("");
+  const [reference, setReference] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [description, setDescription] = useState("");
 
   const recipientError = submitted && !selectedRecipient ? "Dette feltet må fylles ut." : undefined;
+
+  useEffect(() => {
+    if (selectedRecipient?.name === "John Jones") {
+      setPaymentType("europa");
+    } else if (selectedRecipient) {
+      setPaymentType("sepa");
+    }
+  }, [selectedRecipient]);
+
+  useEffect(() => {
+    if (selectedRecipient) {
+      const def = currencyList.find((c) => c.code === selectedRecipient.defaultCurrency);
+      if (def) setSelectedCurrency(def);
+    } else {
+      setSelectedCurrency(null);
+    }
+  }, [selectedRecipient]);
+
+  const filteredCurrencies = selectedRecipient
+    ? currencies.filter((c) => selectedRecipient.currencies.includes(String(c.selectedKey)))
+    : currencies;
   const messageError = submitted && !message.trim() ? "Dette feltet må fylles ut." : undefined;
 
   function handleNext() {
@@ -377,8 +464,16 @@ export default function InternationalPayment() {
                 showSubmitButton
                 submitButtonTitle=""
                 submitButtonIcon={<Icon icon={fromOpen ? chevron_up : chevron_down} />}
+                value={selectedFromKey ?? undefined}
                 onOpen={() => setFromOpen(true)}
                 onClose={() => setFromOpen(false)}
+                onChange={({ selectedItem }) => {
+                  if (typeof selectedItem === "number") {
+                    setSelectedFromKey(String(selectedItem));
+                  } else {
+                    setSelectedFromKey(null);
+                  }
+                }}
               />
               <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                 <div style={{ flex: 1 }}>
@@ -392,6 +487,7 @@ export default function InternationalPayment() {
                     submitButtonTitle=""
                     submitButtonIcon={<Icon icon={toOpen ? chevron_up : chevron_down} />}
                     status={recipientError}
+                    value={selectedRecipient?.iban ?? undefined}
                     onOpen={() => setToOpen(true)}
                     onClose={() => setToOpen(false)}
                     onChange={({ selectedItem }) => {
@@ -415,7 +511,7 @@ export default function InternationalPayment() {
               <Autocomplete
                 label="Valuta som sendes"
                 size="medium"
-                data={currencies}
+                data={filteredCurrencies}
                 placeholder="Velg valuta"
                 stretch
                 disabled={!selectedRecipient}
@@ -423,11 +519,14 @@ export default function InternationalPayment() {
                 submitButtonTitle=""
                 submitButtonIcon={<Icon icon={currencyOpen ? chevron_up : chevron_down} />}
                 icon={selectedCurrency ? <CountryFlag iso={selectedCurrency.iso} size="small" /> : undefined}
+                value={selectedCurrency?.code ?? undefined}
                 onOpen={() => setCurrencyOpen(true)}
                 onClose={() => setCurrencyOpen(false)}
                 onChange={({ selectedItem }) => {
-                  if (typeof selectedItem === "number" && currencyList[selectedItem]) {
-                    setSelectedCurrency(currencyList[selectedItem]);
+                  if (typeof selectedItem === "number" && filteredCurrencies[selectedItem]) {
+                    const code = String(filteredCurrencies[selectedItem].selectedKey);
+                    const c = currencyList.find((x) => x.code === code);
+                    setSelectedCurrency(c ?? null);
                   } else {
                     setSelectedCurrency(null);
                   }
@@ -500,6 +599,18 @@ export default function InternationalPayment() {
               amountInNok={amountInNok}
               showFixedRate={showFixedRate}
               showPurpose={showPurpose}
+              paymentType={paymentType}
+              costOption={costOption}
+              setCostOption={setCostOption}
+              agreedRate={agreedRate}
+              setAgreedRate={setAgreedRate}
+              reference={reference}
+              setReference={setReference}
+              purpose={purpose}
+              setPurpose={setPurpose}
+              description={description}
+              setDescription={setDescription}
+              onBack={() => setCurrentStep(0)}
             />
           )}
         </div>
@@ -548,7 +659,7 @@ export default function InternationalPayment() {
               </button>
             </div>
             <P size="basis" style={{ margin: 0 }}>
-              For experimening purposes only...
+              For experimenting purposes only...
             </P>
           </div>
 
