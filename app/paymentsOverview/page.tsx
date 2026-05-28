@@ -150,6 +150,7 @@ export default function PaymentsOverview() {
   const [darkMode, setDarkMode] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
   const [showUnconfirmed, setShowUnconfirmed] = useState(true);
+  const [fullWidth, setFullWidth] = useState(false);
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [accountOpen, setAccountOpen] = useState(false);
   const [startDate, setStartDate] = useState(fmt(today));
@@ -622,6 +623,12 @@ export default function PaymentsOverview() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
           <P size="basis" style={{ margin: 0 }}>Show unconfirmed eInvoices</P>
           <Switch label="Show unconfirmed eInvoices" labelSrOnly checked={showUnconfirmed} onChange={({ checked }) => setShowUnconfirmed(checked)} />
+        </div>
+
+        {/* Full width row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+          <P size="basis" style={{ margin: 0 }}>Full width</P>
+          <Switch label="Full width" labelSrOnly checked={fullWidth} onChange={({ checked }) => setFullWidth(checked)} />
         </div>
       </div>
     )}

@@ -142,6 +142,7 @@ function SummaryStep({
   showPurpose,
   customInfoStyle,
   paymentType,
+  fullWidth,
   costOption,
   setCostOption,
   agreedRate,
@@ -163,6 +164,7 @@ function SummaryStep({
   showPurpose: boolean;
   customInfoStyle: boolean;
   paymentType: string;
+  fullWidth: boolean;
   costOption: string;
   setCostOption: (value: string) => void;
   agreedRate: string;
@@ -223,7 +225,7 @@ function SummaryStep({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: "488px", width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: fullWidth ? "100%" : "488px", width: "100%" }}>
       <style>{`
         .summary-container .dnb-list__item::after { display: none !important; }
         .summary-container .dnb-list__item { border-radius: 0 !important; }
@@ -232,6 +234,9 @@ function SummaryStep({
         }
         .summary-container .dnb-list__item__footer-separator { display: none; }
         .summary-container .dnb-list__item__footer { padding-top: 0; }
+        .summary-container .dnb-form-status,
+        .summary-container .dnb-form-status__shell,
+        .summary-container .dnb-form-status__text { max-width: none !important; width: 100%; }
       `}</style>
 
       {/* Oppsummering */}
@@ -442,6 +447,7 @@ export default function InternationalPayment() {
   const [showFixedRate, setShowFixedRate] = useState(false);
   const [showPurpose, setShowPurpose] = useState(false);
   const [customInfoStyle, setCustomInfoStyle] = useState(false);
+  const [fullWidth, setFullWidth] = useState(false);
   const [paymentType, setPaymentType] = useState("sepa");
   const [costOption, setCostOption] = useState("delt");
   const [agreedRate, setAgreedRate] = useState("");
@@ -515,7 +521,7 @@ export default function InternationalPayment() {
                 .
               </P>
             </div>
-            <div style={{ maxWidth: "488px", width: "100%" }}>
+            <div style={{ maxWidth: fullWidth ? "100%" : "488px", width: "100%" }}>
               <StepIndicator
                 mode="strict"
                 currentStep={currentStep}
@@ -530,7 +536,7 @@ export default function InternationalPayment() {
 
           {/* Step content */}
           {currentStep === 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: "488px", width: "100%" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: fullWidth ? "100%" : "488px", width: "100%" }}>
               <Autocomplete
                 label="Fra konto"
                 size="medium"
@@ -750,6 +756,7 @@ export default function InternationalPayment() {
               showPurpose={showPurpose}
               customInfoStyle={customInfoStyle}
               paymentType={paymentType}
+              fullWidth={fullWidth}
               costOption={costOption}
               setCostOption={setCostOption}
               agreedRate={agreedRate}
@@ -847,6 +854,11 @@ export default function InternationalPayment() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>Info message filled</P>
             <Switch label="Info message filled" labelSrOnly checked={customInfoStyle} onChange={({ checked }) => setCustomInfoStyle(checked)} />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Full width</P>
+            <Switch label="Full width" labelSrOnly checked={fullWidth} onChange={({ checked }) => setFullWidth(checked)} />
           </div>
         </div>
       )}

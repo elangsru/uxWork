@@ -4,7 +4,7 @@ import { useState, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, Icon, List, Switch } from "@dnb/eufemia/components";
 import { H1, H2, H3, P } from "@dnb/eufemia/elements";
-import { check_medium, transfer_to, thumbs_up, thumbs_down, filter, close } from "@dnb/eufemia/icons";
+import { transfer_to, thumbs_up, thumbs_down, filter, close } from "@dnb/eufemia/icons";
 
 const PAYMENT = {
   fromName: "Lønnskonto",
@@ -18,6 +18,7 @@ const PAYMENT = {
 export default function InternationalPaymentConfirmation() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showFeedback, setShowFeedback] = useState(true);
+  const [fullWidth, setFullWidth] = useState(false);
 
   return (
     <Theme colorScheme="light">
@@ -64,20 +65,24 @@ export default function InternationalPaymentConfirmation() {
               alignItems: "center",
             }}
           >
-            <div
-              style={{
-                width: "64px",
-                height: "64px",
-                borderRadius: "50%",
-                background: "var(--token-color-background-success-subtle)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexShrink: 0,
-              }}
+            <svg
+              width="96"
+              height="86"
+              viewBox="0 0 200.095 178.42"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ flexShrink: 0 }}
+              aria-hidden="true"
             >
-              <Icon icon={check_medium} size="medium" color="var(--token-color-icon-success)" />
-            </div>
+              <path
+                d="M178.39 91.5384C178.85 73.9001 174.07 56.5213 164.653 41.5998C155.237 26.6783 141.607 14.8843 125.487 7.70925C109.368 0.534179 91.4825 -1.69969 74.0934 1.29014C56.7042 4.27997 40.5922 12.3592 27.7948 24.5062C14.9974 36.6531 6.08942 52.3222 2.19741 69.5319C-1.69461 86.7416 -0.395883 104.719 5.92936 121.191C12.2546 137.662 23.3223 151.888 37.7327 162.07C52.1432 172.251 69.2492 177.93 86.8875 178.39C110.538 179.006 133.465 170.202 150.625 153.914C167.785 137.626 177.772 115.189 178.39 91.5384Z"
+                fill="#00353F"
+              />
+              <path
+                transform="translate(28.49 13.63)"
+                d="M47.9049 134.31L1.81338 73.8349C0.410342 72.0288 -0.217757 69.7393 0.0672565 67.4701C0.35227 65.2009 1.52705 63.1379 3.33315 61.7348C5.13926 60.3318 7.42874 59.7037 9.69794 59.9887C11.9671 60.2737 14.0302 61.4485 15.4332 63.2546L48.6524 106.34C68.3513 82.1563 124.309 14.8709 160.584 0.503667C162.594 -0.224496 164.805 -0.161142 166.77 0.680884C168.735 1.52291 170.306 3.08059 171.165 5.03808C171.819 7.05167 171.72 9.23445 170.886 11.1806C170.052 13.1267 168.54 14.7037 166.63 15.6184C128.079 30.7331 55.4955 123.73 55.4955 124.494L47.9049 134.31Z"
+                fill="#00B07D"
+              />
+            </svg>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                 <H2 style={{ margin: 0 }}>Betalingen er lagt til forfall.</H2>
@@ -204,6 +209,11 @@ export default function InternationalPaymentConfirmation() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>Show feedback</P>
             <Switch label="Show feedback" labelSrOnly checked={showFeedback} onChange={({ checked }) => setShowFeedback(checked)} />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Full width</P>
+            <Switch label="Full width" labelSrOnly checked={fullWidth} onChange={({ checked }) => setFullWidth(checked)} />
           </div>
         </div>
       )}
