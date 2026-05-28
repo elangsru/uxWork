@@ -405,7 +405,7 @@ function SummaryStep({
           iconPosition="left"
           onClick={onBack}
         />
-        <Button variant="primary" text="Betal" />
+        <Button variant="primary" text="Betal" href="/internationalPaymentConfirmation" />
       </div>
     </div>
   );
