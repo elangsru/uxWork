@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Icon, List, Switch } from "@dnb/eufemia/components";
+import { Button, Icon, List, Switch, Textarea } from "@dnb/eufemia/components";
 import { H1, H2, H3, P } from "@dnb/eufemia/elements";
 import { transfer_to, thumbs_up, thumbs_down, filter, close } from "@dnb/eufemia/icons";
 
@@ -32,6 +32,8 @@ export default function InternationalPaymentConfirmation() {
   const [amountInNok, setAmountInNok] = useState(false);
   const [currencyCode, setCurrencyCode] = useState("");
   const [paymentDate, setPaymentDate] = useState("");
+  const [feedback, setFeedback] = useState<"like" | "dislike" | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
 
   useEffect(() => {
     const fw = sessionStorage.getItem("fullWidth");
@@ -266,11 +268,26 @@ export default function InternationalPaymentConfirmation() {
                 gap: "16px",
               }}
             >
-              <P style={{ margin: 0 }}>Hva synes du om den nye betalingsflyten?</P>
+              <P style={{ margin: 0 }}>Hva synes du om den løsningen for betale til utlandet?</P>
               <div style={{ display: "flex", gap: "24px" }}>
-                <Button variant="tertiary" text="Liker" icon={thumbs_up} iconPosition="right" />
-                <Button variant="tertiary" text="Liker ikke" icon={thumbs_down} iconPosition="right" />
+                <Button variant="tertiary" text="Liker" icon={thumbs_up} iconPosition="right" onClick={() => setFeedback("like")} />
+                <Button variant="tertiary" text="Liker ikke" icon={thumbs_down} iconPosition="right" onClick={() => setFeedback("dislike")} />
               </div>
+              {feedback && (
+                <Textarea
+                  label={
+                    <>
+                      Vil du legge til noe?{" "}
+                      <span style={{ color: "var(--token-color-text-neutral-alternative)", fontWeight: "normal" }}>(Valgfritt)</span>
+                    </>
+                  }
+                  rows={4}
+                  stretch
+                  placeholder="Ikke oppgi personlige opplysninger eller sensitiv informasjon i dette feltet."
+                  value={feedbackText}
+                  onChange={({ value }) => setFeedbackText(value)}
+                />
+              )}
             </div>
           )}
           </div>
