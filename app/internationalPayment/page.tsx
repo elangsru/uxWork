@@ -252,7 +252,7 @@ function SummaryStep({
         >
           <List.Container>
             <List.Item.Basic>
-              <List.Cell.Title>Dato</List.Cell.Title>
+              <List.Cell.Title>Betalingsdato</List.Cell.Title>
               <List.Cell.End>{fmtDate(paymentDate)}</List.Cell.End>
             </List.Item.Basic>
             <List.Item.Basic>
@@ -447,12 +447,95 @@ export default function InternationalPayment() {
   const [showFixedRate, setShowFixedRate] = useState(false);
   const [showPurpose, setShowPurpose] = useState(false);
   const [customInfoStyle, setCustomInfoStyle] = useState(false);
-  const [fullWidth, setFullWidth] = useState(false);
+  const [fullWidth, setFullWidth] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [paymentType, setPaymentType] = useState("sepa");
   const [costOption, setCostOption] = useState("delt");
   const [agreedRate, setAgreedRate] = useState("");
   const [reference, setReference] = useState("");
   const [purpose, setPurpose] = useState("");
+
+  useEffect(() => {
+    const fw = sessionStorage.getItem("fullWidth");
+    const dm = sessionStorage.getItem("darkMode");
+    const to = sessionStorage.getItem("toolsOpen");
+    setFullWidth(fw === null ? true : fw === "true");
+    setDarkMode(dm === "true");
+    setToolsOpen(to === "true");
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("fullWidth", String(fullWidth));
+  }, [fullWidth, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("darkMode", String(darkMode));
+  }, [darkMode, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("toolsOpen", String(toolsOpen));
+  }, [toolsOpen, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("message", message);
+  }, [message, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("paymentType", paymentType);
+  }, [paymentType, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("costOption", costOption);
+  }, [costOption, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (selectedRecipient) {
+      sessionStorage.setItem("toName", selectedRecipient.name);
+      sessionStorage.setItem("toNumber", selectedRecipient.iban);
+    } else {
+      sessionStorage.removeItem("toName");
+      sessionStorage.removeItem("toNumber");
+    }
+  }, [selectedRecipient, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (selectedFromKey !== null) {
+      const idx = parseInt(selectedFromKey, 10);
+      const acc = fromAccountList[idx];
+      if (acc) {
+        sessionStorage.setItem("fromName", String(acc.content[0]));
+        sessionStorage.setItem("fromNumber", String(acc.content[1]));
+      }
+    } else {
+      sessionStorage.removeItem("fromName");
+      sessionStorage.removeItem("fromNumber");
+    }
+  }, [selectedFromKey, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("amount", amount);
+  }, [amount, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("amountInNok", String(amountInNok));
+  }, [amountInNok, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("paymentDate", paymentDate);
+  }, [paymentDate, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (selectedCurrency) {
+      sessionStorage.setItem("currencyCode", selectedCurrency.code);
+    } else {
+      sessionStorage.removeItem("currencyCode");
+    }
+  }, [selectedCurrency, hydrated]);
   const [description, setDescription] = useState("");
 
   const recipientError = submitted && !selectedRecipient ? "Dette feltet må fylles ut." : undefined;
@@ -486,8 +569,60 @@ export default function InternationalPayment() {
     }
   }
 
+  if (!hydrated) {
+    return <div style={{ minHeight: "100vh", background: "var(--token-color-background-neutral-subtle)" }} />;
+  }
+
   return (
-    <Theme colorScheme="light">
+    <Theme colorScheme={darkMode ? "dark" : "light"}>
+      <style>{`
+        .eufemia-theme__color-scheme--dark .dnb-step-indicator {
+          --step-indicator-trigger-background: var(--token-color-background-neutral-alternative);
+          --step-indicator-trigger-content-background: var(--token-color-background-neutral);
+          --step-indicator-current-border: var(--token-color-text-neutral);
+          color: var(--token-color-text-neutral);
+        }
+        .eufemia-theme__color-scheme--dark .dnb-step-indicator__item__bullet--empty {
+          background-color: var(--token-color-background-neutral) !important;
+          border-color: var(--token-color-stroke-neutral-subtle) !important;
+          color: var(--token-color-text-neutral-subtle) !important;
+        }
+        .eufemia-theme__color-scheme--dark .dnb-step-indicator__item__bullet--current {
+          border-color: var(--token-color-text-neutral) !important;
+        }
+        .eufemia-theme__color-scheme--dark .dnb-step-indicator__item__line {
+          background-color: var(--token-color-stroke-neutral-subtle) !important;
+        }
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__container {
+          background-color: var(--token-color-background-neutral);
+        }
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__portal .dnb-popover {
+          --popover-background-color: var(--token-color-background-neutral);
+        }
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__header::after,
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__addon::after,
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__calendar::after {
+          background-color: var(--token-color-stroke-neutral-subtle);
+        }
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__header__title,
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__labels__day {
+          color: var(--token-color-text-neutral);
+        }
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__day--inactive .dnb-button {
+          color: var(--token-color-text-neutral-subtle);
+        }
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__day--end-date:not(.dnb-date-picker__day--inactive)::after,
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__day--preview:not(.dnb-date-picker__day--inactive):not(.dnb-date-picker__day--start-date):not(.dnb-date-picker__day--end-date),
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__day--start-date:not(.dnb-date-picker__day--inactive)::after,
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__day--within-selection:not(.dnb-date-picker__day--inactive):not(.dnb-date-picker__day--start-date):not(.dnb-date-picker__day--end-date) {
+          background-color: var(--token-color-background-selected-subtle);
+        }
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__day--end-date:not(.dnb-date-picker__day--inactive) .dnb-button,
+        .eufemia-theme__color-scheme--dark .dnb-date-picker__day--start-date:not(.dnb-date-picker__day--inactive) .dnb-button {
+          background-color: var(--token-color-background-selected);
+          color: var(--token-color-text-neutral-inverse);
+        }
+      `}</style>
       <div style={{ background: "var(--token-color-background-neutral-subtle)", minHeight: "100vh", padding: "48px", boxSizing: "border-box" }}>
         <div
           style={{
@@ -820,46 +955,57 @@ export default function InternationalPayment() {
             </P>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Payment type</P>
-            <div className="narrow-dropdown">
-              <style>{`
-                .narrow-dropdown .dnb-dropdown { --dropdown-width: 10rem; }
-              `}</style>
-              <Dropdown
-                label="Payment type"
-                labelSrOnly
-                size="small"
-                value={paymentType}
-                data={[
-                  { selectedKey: "cross-border", content: "Cross border" },
-                  { selectedKey: "europa", content: "Europa" },
-                  { selectedKey: "sepa", content: "SEPA" },
-                ]}
-                onChange={({ data }) => setPaymentType(typeof data?.selectedKey === "string" ? data.selectedKey : "cross-border")}
-              />
-            </div>
-          </div>
+          {currentStep === 1 && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+                <P size="basis" style={{ margin: 0 }}>Payment type</P>
+                <div className="narrow-dropdown">
+                  <style>{`
+                    .narrow-dropdown .dnb-dropdown { --dropdown-width: 10rem; }
+                  `}</style>
+                  <Dropdown
+                    label="Payment type"
+                    labelSrOnly
+                    size="small"
+                    value={paymentType}
+                    data={[
+                      { selectedKey: "cross-border", content: "Cross border" },
+                      { selectedKey: "europa", content: "Europa" },
+                      { selectedKey: "sepa", content: "SEPA" },
+                    ]}
+                    onChange={({ data }) => setPaymentType(typeof data?.selectedKey === "string" ? data.selectedKey : "cross-border")}
+                  />
+                </div>
+              </div>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Show purpose</P>
-            <Switch label="Show purpose" labelSrOnly checked={showPurpose} onChange={({ checked }) => setShowPurpose(checked)} />
-          </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+                <P size="basis" style={{ margin: 0 }}>Show fixed rate</P>
+                <Switch label="Show fixed rate" labelSrOnly checked={showFixedRate} onChange={({ checked }) => setShowFixedRate(checked)} />
+              </div>
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Show fixed rate</P>
-            <Switch label="Show fixed rate" labelSrOnly checked={showFixedRate} onChange={({ checked }) => setShowFixedRate(checked)} />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Info message filled</P>
-            <Switch label="Info message filled" labelSrOnly checked={customInfoStyle} onChange={({ checked }) => setCustomInfoStyle(checked)} />
-          </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+                <P size="basis" style={{ margin: 0 }}>Show purpose</P>
+                <Switch label="Show purpose" labelSrOnly checked={showPurpose} onChange={({ checked }) => setShowPurpose(checked)} />
+              </div>
+            </>
+          )}
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>Full width</P>
             <Switch label="Full width" labelSrOnly checked={fullWidth} onChange={({ checked }) => setFullWidth(checked)} />
           </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Dark mode</P>
+            <Switch label="Dark mode" labelSrOnly checked={darkMode} onChange={({ checked }) => setDarkMode(checked)} />
+          </div>
+
+          {currentStep === 1 && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+              <P size="basis" style={{ margin: 0 }}>Info message filled</P>
+              <Switch label="Info message filled" labelSrOnly checked={customInfoStyle} onChange={({ checked }) => setCustomInfoStyle(checked)} />
+            </div>
+          )}
         </div>
       )}
     </Theme>

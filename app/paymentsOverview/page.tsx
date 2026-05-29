@@ -150,7 +150,7 @@ export default function PaymentsOverview() {
   const [darkMode, setDarkMode] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
   const [showUnconfirmed, setShowUnconfirmed] = useState(true);
-  const [fullWidth, setFullWidth] = useState(false);
+  const [fullWidth, setFullWidth] = useState(true);
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [accountOpen, setAccountOpen] = useState(false);
   const [startDate, setStartDate] = useState(fmt(today));

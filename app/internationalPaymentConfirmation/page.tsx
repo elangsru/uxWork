@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, Icon, List, Switch } from "@dnb/eufemia/components";
 import { H1, H2, H3, P } from "@dnb/eufemia/elements";
@@ -17,11 +17,97 @@ const PAYMENT = {
 
 export default function InternationalPaymentConfirmation() {
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [showFeedback, setShowFeedback] = useState(true);
-  const [fullWidth, setFullWidth] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [fullWidth, setFullWidth] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [message, setMessage] = useState("");
+  const [paymentType, setPaymentType] = useState("sepa");
+  const [costOption, setCostOption] = useState("delt");
+  const [fromName, setFromName] = useState("");
+  const [fromNumber, setFromNumber] = useState("");
+  const [toName, setToName] = useState("");
+  const [toNumber, setToNumber] = useState("");
+  const [amount, setAmount] = useState("");
+  const [amountInNok, setAmountInNok] = useState(false);
+  const [currencyCode, setCurrencyCode] = useState("");
+  const [paymentDate, setPaymentDate] = useState("");
+
+  useEffect(() => {
+    const fw = sessionStorage.getItem("fullWidth");
+    const dm = sessionStorage.getItem("darkMode");
+    const to = sessionStorage.getItem("toolsOpen");
+    setFullWidth(fw === null ? true : fw === "true");
+    setDarkMode(dm === "true");
+    setToolsOpen(to === "true");
+    setMessage(sessionStorage.getItem("message") ?? "");
+    setPaymentType(sessionStorage.getItem("paymentType") ?? "sepa");
+    setCostOption(sessionStorage.getItem("costOption") ?? "delt");
+    setFromName(sessionStorage.getItem("fromName") ?? "");
+    setFromNumber(sessionStorage.getItem("fromNumber") ?? "");
+    setToName(sessionStorage.getItem("toName") ?? "");
+    setToNumber(sessionStorage.getItem("toNumber") ?? "");
+    setAmount(sessionStorage.getItem("amount") ?? "");
+    setAmountInNok(sessionStorage.getItem("amountInNok") === "true");
+    setCurrencyCode(sessionStorage.getItem("currencyCode") ?? "");
+    setPaymentDate(sessionStorage.getItem("paymentDate") ?? "");
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("fullWidth", String(fullWidth));
+  }, [fullWidth, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("darkMode", String(darkMode));
+  }, [darkMode, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("toolsOpen", String(toolsOpen));
+  }, [toolsOpen, hydrated]);
+
+  if (!hydrated) {
+    return <div style={{ minHeight: "100vh", background: "var(--token-color-background-neutral-subtle)" }} />;
+  }
+
+  const isEuropa = paymentType === "europa";
+  const isSepa = paymentType === "sepa";
+  const cost = isEuropa
+    ? 30
+    : isSepa
+    ? 0
+    : costOption === "jeg"
+    ? 410
+    : costOption === "mottaker"
+    ? 0
+    : 60;
+  const costLabel = isEuropa
+    ? "Pris - Europa-betaling"
+    : isSepa
+    ? "Pris - SEPA-betaling"
+    : "Pris - Cross border-betaling";
+  const fmtNok = (v: number) => v.toLocaleString("nb-NO", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtDate = (iso: string) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return d.toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" });
+  };
+  const costDisplay = isEuropa
+    ? "kr 30,00"
+    : isSepa
+    ? "kr 0,00"
+    : `NOK ${fmtNok(cost)}`;
+
+  const exchangeRates: Record<string, number> = {
+    EUR: 10.84, USD: 9.85, GBP: 12.85, SEK: 0.95, DKK: 1.46, CHF: 11.5, JPY: 0.064, NOK: 1,
+  };
+  const rate = currencyCode ? exchangeRates[currencyCode] ?? 1 : 1;
+  const amountNum = parseFloat(amount.replace(",", ".")) || 0;
+  const foreignAmount = amountInNok ? amountNum / rate : amountNum;
+  const nokAmount = amountInNok ? amountNum : amountNum * rate;
 
   return (
-    <Theme colorScheme="light">
+    <Theme colorScheme={darkMode ? "dark" : "light"}>
       <style>{`
         .receipt-list .dnb-list__item::after { display: none !important; }
         .receipt-list .dnb-list__item { border-radius: 0 !important; }
@@ -50,9 +136,11 @@ export default function InternationalPaymentConfirmation() {
             maxWidth: "72rem",
             margin: "0 auto",
             width: "100%",
+            alignItems: "stretch",
           }}
         >
-          <H1 size="x-large">Betale til utlandet</H1>
+          <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: fullWidth ? "100%" : "488px", width: "100%" }}>
+            <H1 size="x-large">Betale til utlandet</H1>
 
           {/* Confirmation card */}
           <div
@@ -85,8 +173,8 @@ export default function InternationalPaymentConfirmation() {
             </svg>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px", flex: 1 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                <H2 style={{ margin: 0 }}>Betalingen er lagt til forfall.</H2>
-                <P>Du finner betalingen i betalingsoversikten.</P>
+                <H2 style={{ margin: 0 }}>Fullført</H2>
+                <P>Betaling lagt til forfall</P>
               </div>
               <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
                 <Button
@@ -98,7 +186,7 @@ export default function InternationalPaymentConfirmation() {
                 />
                 <Button
                   variant="secondary"
-                  text="Til betalingsoversikt"
+                  text="Betalingsoversikt"
                   href="/paymentsOverview"
                 />
               </div>
@@ -118,21 +206,50 @@ export default function InternationalPaymentConfirmation() {
             >
               <List.Container>
                 <List.Item.Basic>
+                  <List.Cell.Title>Betalingsdato</List.Cell.Title>
+                  <List.Cell.End>{fmtDate(paymentDate)}</List.Cell.End>
+                </List.Item.Basic>
+                <List.Item.Basic>
                   <List.Cell.Title>Betalt fra</List.Cell.Title>
-                  <List.Cell.End>{PAYMENT.fromName} ({PAYMENT.fromNumber})</List.Cell.End>
+                  <List.Cell.End>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.3 }}>
+                      <span>{fromName || "—"}</span>
+                      {fromName && (
+                        <span style={{ color: "var(--token-color-text-neutral-alternative)", fontSize: "var(--font-size-small)", fontWeight: "var(--font-weight-regular)" }}>{fromNumber}</span>
+                      )}
+                    </div>
+                  </List.Cell.End>
                 </List.Item.Basic>
                 <List.Item.Basic>
                   <List.Cell.Title>Betalt til</List.Cell.Title>
-                  <List.Cell.End>{PAYMENT.toName} ({PAYMENT.toNumber})</List.Cell.End>
+                  <List.Cell.End>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.3 }}>
+                      <span>{toName || "—"}</span>
+                      {toName && (
+                        <span style={{ color: "var(--token-color-text-neutral-alternative)", fontSize: "var(--font-size-small)", fontWeight: "var(--font-weight-regular)" }}>{toNumber}</span>
+                      )}
+                    </div>
+                  </List.Cell.End>
                 </List.Item.Basic>
                 <List.Item.Basic>
                   <List.Cell.Title>Beløp</List.Cell.Title>
-                  <List.Cell.End>{PAYMENT.amount}</List.Cell.End>
+                  <List.Cell.End>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", lineHeight: 1.3 }}>
+                      <span>{currencyCode || "—"} {fmtNok(foreignAmount)}</span>
+                      <span style={{ color: "var(--token-color-text-neutral-alternative)", fontSize: "var(--font-size-small)", fontWeight: "var(--font-weight-regular)" }}>≈ NOK {fmtNok(nokAmount)} (estimert)</span>
+                    </div>
+                  </List.Cell.End>
                 </List.Item.Basic>
                 <List.Item.Basic>
-                  <List.Cell.Title>Betalingsdato</List.Cell.Title>
-                  <List.Cell.End>{PAYMENT.date}</List.Cell.End>
+                  <List.Cell.Title>{costLabel}</List.Cell.Title>
+                  <List.Cell.End>{costDisplay}</List.Cell.End>
                 </List.Item.Basic>
+                {message && (
+                  <List.Item.Basic>
+                    <List.Cell.Title>Melding</List.Cell.Title>
+                    <List.Cell.End>&ldquo;{message}&rdquo;</List.Cell.End>
+                  </List.Item.Basic>
+                )}
               </List.Container>
             </div>
           </div>
@@ -156,6 +273,7 @@ export default function InternationalPaymentConfirmation() {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
 
@@ -207,13 +325,18 @@ export default function InternationalPaymentConfirmation() {
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Show feedback</P>
-            <Switch label="Show feedback" labelSrOnly checked={showFeedback} onChange={({ checked }) => setShowFeedback(checked)} />
+            <P size="basis" style={{ margin: 0 }}>Full width</P>
+            <Switch label="Full width" labelSrOnly checked={fullWidth} onChange={({ checked }) => setFullWidth(checked)} />
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Full width</P>
-            <Switch label="Full width" labelSrOnly checked={fullWidth} onChange={({ checked }) => setFullWidth(checked)} />
+            <P size="basis" style={{ margin: 0 }}>Dark mode</P>
+            <Switch label="Dark mode" labelSrOnly checked={darkMode} onChange={({ checked }) => setDarkMode(checked)} />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Show feedback</P>
+            <Switch label="Show feedback" labelSrOnly checked={showFeedback} onChange={({ checked }) => setShowFeedback(checked)} />
           </div>
         </div>
       )}
