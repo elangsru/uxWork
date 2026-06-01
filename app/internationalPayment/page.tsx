@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown, Popover } from "@dnb/eufemia/components";
+import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown, Popover, Dialog } from "@dnb/eufemia/components";
 import { H1, H3, P } from "@dnb/eufemia/elements";
 import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close, bank_medium, location_medium, edit } from "@dnb/eufemia/icons";
 
@@ -717,7 +717,13 @@ export default function InternationalPayment() {
                   />
                 </div>
                 <div style={{ paddingTop: "2rem" }}>
-                  <Button variant="secondary" text="Ny" icon={add} iconPosition="left" />
+                  <Dialog
+                    title="Ny mottaker"
+                    trigger={Button}
+                    triggerAttributes={{ text: "Ny", variant: "secondary", icon: add, iconPosition: "left" }}
+                  >
+                    <P>Innhold kommer her.</P>
+                  </Dialog>
                 </div>
               </div>
               {selectedRecipient && (
@@ -725,9 +731,8 @@ export default function InternationalPayment() {
                   <Popover
                     title="Info om betalingsmottaker"
                     placement="bottom"
-                    alignOnTarget="left"
-                    arrowPosition="left"
-                    arrowEdgeOffset={16}
+                    alignOnTarget="center"
+                    arrowPosition="center"
                     trigger={({ ref, toggle }) => (
                       <Button
                         ref={ref as React.Ref<HTMLButtonElement>}
