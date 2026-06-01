@@ -872,7 +872,7 @@ export default function InternationalPayment() {
             { title: "Mottakers adresse", key: "adresse" },
           ]}
         >
-          {(key: string) => (key === "bank" ? bankFields : recipientFields)}
+          {(key) => (key === "bank" ? bankFields : recipientFields)}
         </Tabs>
         {saveButton}
       </>
