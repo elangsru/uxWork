@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown, Popover, Dialog } from "@dnb/eufemia/components";
+import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown, Popover, Dialog } from "@dnb/eufemia/components";
 import { H1, H3, P } from "@dnb/eufemia/elements";
 import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close, bank_medium, location_medium, edit } from "@dnb/eufemia/icons";
 
@@ -428,10 +428,82 @@ const currencies = currencyList.map((c) => ({
   ),
 }));
 
+type BankCountry = { code: string; name: string; iso: string };
+
+const bankCountryList: BankCountry[] = [
+  { code: "AU", name: "Australia", iso: "AU" },
+  { code: "DK", name: "Danmark", iso: "DK" },
+  { code: "FR", name: "Frankrike", iso: "FR" },
+  { code: "ES", name: "Spania", iso: "ES" },
+  { code: "GB", name: "Storbritannia", iso: "GB" },
+  { code: "SE", name: "Sverige", iso: "SE" },
+  { code: "DE", name: "Tyskland", iso: "DE" },
+  { code: "US", name: "USA", iso: "US" },
+];
+
+const bankCountries = bankCountryList.map((c) => ({
+  selectedKey: c.code,
+  selectedValue: c.name,
+  searchContent: [c.name, c.code],
+  content: (
+    <div style={{ display: "flex", alignItems: "center", gap: "12px", width: "100%" }}>
+      <CountryFlag iso={c.iso} size="medium" />
+      <span>{c.name}</span>
+    </div>
+  ),
+}));
+
+type BankDetails = { swift: string; name: string; address: string };
+
+const prefixValidatedCountries = new Set(["DK", "ES", "SE", "DE", "FR"]);
+
+// Example IBANs following each country's structure (iban.com/structure)
+const ibanExamples: Record<string, string> = {
+  DK: "DK50 0040 0440 1162 43",
+  ES: "ES91 2100 0418 4502 0005 1332",
+  SE: "SE45 5000 0000 0583 9825 7466",
+  DE: "DE89 3704 0044 0532 0130 00",
+  FR: "FR14 2004 1010 0505 0001 3M02 606",
+};
+
+const bankLookup: Record<string, BankDetails> = {
+  DK12345: {
+    swift: "DABADKKK",
+    name: "Danske Bank",
+    address: "Holmens Kanal 2-12\n1092 København K\nDanmark",
+  },
+  ES12345: {
+    swift: "BSCHESMMXXX",
+    name: "Banco Santander",
+    address: "Paseo de Pereda 9-12\n39004 Santander\nSpania",
+  },
+  SE12345: {
+    swift: "SWEDSESS",
+    name: "Swedbank",
+    address: "Landsvägen 40\n172 63 Sundbyberg\nSverige",
+  },
+  DE12345: {
+    swift: "DEUTDEFF",
+    name: "Deutsche Bank",
+    address: "Taunusanlage 12\n60325 Frankfurt am Main\nTyskland",
+  },
+  FR12345: {
+    swift: "BNPAFRPP",
+    name: "BNP Paribas",
+    address: "16 Boulevard des Italiens\n75009 Paris\nFrankrike",
+  },
+};
+
 export default function InternationalPayment() {
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
   const [currencyOpen, setCurrencyOpen] = useState(false);
+  const [bankCountryOpen, setBankCountryOpen] = useState(false);
+  const [selectedBankCountry, setSelectedBankCountry] = useState<BankCountry | null>(null);
+  const [accountNumber, setAccountNumber] = useState("");
+  const [swiftBic, setSwiftBic] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankAddress, setBankAddress] = useState("");
   const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null);
   const [selectedFromKey, setSelectedFromKey] = useState<string | null>(null);
@@ -722,7 +794,95 @@ export default function InternationalPayment() {
                     trigger={Button}
                     triggerAttributes={{ text: "Ny", variant: "secondary", icon: add, iconPosition: "left" }}
                   >
-                    <P>Innhold kommer her.</P>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <H3 style={{ margin: 0 }}>Mottakers bank</H3>
+                        <P>Betaling til utlandet krevet at vi vet noe om mottakers bank.</P>
+                      </div>
+                      <Autocomplete
+                        label="Bankens land"
+                        size="medium"
+                        data={bankCountries}
+                        placeholder="Velg land"
+                        stretch
+                        showSubmitButton
+                        submitButtonTitle=""
+                        submitButtonIcon={<Icon icon={bankCountryOpen ? chevron_up : chevron_down} />}
+                        icon={selectedBankCountry ? <CountryFlag iso={selectedBankCountry.iso} size="small" /> : undefined}
+                        value={selectedBankCountry?.code ?? undefined}
+                        onOpen={() => setBankCountryOpen(true)}
+                        onClose={() => setBankCountryOpen(false)}
+                        onChange={({ selectedItem }) => {
+                          if (typeof selectedItem === "number" && bankCountries[selectedItem]) {
+                            const code = String(bankCountries[selectedItem].selectedKey);
+                            setSelectedBankCountry(bankCountryList.find((x) => x.code === code) ?? null);
+                          } else {
+                            setSelectedBankCountry(null);
+                          }
+                        }}
+                      />
+                      <Input
+                        label={
+                          selectedBankCountry && prefixValidatedCountries.has(selectedBankCountry.code)
+                            ? "Kontonummer (IBAN)"
+                            : "Kontonummer"
+                        }
+                        size="medium"
+                        stretch
+                        disabled={!selectedBankCountry}
+                        placeholder={
+                          selectedBankCountry && ibanExamples[selectedBankCountry.code]
+                            ? `e.g. ${ibanExamples[selectedBankCountry.code]}`
+                            : undefined
+                        }
+                        value={accountNumber}
+                        status={
+                          selectedBankCountry &&
+                          prefixValidatedCountries.has(selectedBankCountry.code) &&
+                          accountNumber.trim().length >= 2 &&
+                          !accountNumber.trim().toUpperCase().startsWith(selectedBankCountry.code)
+                            ? `Kontonummer for ${selectedBankCountry.name} må starte med ${selectedBankCountry.code}.`
+                            : undefined
+                        }
+                        onChange={({ value }) => {
+                          setAccountNumber(value);
+                          const match = bankLookup[value.trim().toUpperCase()];
+                          setSwiftBic(match?.swift ?? "");
+                          setBankName(match?.name ?? "");
+                          setBankAddress(match?.address ?? "");
+                        }}
+                      />
+                      {selectedBankCountry && (
+                        <>
+                          <Input
+                            label="SWIFT/BIC"
+                            size="medium"
+                            stretch
+                            disabled
+                            placeholder="e.g. DK9UIZZKQDK"
+                            value={swiftBic}
+                            onChange={({ value }) => setSwiftBic(value)}
+                          />
+                          <Input
+                            label="Bankens navn"
+                            size="medium"
+                            stretch
+                            disabled
+                            value={bankName}
+                            onChange={({ value }) => setBankName(value)}
+                          />
+                          <Textarea
+                            label="Bankens adresse"
+                            size="medium"
+                            stretch
+                            rows={3}
+                            disabled
+                            value={bankAddress}
+                            onChange={({ value }) => setBankAddress(value)}
+                          />
+                        </>
+                      )}
+                    </div>
                   </Dialog>
                 </div>
               </div>
