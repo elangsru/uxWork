@@ -466,6 +466,15 @@ const ibanExamples: Record<string, string> = {
   FR: "FR14 2004 1010 0505 0001 3M02 606",
 };
 
+// IBAN total length (excl. spaces) per country (iban.com/structure)
+const ibanLengths: Record<string, number> = {
+  DK: 18,
+  ES: 24,
+  SE: 24,
+  DE: 22,
+  FR: 27,
+};
+
 const bankLookup: Record<string, BankDetails> = {
   DK12345: {
     swift: "DABADKKK",
@@ -504,6 +513,14 @@ export default function InternationalPayment() {
   const [swiftBic, setSwiftBic] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankAddress, setBankAddress] = useState("");
+  const [recipientName, setRecipientName] = useState("");
+  const [recipientCountryOpen, setRecipientCountryOpen] = useState(false);
+  const [recipientCountry, setRecipientCountry] = useState<BankCountry | null>(null);
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+  const [city, setCity] = useState("");
+  const recipientNameMaxLength = 35;
   const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(null);
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(null);
   const [selectedFromKey, setSelectedFromKey] = useState<string | null>(null);
@@ -815,43 +832,56 @@ export default function InternationalPayment() {
                         onChange={({ selectedItem }) => {
                           if (typeof selectedItem === "number" && bankCountries[selectedItem]) {
                             const code = String(bankCountries[selectedItem].selectedKey);
-                            setSelectedBankCountry(bankCountryList.find((x) => x.code === code) ?? null);
+                            const country = bankCountryList.find((x) => x.code === code) ?? null;
+                            setSelectedBankCountry(country);
+                            setRecipientCountry(country);
                           } else {
                             setSelectedBankCountry(null);
                           }
                         }}
                       />
-                      <Input
-                        label={
-                          selectedBankCountry && prefixValidatedCountries.has(selectedBankCountry.code)
-                            ? "Kontonummer (IBAN)"
-                            : "Kontonummer"
-                        }
-                        size="medium"
-                        stretch
-                        disabled={!selectedBankCountry}
-                        placeholder={
-                          selectedBankCountry && ibanExamples[selectedBankCountry.code]
-                            ? `e.g. ${ibanExamples[selectedBankCountry.code]}`
-                            : undefined
-                        }
-                        value={accountNumber}
-                        status={
-                          selectedBankCountry &&
-                          prefixValidatedCountries.has(selectedBankCountry.code) &&
-                          accountNumber.trim().length >= 2 &&
-                          !accountNumber.trim().toUpperCase().startsWith(selectedBankCountry.code)
-                            ? `Kontonummer for ${selectedBankCountry.name} må starte med ${selectedBankCountry.code}.`
-                            : undefined
-                        }
-                        onChange={({ value }) => {
-                          setAccountNumber(value);
-                          const match = bankLookup[value.trim().toUpperCase()];
-                          setSwiftBic(match?.swift ?? "");
-                          setBankName(match?.name ?? "");
-                          setBankAddress(match?.address ?? "");
-                        }}
-                      />
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <Input
+                          label={
+                            selectedBankCountry && prefixValidatedCountries.has(selectedBankCountry.code)
+                              ? "Kontonummer (IBAN)"
+                              : "Kontonummer"
+                          }
+                          size="medium"
+                          stretch
+                          disabled={!selectedBankCountry}
+                          placeholder={
+                            selectedBankCountry && ibanExamples[selectedBankCountry.code]
+                              ? `e.g. ${ibanExamples[selectedBankCountry.code]}`
+                              : undefined
+                          }
+                          value={accountNumber}
+                          status={
+                            selectedBankCountry &&
+                            prefixValidatedCountries.has(selectedBankCountry.code) &&
+                            accountNumber.trim().length >= 2 &&
+                            !accountNumber.trim().toUpperCase().startsWith(selectedBankCountry.code)
+                              ? `Kontonummer for ${selectedBankCountry.name} må starte med ${selectedBankCountry.code}.`
+                              : undefined
+                          }
+                          onChange={({ value }) => {
+                            setAccountNumber(value);
+                            const match = bankLookup[value.trim().toUpperCase()];
+                            setSwiftBic(match?.swift ?? "");
+                            setBankName(match?.name ?? "");
+                            setBankAddress(match?.address ?? "");
+                          }}
+                        />
+                        {selectedBankCountry && ibanLengths[selectedBankCountry.code] && (
+                          <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                            {Math.max(
+                              ibanLengths[selectedBankCountry.code] - accountNumber.replace(/\s/g, "").length,
+                              0
+                            )}{" "}
+                            av {ibanLengths[selectedBankCountry.code]} tegn gjenstår.
+                          </P>
+                        )}
+                      </div>
                       {selectedBankCountry && (
                         <>
                           <Input
@@ -882,6 +912,87 @@ export default function InternationalPayment() {
                           />
                         </>
                       )}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <H3 style={{ margin: 0 }}>Mottaker</H3>
+                        <P>Vi trenger også info om mottakers navn og bostedsadresse.</P>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <Input
+                          label="Navn/firma"
+                          size="medium"
+                          stretch
+                          placeholder="Navn eller firmanavn på mottaker"
+                          value={recipientName}
+                          maxLength={recipientNameMaxLength}
+                          onChange={({ value }) => setRecipientName(value)}
+                        />
+                        <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                          {recipientNameMaxLength - recipientName.length} av {recipientNameMaxLength} tegn gjenstår.
+                        </P>
+                      </div>
+                      <Autocomplete
+                        label="Mottakers land"
+                        size="medium"
+                        data={bankCountries}
+                        placeholder="Velg land"
+                        stretch
+                        showSubmitButton
+                        submitButtonTitle=""
+                        submitButtonIcon={<Icon icon={recipientCountryOpen ? chevron_up : chevron_down} />}
+                        icon={recipientCountry ? <CountryFlag iso={recipientCountry.iso} size="small" /> : undefined}
+                        value={recipientCountry?.code ?? undefined}
+                        onOpen={() => setRecipientCountryOpen(true)}
+                        onClose={() => setRecipientCountryOpen(false)}
+                        onChange={({ selectedItem }) => {
+                          if (typeof selectedItem === "number" && bankCountries[selectedItem]) {
+                            const code = String(bankCountries[selectedItem].selectedKey);
+                            setRecipientCountry(bankCountryList.find((x) => x.code === code) ?? null);
+                          } else {
+                            setRecipientCountry(null);
+                          }
+                        }}
+                      />
+                      <Input
+                        label="Adresselinje 1 (valgfritt)"
+                        size="medium"
+                        stretch
+                        placeholder="F.eks. Storgata 10"
+                        value={addressLine1}
+                        onChange={({ value }) => setAddressLine1(value)}
+                      />
+                      <Input
+                        label="Adresselinje 2 (valgfritt)"
+                        size="medium"
+                        stretch
+                        placeholder="F.eks. Bygning 1A"
+                        value={addressLine2}
+                        onChange={({ value }) => setAddressLine2(value)}
+                      />
+                      <div style={{ display: "flex", gap: "16px" }}>
+                        <div style={{ flex: 1 }}>
+                          <Input
+                            label="Postnummer"
+                            size="medium"
+                            stretch
+                            placeholder="F.eks. 1234"
+                            value={postalCode}
+                            onChange={({ value }) => setPostalCode(value)}
+                          />
+                        </div>
+                        <div style={{ flex: 4 }}>
+                          <Input
+                            label="Sted/by"
+                            size="medium"
+                            stretch
+                            placeholder="F.eks. Oslo"
+                            value={city}
+                            onChange={({ value }) => setCity(value)}
+                          />
+                        </div>
+                      </div>
+                      <Button variant="primary" style={{ alignSelf: "flex-start" }}>
+                        Lagre og fortsett
+                      </Button>
                     </div>
                   </Dialog>
                 </div>
