@@ -540,7 +540,7 @@ export default function InternationalPayment() {
   const [darkMode, setDarkMode] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [paymentType, setPaymentType] = useState("sepa");
-  const [recipientLayout, setRecipientLayout] = useState<"none" | "accordion" | "tabs">("accordion");
+  const [recipientLayout, setRecipientLayout] = useState<"none" | "accordion" | "tabs">("none");
   const [costOption, setCostOption] = useState("delt");
   const [agreedRate, setAgreedRate] = useState("");
   const [reference, setReference] = useState("");
