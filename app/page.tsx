@@ -20,6 +20,10 @@ const projects = [
     href: "/internationalPayment",
     jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-48322",
   },
+  {
+    label: "Agentic commerce (concept)",
+    href: "/agenticCommerse",
+  },
 ];
 
 export default function Home() {
