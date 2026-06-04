@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Card, Avatar, Dropdown, Input, Badge, InfoCard, NumberFormat, Switch, ProgressIndicator } from "@dnb/eufemia/components";
+import { Button, Card, Avatar, Dropdown, Input, Badge, InfoCard, NumberFormat, Switch, ProgressIndicator, FormStatus } from "@dnb/eufemia/components";
 import { H1, H2, P, Li, Ul } from "@dnb/eufemia/elements";
 import { stop, chevron_right } from "@dnb/eufemia/icons";
 
@@ -95,10 +95,14 @@ export default function AgenticCommerse() {
       status: "active",
       schedule: { weekday, from: fromTime, to: toTime, recurrence },
       caps: { perPurchase: capPerPurchase, perMonth: capPerMonth },
-      spentThisMonth: 0,
+      spentThisMonth: capPerPurchase * 2,
       expiry,
       createdAt: now.toISOString(),
-      activity: [],
+      activity: [
+        { date: "2026-05-28", description: `Booket bane · ${weekday} 28. mai ${fromTime}`, amount: capPerPurchase, status: "booket" },
+        { date: "2026-05-21", description: `Booket bane · ${weekday} 21. mai ${fromTime}`, amount: capPerPurchase, status: "booket" },
+        { date: "2026-05-14", description: "Avvist · over månedsramme", amount: 0, status: "avvist" },
+      ],
     });
     setScreen("dashboard");
   };
@@ -210,6 +214,11 @@ export default function AgenticCommerse() {
                       labelSrOnly
                     />
                   </div>
+                  {mandate.status === "paused" && (
+                    <FormStatus state="warning" top="x-small">
+                      Agenten er satt på pause og vil ikke booke nye baner.
+                    </FormStatus>
+                  )}
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
                       Mandat utløper
