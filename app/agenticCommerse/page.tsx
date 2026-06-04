@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Card, Avatar, Dropdown, Input, Badge, InfoCard, NumberFormat } from "@dnb/eufemia/components";
+import { Button, Card, Avatar, Dropdown, Input, Badge, InfoCard, NumberFormat, Switch, ProgressIndicator } from "@dnb/eufemia/components";
 import { H1, H2, P, Li, Ul } from "@dnb/eufemia/elements";
 import { stop, chevron_right } from "@dnb/eufemia/icons";
 
@@ -42,6 +42,13 @@ const recurrenceOptions = [
   { selectedKey: "ukentlig", content: "Hver uke" },
   { selectedKey: "annenhver", content: "Annenhver uke" },
 ];
+
+const fmtNok = (n: number) =>
+  new Intl.NumberFormat("nb-NO", {
+    style: "currency",
+    currency: "NOK",
+    maximumFractionDigits: 0,
+  }).format(n);
 
 export default function AgenticCommerse() {
   const [screen, setScreen] = useState<Screen>("dashboard");
@@ -148,7 +155,85 @@ export default function AgenticCommerse() {
                 </Card>
               )}
 
-              {/* Filled state (agent card) is added in Task 5 */}
+              {mandate && (
+                <Card stack>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <Avatar size="medium" variant="primary">P</Avatar>
+                    <div style={{ flex: 1 }}>
+                      <P style={{ fontWeight: 600 }}>{mandate.agentName}</P>
+                      <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                        {mandate.merchant.name}
+                      </P>
+                    </div>
+                    <Badge
+                      variant="information"
+                      status={mandate.status === "active" ? "positive" : "neutral"}
+                      content={mandate.status === "active" ? "Aktiv" : "Pauset"}
+                    />
+                  </div>
+
+                  <P top="small">
+                    Booker fast <strong>hver {mandate.schedule.weekday} {mandate.schedule.from}–{mandate.schedule.to}</strong> · {mandate.schedule.recurrence}
+                  </P>
+
+                  <div style={{ marginTop: "16px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                      <P size="small">Denne måneden</P>
+                      <P size="small">
+                        {fmtNok(mandate.spentThisMonth)} av {fmtNok(mandate.caps.perMonth)}
+                      </P>
+                    </div>
+                    <ProgressIndicator
+                      type="linear"
+                      progress={Math.min(100, (mandate.spentThisMonth / mandate.caps.perMonth) * 100)}
+                    />
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px" }}>
+                      <P size="small">Maks per booking</P>
+                      <P size="small">{fmtNok(mandate.caps.perPurchase)}</P>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginTop: "16px",
+                    }}
+                  >
+                    <P>Pause agent (kill switch)</P>
+                    <Switch
+                      checked={mandate.status === "active"}
+                      onChange={({ checked }) =>
+                        setMandate((m) => (m ? { ...m, status: checked ? "active" : "paused" } : m))
+                      }
+                      labelSrOnly
+                    />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                      Mandat utløper
+                    </P>
+                    <P size="small">{mandate.expiry}</P>
+                  </div>
+
+                  <P top="medium" style={{ fontWeight: 600 }}>Aktivitet</P>
+                  {mandate.activity.length === 0 ? (
+                    <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                      Ingen bookinger ennå.
+                    </P>
+                  ) : (
+                    <Ul>
+                      {mandate.activity.map((a, i) => (
+                        <Li key={i}>
+                          {a.status === "booket" ? "✅" : "⛔"} {a.description}
+                          {a.status === "booket" ? ` · ${fmtNok(a.amount)}` : ""}
+                        </Li>
+                      ))}
+                    </Ul>
+                  )}
+                </Card>
+              )}
             </div>
           )}
           {screen === "merchant" && (
