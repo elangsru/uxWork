@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Card, Avatar, Dropdown, Input } from "@dnb/eufemia/components";
-import { H1, H2, P } from "@dnb/eufemia/elements";
+import { Button, Card, Avatar, Dropdown, Input, Badge, InfoCard, NumberFormat } from "@dnb/eufemia/components";
+import { H1, H2, P, Li, Ul } from "@dnb/eufemia/elements";
 import { stop, chevron_right } from "@dnb/eufemia/icons";
 
 type Screen = "dashboard" | "merchant" | "approve";
@@ -54,6 +54,9 @@ export default function AgenticCommerse() {
   const [toTime, setToTime] = useState("20:00");
   const [recurrence, setRecurrence] = useState("ukentlig");
   const [pricePerBooking, setPricePerBooking] = useState(400);
+  const [capPerPurchase, setCapPerPurchase] = useState(400);
+  const [capPerMonth, setCapPerMonth] = useState(1600);
+  const [expiry, setExpiry] = useState("2026-12-31");
 
   useEffect(() => {
     const raw = sessionStorage.getItem("agenticCommerse.mandate");
@@ -75,6 +78,23 @@ export default function AgenticCommerse() {
       sessionStorage.removeItem("agenticCommerse.mandate");
     }
   }, [mandate, hydrated]);
+
+  const createMandate = () => {
+    const now = new Date();
+    setMandate({
+      id: `mandate-${now.getTime()}`,
+      merchant: MERCHANT,
+      agentName: "Padel-agent",
+      status: "active",
+      schedule: { weekday, from: fromTime, to: toTime, recurrence },
+      caps: { perPurchase: capPerPurchase, perMonth: capPerMonth },
+      spentThisMonth: 0,
+      expiry,
+      createdAt: now.toISOString(),
+      activity: [],
+    });
+    setScreen("dashboard");
+  };
 
   return (
     <Theme name="ui" colorScheme={darkMode ? "dark" : "light"}>
@@ -202,7 +222,70 @@ export default function AgenticCommerse() {
               />
             </Card>
           )}
-          {screen === "approve" && <P>Skjerm: approve (bygges i Task 4)</P>}
+          {screen === "approve" && (
+            <Card stack>
+              <div style={{ textAlign: "center" }}>
+                <Avatar size="large" variant="primary">🛡️</Avatar>
+                <H2 size="medium" top="small">Autoriser handleagent</H2>
+                <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                  {MERCHANT.name} ber om å booke fast på dine vegne
+                </P>
+              </div>
+
+              <P size="small" bottom="x-small" top="medium" style={{ fontWeight: 600 }}>
+                AGENTEN FÅR LOV TIL
+              </P>
+              <Ul>
+                <Li>
+                  Kun hos <strong>{MERCHANT.name}</strong>{" "}
+                  <Badge variant="information" content="Låst" />
+                </Li>
+                <Li>
+                  Hver {weekday} {fromTime}–{toTime} ({recurrence})
+                </Li>
+                <Li>
+                  Per booking: <NumberFormat.Currency currency="NOK">{pricePerBooking}</NumberFormat.Currency>
+                </Li>
+              </Ul>
+
+              <P size="small" bottom="x-small" top="medium" style={{ fontWeight: 600 }}>
+                DINE BUDSJETTRAMMER
+              </P>
+              <Input
+                label="Maks per kjøp"
+                type="number"
+                value={String(capPerPurchase)}
+                onChange={({ value }) => setCapPerPurchase(Number(value) || 0)}
+                suffix="kr"
+                stretch
+              />
+              <Input
+                label="Maks per måned"
+                type="number"
+                value={String(capPerMonth)}
+                onChange={({ value }) => setCapPerMonth(Number(value) || 0)}
+                suffix="kr"
+                stretch
+                top="small"
+              />
+              <Input
+                label="Mandat utløper"
+                type="date"
+                value={expiry}
+                onChange={({ value }) => setExpiry(String(value))}
+                stretch
+                top="small"
+              />
+
+              <InfoCard
+                top="medium"
+                text={`${MERCHANT.name} ser kun at betalingen er dekket — ikke kontonummer eller saldo.`}
+              />
+
+              <Button variant="primary" text="Godkjenn med BankID" top="medium" onClick={createMandate} />
+              <Button variant="secondary" text="Avvis" top="x-small" onClick={() => setScreen("merchant")} />
+            </Card>
+          )}
 
           <Button
             variant="tertiary"
