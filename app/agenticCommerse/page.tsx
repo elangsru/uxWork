@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Card } from "@dnb/eufemia/components";
-import { H1, P } from "@dnb/eufemia/elements";
-import { stop } from "@dnb/eufemia/icons";
+import { Button, Card, Avatar, Dropdown, Input } from "@dnb/eufemia/components";
+import { H1, H2, P } from "@dnb/eufemia/elements";
+import { stop, chevron_right } from "@dnb/eufemia/icons";
 
 type Screen = "dashboard" | "merchant" | "approve";
 
@@ -30,11 +30,30 @@ type AgentMandate = {
 
 const MERCHANT = { name: "Oslo Padelklubb", iso: "NO" };
 
+const weekdayOptions = [
+  "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag",
+].map((d) => ({ selectedKey: d, content: d.charAt(0).toUpperCase() + d.slice(1) }));
+
+const timeOptions = ["16:00", "17:00", "18:00", "19:00", "20:00", "21:00"].map(
+  (t) => ({ selectedKey: t, content: t }),
+);
+
+const recurrenceOptions = [
+  { selectedKey: "ukentlig", content: "Hver uke" },
+  { selectedKey: "annenhver", content: "Annenhver uke" },
+];
+
 export default function AgenticCommerse() {
   const [screen, setScreen] = useState<Screen>("dashboard");
   const [mandate, setMandate] = useState<AgentMandate | null>(null);
   const [darkMode, setDarkMode] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+
+  const [weekday, setWeekday] = useState("torsdag");
+  const [fromTime, setFromTime] = useState("18:00");
+  const [toTime, setToTime] = useState("20:00");
+  const [recurrence, setRecurrence] = useState("ukentlig");
+  const [pricePerBooking, setPricePerBooking] = useState(400);
 
   useEffect(() => {
     const raw = sessionStorage.getItem("agenticCommerse.mandate");
@@ -112,7 +131,77 @@ export default function AgenticCommerse() {
               {/* Filled state (agent card) is added in Task 5 */}
             </div>
           )}
-          {screen === "merchant" && <P>Skjerm: merchant (bygges i Task 3)</P>}
+          {screen === "merchant" && (
+            <Card stack>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <Avatar size="medium" variant="primary">🎾</Avatar>
+                <H2 size="medium">Oslo Padelklubb</H2>
+              </div>
+              <P>
+                Sett opp en AI-agent som booker bane for deg fast. Du bestemmer når og
+                hvor ofte — banken din godkjenner og setter budsjettrammene.
+              </P>
+
+              <Dropdown
+                label="Ukedag"
+                data={weekdayOptions}
+                value={weekday}
+                onChange={({ data }) => setWeekday(String(data?.selectedKey))}
+                stretch
+                top="small"
+              />
+              <div style={{ display: "flex", gap: "12px" }}>
+                <Dropdown
+                  label="Fra"
+                  data={timeOptions}
+                  value={fromTime}
+                  onChange={({ data }) => setFromTime(String(data?.selectedKey))}
+                  stretch
+                  top="small"
+                />
+                <Dropdown
+                  label="Til"
+                  data={timeOptions}
+                  value={toTime}
+                  onChange={({ data }) => setToTime(String(data?.selectedKey))}
+                  stretch
+                  top="small"
+                />
+              </div>
+              <Dropdown
+                label="Gjentakelse"
+                data={recurrenceOptions}
+                value={recurrence}
+                onChange={({ data }) => setRecurrence(String(data?.selectedKey))}
+                stretch
+                top="small"
+              />
+              <Input
+                label="Pris per booking (maks)"
+                type="number"
+                value={String(pricePerBooking)}
+                onChange={({ value }) => setPricePerBooking(Number(value) || 0)}
+                suffix="kr"
+                stretch
+                top="small"
+              />
+
+              <Button
+                variant="primary"
+                text="La AI-agenten min booke fast"
+                icon={chevron_right}
+                iconPosition="right"
+                top="medium"
+                onClick={() => setScreen("approve")}
+              />
+              <Button
+                variant="tertiary"
+                text="Avbryt"
+                top="x-small"
+                onClick={() => setScreen("dashboard")}
+              />
+            </Card>
+          )}
           {screen === "approve" && <P>Skjerm: approve (bygges i Task 4)</P>}
 
           <Button
