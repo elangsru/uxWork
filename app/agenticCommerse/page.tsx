@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button } from "@dnb/eufemia/components";
+import { Button, Card } from "@dnb/eufemia/components";
 import { H1, P } from "@dnb/eufemia/elements";
+import { stop } from "@dnb/eufemia/icons";
 
 type Screen = "dashboard" | "merchant" | "approve";
 
@@ -68,10 +69,47 @@ export default function AgenticCommerse() {
         <div style={{ maxWidth: "560px", margin: "0 auto" }}>
           {screen === "dashboard" && (
             <div>
-              <H1 size="large" suppressHydrationWarning>
-                Mine handleagenter
-              </H1>
-              <P top="small">Skjerm: dashboard (bygges i Task 2 &amp; 5)</P>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "24px",
+                }}
+              >
+                <H1 size="large" suppressHydrationWarning>
+                  Mine handleagenter
+                </H1>
+                {mandate && (
+                  <Button
+                    variant="secondary"
+                    text="Stopp alle agenter"
+                    icon={stop}
+                    iconPosition="left"
+                    onClick={() =>
+                      setMandate((m) => (m ? { ...m, status: "paused" } : m))
+                    }
+                  />
+                )}
+              </div>
+
+              {!mandate && (
+                <Card filled stack>
+                  <P>Du har ingen aktive handleagenter ennå.</P>
+                  <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                    En handleagent kan utføre faste kjøp for deg innenfor rammer du
+                    bestemmer — og du kan stoppe den når som helst.
+                  </P>
+                  <Button
+                    variant="primary"
+                    text="Simuler: book padel hos Oslo Padelklubb"
+                    top="small"
+                    onClick={() => setScreen("merchant")}
+                  />
+                </Card>
+              )}
+
+              {/* Filled state (agent card) is added in Task 5 */}
             </div>
           )}
           {screen === "merchant" && <P>Skjerm: merchant (bygges i Task 3)</P>}
