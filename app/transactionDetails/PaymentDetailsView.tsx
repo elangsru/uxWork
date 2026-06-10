@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { ToggleButton } from "@dnb/eufemia/components";
+import { useState, useEffect } from "react";
+import { ToggleButton, Button, Icon, Switch } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { H1, P } from "@dnb/eufemia/elements";
+import { filter, close } from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
 export default function PaymentDetailsView({
@@ -14,11 +15,39 @@ export default function PaymentDetailsView({
   const [selectedType, setSelectedType] = useState(
     payments[0]?.type ?? ""
   );
+  const [darkMode, setDarkMode] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setDarkMode(sessionStorage.getItem("darkMode") === "true");
+    setToolsOpen(sessionStorage.getItem("toolsOpen") === "true");
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("darkMode", String(darkMode));
+  }, [darkMode, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("toolsOpen", String(toolsOpen));
+  }, [toolsOpen, hydrated]);
 
   const selected = payments.find((p) => p.type === selectedType);
 
+  if (!hydrated) {
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--token-color-background-neutral-subtle)",
+        }}
+      />
+    );
+  }
+
   return (
-    <Theme>
+    <Theme colorScheme={darkMode ? "dark" : "light"}>
       <div
         style={{
           background: "var(--token-color-background-neutral-subtle)",
@@ -85,6 +114,69 @@ export default function PaymentDetailsView({
           )}
         </div>
       </div>
+
+      {/* Tools button */}
+      <div style={{ position: "fixed", top: "32px", right: "32px", zIndex: 100 }}>
+        <Button
+          variant="secondary"
+          icon={filter}
+          aria-label="Tools menu"
+          onClick={() => setToolsOpen((o) => !o)}
+          style={{ borderRadius: "50%", width: "48px", height: "48px", padding: 0 }}
+        />
+      </div>
+
+      {/* Tools popover */}
+      {toolsOpen && (
+        <div
+          style={{
+            position: "fixed",
+            top: "92px",
+            right: "32px",
+            background: "var(--token-color-background-neutral)",
+            border: "1px solid var(--token-color-stroke-neutral-subtle, #ebebeb)",
+            filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.08))",
+            borderRadius: "var(--token-radius-md, 8px)",
+            minWidth: "440px",
+            maxWidth: "560px",
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+            zIndex: 99,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <P size="basis" style={{ fontWeight: 500, margin: 0 }}>
+                Configurations menu
+              </P>
+              <button
+                onClick={() => setToolsOpen(false)}
+                aria-label="Lukk"
+                style={{ background: "none", border: "none", cursor: "pointer", padding: "4px", display: "flex", alignItems: "center", justifyContent: "center" }}
+              >
+                <Icon icon={close} size="small" />
+              </button>
+            </div>
+            <P size="basis" style={{ margin: 0 }}>
+              For experimenting purposes only...
+            </P>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>
+              Dark mode
+            </P>
+            <Switch
+              label="Dark mode"
+              labelSrOnly
+              checked={darkMode}
+              onChange={({ checked }) => setDarkMode(checked)}
+            />
+          </div>
+        </div>
+      )}
     </Theme>
   );
 }
