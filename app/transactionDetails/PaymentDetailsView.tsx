@@ -1,26 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import type { PaymentRecord } from "@/lib/payments";
-
-const REFRESH_INTERVAL_MS = 5000;
 
 export default function PaymentDetailsView({
   payments,
 }: {
   payments: PaymentRecord[];
 }) {
-  const router = useRouter();
   const [selectedType, setSelectedType] = useState(
     payments[0]?.type ?? ""
   );
-
-  // Henter regnearket på nytt jevnlig så endringer vises uten manuell refresh.
-  useEffect(() => {
-    const id = setInterval(() => router.refresh(), REFRESH_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [router]);
 
   const selected = payments.find((p) => p.type === selectedType);
 
