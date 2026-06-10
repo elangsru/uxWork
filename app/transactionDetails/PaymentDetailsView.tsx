@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ToggleButton } from "@dnb/eufemia/components";
 import type { PaymentRecord } from "@/lib/payments";
 
 export default function PaymentDetailsView({
@@ -20,25 +21,15 @@ export default function PaymentDetailsView({
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
+      <ToggleButton.Group
+        value={selectedType}
+        onChange={({ value }) => setSelectedType(String(value))}
+        bottom="medium"
+      >
         {payments.map((p) => (
-          <button
-            key={p.type}
-            type="button"
-            onClick={() => setSelectedType(p.type)}
-            style={{
-              padding: "8px 16px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-              background: p.type === selectedType ? "#0a3d62" : "#fff",
-              color: p.type === selectedType ? "#fff" : "#000",
-              cursor: "pointer",
-            }}
-          >
-            {p.type}
-          </button>
+          <ToggleButton key={p.type} text={p.type} value={p.type} />
         ))}
-      </div>
+      </ToggleButton.Group>
 
       {selected && (
         <dl style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "8px 24px" }}>
