@@ -143,6 +143,8 @@ export default function PaymentsOverview() {
   const inOneYear = new Date(today);
   inOneYear.setFullYear(today.getFullYear() + 1);
   const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const monthName = today.toLocaleDateString("nb-NO", { month: "long" });
+  const currentMonthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
   const [paymentTypes, setPaymentTypes] = useState<string[]>([]);
   const [showSaldo, setShowSaldo] = useState(true);
@@ -150,7 +152,6 @@ export default function PaymentsOverview() {
   const [darkMode, setDarkMode] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
   const [showUnconfirmed, setShowUnconfirmed] = useState(true);
-  const [fullWidth, setFullWidth] = useState(true);
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [accountOpen, setAccountOpen] = useState(false);
   const [startDate, setStartDate] = useState(fmt(today));
@@ -472,7 +473,7 @@ export default function PaymentsOverview() {
                     closeOnSelect: false,
                   },
                   {
-                    title: "Mai",
+                    title: currentMonthLabel,
                     startDate: () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); },
                     endDate: () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() + 1, 0); },
                     closeOnSelect: false,
@@ -607,12 +608,6 @@ export default function PaymentsOverview() {
           </P>
         </div>
 
-        {/* Dark mode row */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-          <P size="basis" style={{ margin: 0 }}>Dark mode</P>
-          <Switch label="Dark mode" labelSrOnly checked={darkMode} onChange={({ checked }) => setDarkMode(checked)} />
-        </div>
-
         {/* Show warnings row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
           <P size="basis" style={{ margin: 0 }}>Show warnings</P>
@@ -625,10 +620,10 @@ export default function PaymentsOverview() {
           <Switch label="Show unconfirmed eInvoices" labelSrOnly checked={showUnconfirmed} onChange={({ checked }) => setShowUnconfirmed(checked)} />
         </div>
 
-        {/* Full width row */}
+        {/* Dark mode row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-          <P size="basis" style={{ margin: 0 }}>Full width</P>
-          <Switch label="Full width" labelSrOnly checked={fullWidth} onChange={({ checked }) => setFullWidth(checked)} />
+          <P size="basis" style={{ margin: 0 }}>Dark mode</P>
+          <Switch label="Dark mode" labelSrOnly checked={darkMode} onChange={({ checked }) => setDarkMode(checked)} />
         </div>
       </div>
     )}

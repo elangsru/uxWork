@@ -24,6 +24,10 @@ const projects = [
     label: "Agentic commerce (concept)",
     href: "/agenticCommerse",
   },
+  {
+    label: "Transaction details",
+    href: "/transactionDetails",
+  },
 ];
 
 export default function Home() {
