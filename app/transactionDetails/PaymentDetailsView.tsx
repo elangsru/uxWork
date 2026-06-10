@@ -154,14 +154,14 @@ export default function PaymentDetailsView({
           {payments.length > 0 && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
               <P size="basis" style={{ margin: 0 }}>
-                Transaction type
+                Trx type
               </P>
               <div className="narrow-dropdown">
                 <style>{`
                   .narrow-dropdown .dnb-dropdown { --dropdown-width: 16rem; }
                 `}</style>
                 <Dropdown
-                  label="Transaction type"
+                  label="Trx type"
                   labelSrOnly
                   size="small"
                   value={selectedType}
