@@ -46,6 +46,7 @@ export default function PaymentDetailsView({
           <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <H1 size="x-large">Transaksjonsdetaljer</H1>
+              <P>Velg betalingstype for å endre visning</P>
             </div>
 
             {payments.length > 0 && (
