@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ToggleButton, Button, Icon, Switch } from "@dnb/eufemia/components";
+import { Button, Icon, Switch, Dropdown } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { H1, P } from "@dnb/eufemia/elements";
 import { filter, close } from "@dnb/eufemia/icons";
@@ -72,22 +72,9 @@ export default function PaymentDetailsView({
           }}
         >
           {/* Hero */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <H1 size="x-large">Transaksjonsdetaljer</H1>
-              <P>Velg betalingstype for å endre visning</P>
-            </div>
-
-            {payments.length > 0 && (
-              <ToggleButton.Group
-                value={selectedType}
-                onChange={({ value }) => setSelectedType(String(value))}
-              >
-                {payments.map((p) => (
-                  <ToggleButton key={p.type} text={p.type} value={p.type} />
-                ))}
-              </ToggleButton.Group>
-            )}
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            <H1 size="x-large">Transaksjonsdetaljer</H1>
+            <P>Velg betalingstype for å endre visning</P>
           </div>
 
           {/* Content */}
@@ -163,6 +150,31 @@ export default function PaymentDetailsView({
               For experimenting purposes only...
             </P>
           </div>
+
+          {payments.length > 0 && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+              <P size="basis" style={{ margin: 0 }}>
+                Transaction type
+              </P>
+              <div className="narrow-dropdown">
+                <style>{`
+                  .narrow-dropdown .dnb-dropdown { --dropdown-width: 16rem; }
+                `}</style>
+                <Dropdown
+                  label="Transaction type"
+                  labelSrOnly
+                  size="small"
+                  value={selectedType}
+                  data={payments.map((p) => ({ selectedKey: p.type, content: p.type }))}
+                  onChange={({ data }) =>
+                    setSelectedType(
+                      typeof data?.selectedKey === "string" ? data.selectedKey : selectedType
+                    )
+                  }
+                />
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>
