@@ -187,6 +187,13 @@ export default function PaymentDetailsView({
               onChange={({ checked }) => setDarkMode(checked)}
             />
           </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>
+              Vis reservert
+            </P>
+            <Switch label="Vis reservert" labelSrOnly checked={false} disabled />
+          </div>
         </div>
       )}
     </Theme>
