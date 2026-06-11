@@ -21,10 +21,6 @@ const projects = [
     jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-48322",
   },
   {
-    label: "Agentic commerce (concept)",
-    href: "/agenticCommerse",
-  },
-  {
     label: "Transaction details",
     href: "/transactionDetails",
   },
