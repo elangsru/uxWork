@@ -1,11 +1,34 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button, Icon, Switch, Dropdown } from "@dnb/eufemia/components";
+import { Button, Icon, Switch, Dropdown, Avatar, Badge, CountryFlag } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { H1, P } from "@dnb/eufemia/elements";
-import { filter, close } from "@dnb/eufemia/icons";
+import { H1, H2, P } from "@dnb/eufemia/elements";
+import { filter, close, chevron_down, chevron_up } from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
+
+const COUNTRY_ISO: Record<string, string> = {
+  norge: "NO",
+  sverige: "SE",
+  danmark: "DK",
+  finland: "FI",
+  island: "IS",
+  spania: "ES",
+  tyskland: "DE",
+  frankrike: "FR",
+  storbritannia: "GB",
+  nederland: "NL",
+  italia: "IT",
+  polen: "PL",
+  usa: "US",
+};
+
+// Rader som vises i beneficiary-kortet og derfor utelates fra detaljlista.
+const BENEFICIARY_LABELS = /^(logo\/avatar|mottaker navn|mottaker konto|mottaker land)$/i;
+
+function fieldValue(record: PaymentRecord | undefined, re: RegExp): string {
+  return record?.fields.find((f) => re.test(f.label.trim()))?.value ?? "";
+}
 
 export default function PaymentDetailsView({
   payments,
@@ -17,6 +40,7 @@ export default function PaymentDetailsView({
   );
   const [darkMode, setDarkMode] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(true);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -34,6 +58,17 @@ export default function PaymentDetailsView({
   }, [toolsOpen, hydrated]);
 
   const selected = payments.find((p) => p.type === selectedType);
+
+  const beneficiaryName =
+    fieldValue(selected, /^mottaker navn$/i) || fieldValue(selected, /^mottaker$/i);
+  const beneficiaryAccount = fieldValue(selected, /^mottaker konto/i);
+  const beneficiaryCountry = fieldValue(selected, /^mottaker land$/i);
+  const flagIso = COUNTRY_ISO[beneficiaryCountry.trim().toLowerCase()];
+  const avatarInitial = beneficiaryName.trim().charAt(0).toUpperCase() || "?";
+  const hasBeneficiary = beneficiaryName.trim().length > 0;
+  const detailFields = selected
+    ? selected.fields.filter((f) => !BENEFICIARY_LABELS.test(f.label.trim()))
+    : [];
 
   if (!hydrated) {
     return (
@@ -82,21 +117,78 @@ export default function PaymentDetailsView({
             <P>Ingen betalinger funnet i regnearket.</P>
           ) : (
             selected && (
-              <dl
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "auto 1fr",
-                  gap: "8px 24px",
-                  margin: 0,
-                }}
-              >
-                {selected.fields.map((f) => (
-                  <div key={f.label} style={{ display: "contents" }}>
-                    <dt style={{ fontWeight: 600 }}>{f.label}</dt>
-                    <dd style={{ margin: 0 }}>{f.value}</dd>
-                  </div>
-                ))}
-              </dl>
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {hasBeneficiary && (
+                  <button
+                    type="button"
+                    onClick={() => setDetailsOpen((o) => !o)}
+                    aria-expanded={detailsOpen}
+                    style={{
+                      cursor: "pointer",
+                      border: "none",
+                      font: "inherit",
+                      color: "inherit",
+                      textAlign: "left",
+                      boxSizing: "border-box",
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "16px",
+                      padding: "16px",
+                      borderRadius: "24px",
+                      background: "var(--token-color-background-neutral)",
+                      boxShadow: "0px 2px 8px 0px rgba(51,51,51,0.08)",
+                    }}
+                  >
+                    <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                      {flagIso ? (
+                        <Badge
+                          content={<CountryFlag iso={flagIso} size="small" />}
+                          vertical="bottom"
+                          horizontal="right"
+                          variant="content"
+                        >
+                          <Avatar size="large" variant="primary">
+                            {avatarInitial}
+                          </Avatar>
+                        </Badge>
+                      ) : (
+                        <Avatar size="large" variant="primary">
+                          {avatarInitial}
+                        </Avatar>
+                      )}
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <H2 size="large" style={{ margin: 0 }}>
+                          {beneficiaryName}
+                        </H2>
+                        {beneficiaryAccount && (
+                          <P style={{ margin: 0 }}>{beneficiaryAccount}</P>
+                        )}
+                      </div>
+                    </div>
+                    <Icon icon={detailsOpen ? chevron_up : chevron_down} size="medium" />
+                  </button>
+                )}
+
+                {(!hasBeneficiary || detailsOpen) && detailFields.length > 0 && (
+                  <dl
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "auto 1fr",
+                      gap: "8px 24px",
+                      margin: 0,
+                    }}
+                  >
+                    {detailFields.map((f) => (
+                      <div key={f.label} style={{ display: "contents" }}>
+                        <dt style={{ fontWeight: 600 }}>{f.label}</dt>
+                        <dd style={{ margin: 0 }}>{f.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+              </div>
             )
           )}
         </div>
