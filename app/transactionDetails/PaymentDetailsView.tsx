@@ -63,7 +63,9 @@ export default function PaymentDetailsView({
     fieldValue(selected, /^mottaker navn$/i) || fieldValue(selected, /^mottaker$/i);
   const beneficiaryAccount = fieldValue(selected, /^mottaker konto/i);
   const beneficiaryCountry = fieldValue(selected, /^mottaker land$/i);
+  const hasCurrency = fieldValue(selected, /^valutasort$/i).trim().length > 0;
   const flagIso = COUNTRY_ISO[beneficiaryCountry.trim().toLowerCase()];
+  const showFlag = hasCurrency && Boolean(flagIso);
   const avatarInitial = beneficiaryName.trim().charAt(0).toUpperCase() || "?";
   const hasBeneficiary = beneficiaryName.trim().length > 0;
   const detailFields = selected
@@ -142,7 +144,7 @@ export default function PaymentDetailsView({
                     }}
                   >
                     <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-                      {flagIso ? (
+                      {showFlag ? (
                         <Badge
                           content={<CountryFlag iso={flagIso} size="small" />}
                           vertical="bottom"
