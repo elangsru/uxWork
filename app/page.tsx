@@ -24,6 +24,10 @@ const projects = [
     label: "Transaction details",
     href: "/transactionDetails",
   },
+  {
+    label: "growthHacking",
+    href: "/growthHacking",
+  },
 ];
 
 export default function Home() {
