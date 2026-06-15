@@ -51,7 +51,7 @@ export default function ActivitiesPage() {
               .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__start { place-self: center !important; }
               .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__end { place-self: center !important; }
             `}</style>
-            <H1 size="x-large" top={false} bottom={false} suppressHydrationWarning>Growth hacking Konto og kort</H1>
+            <H1 size="x-large" top={false} bottom={false} suppressHydrationWarning>Growth hacking Konto og Kort</H1>
             <H2 size="large" top="large" bottom={false} suppressHydrationWarning>Aktiviteter</H2>
             <P top="small" bottom={false}>Velg en aktivitet fra listen under og tipp resultatet</P>
 
