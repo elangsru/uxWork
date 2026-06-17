@@ -6,6 +6,11 @@ import { chevron_right, launch } from "@dnb/eufemia/icons";
 
 const projects = [
   {
+    label: "International payments",
+    href: "/internationalPayment",
+    jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-48322",
+  },
+  {
     label: "Pending payments overview",
     href: "/paymentsOverview",
     jiraUrl: "https://dnb-asa.atlassian.net/browse/RCP-5048",
@@ -16,13 +21,9 @@ const projects = [
     jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-49516",
   },
   {
-    label: "International payments",
-    href: "/internationalPayment",
-    jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-48322",
-  },
-  {
     label: "Transaction details",
     href: "/transactionDetails",
+    jiraUrl: "https://dnb-asa.atlassian.net/browse/RCP-5150",
   },
   {
     label: "growthHacking",
