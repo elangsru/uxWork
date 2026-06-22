@@ -162,7 +162,7 @@ export default function ActivityDetailPage() {
                         <List.Item.Basic key={`${p.navn}-${i}`}>
                           <List.Cell.Start>
                             {i < 3 ? (
-                              <span style={{ fontSize: "1.5rem", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem" }}>
+                              <span style={{ fontSize: "2rem", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem" }}>
                                 {(["🥇", "🥈", "🥉"] as const)[i]}
                               </span>
                             ) : (
@@ -176,7 +176,7 @@ export default function ActivityDetailPage() {
                             </List.Cell.Title.Subline>
                           </List.Cell.Title>
                           <List.Cell.End>
-                            {dev == null ? "Ikke svart" : `${dev > 0 ? "+" : ""}${dev}%`}
+                            {dev == null ? "Ikke svart" : `${dev > 0 ? "+" : ""}${dev}`}
                           </List.Cell.End>
                         </List.Item.Basic>
                       );
