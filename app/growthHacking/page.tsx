@@ -36,7 +36,7 @@ export default function GrowthHackingLogin() {
       <main className="gh-main" style={{ background: "var(--token-color-background-neutral-subtle)", minHeight: "100vh" }}>
         <div style={{ maxWidth: "72rem", margin: "0 auto" }}>
           <div style={{ maxWidth: "560px", display: "flex", flexDirection: "column" }}>
-            <H1 size="x-large" top={false} bottom={false} suppressHydrationWarning>Growth hacking</H1>
+            <H1 size="x-large" top={false} bottom={false} suppressHydrationWarning>🚀 Growth hacking</H1>
             <H2 size="large" top="large" bottom={false} suppressHydrationWarning>Logg inn</H2>
             <P top="small" bottom={false}>Benytt kode du har mottatt på din DNB-epost</P>
 

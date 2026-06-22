@@ -98,7 +98,7 @@ export default function ActivityDetailPage() {
             <style>{listOverrides}</style>
 
             <H1 size="x-large" top={false} bottom={false} suppressHydrationWarning>
-              Growth hacking
+              🚀 Growth hacking
             </H1>
             <H2 size="large" top="large" bottom={false} suppressHydrationWarning>
               {locked ? "Resultater - konto og kort" : "Tipp resultatet"}

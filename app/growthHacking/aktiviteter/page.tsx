@@ -64,7 +64,7 @@ export default function ActivitiesPage() {
               }
               .gh-list .dnb-list__item__end { padding-right: 1rem; }
             `}</style>
-            <H1 size="x-large" top={false} bottom={false} suppressHydrationWarning>Growth hacking</H1>
+            <H1 size="x-large" top={false} bottom={false} suppressHydrationWarning>🚀 Growth hacking</H1>
             <H2 size="large" top="large" bottom={false} suppressHydrationWarning>Aktiviteter - konto og kort</H2>
             <P top="small" bottom={false}>Velg en aktivitet fra listen under og tipp resultatet</P>
 
