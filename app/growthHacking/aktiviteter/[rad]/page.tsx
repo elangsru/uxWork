@@ -67,7 +67,7 @@ export default function ActivityDetailPage() {
     load();
   }, [load]);
 
-  const num = Number(input);
+  const num = Number(input.replace(",", "."));
   const canSubmit =
     !locked && input.trim() !== "" && !isNaN(num) && num >= 0 && num <= 100 && !saving;
 
@@ -112,16 +112,14 @@ export default function ActivityDetailPage() {
 
             <Skeleton show={loading} top="large">
               {!locked && (
-                <div style={{ maxWidth: "360px", display: "flex", flexDirection: "column", gap: "2rem" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "2rem", width: "fit-content" }}>
                   <Input
                     label="Ditt anslag (%)"
                     value={input}
-                    stretch
                     inputMode="numeric"
-                    suffix="%"
                     placeholder="0–100"
                     onChange={({ value }: { value: string }) =>
-                      setInput(value.replace(/\D/g, "").slice(0, 3))
+                      setInput(value.replace(/[^\d,]/g, "").slice(0, 5))
                     }
                   />
                   {error && <FormStatus state="error" stretch text={error} />}
@@ -130,7 +128,6 @@ export default function ActivityDetailPage() {
                     text={saving ? "Lagrer …" : myAnswer != null ? "Endre svar" : "Bekreft svar"}
                     disabled={!canSubmit}
                     onClick={onSubmit}
-                    style={{ alignSelf: "flex-start" }}
                   />
                 </div>
               )}
