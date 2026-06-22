@@ -109,7 +109,7 @@ export default function ActivityDetailPage() {
                   <Input
                     label="Ditt anslag (%)"
                     value={input}
-                    inputMode="numeric"
+                    inputMode="decimal"
                     placeholder="0–100"
                     onChange={({ value }: { value: string }) =>
                       setInput(value.replace(/[^\d,]/g, "").slice(0, 5))
