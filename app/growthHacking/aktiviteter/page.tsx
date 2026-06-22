@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, FormStatus, Skeleton, List, Badge } from "@dnb/eufemia/components";
+import { Avatar, Button, FormStatus, Skeleton, List, Badge } from "@dnb/eufemia/components";
 import { H1, H2, P } from "@dnb/eufemia/elements";
 import { gh, getSession, clearSession, type Activity } from "../shared";
 
@@ -75,6 +75,9 @@ export default function ActivitiesPage() {
                 {loading
                   ? Array.from({ length: 3 }).map((_, i) => (
                       <List.Item.Basic key={`skeleton-${i}`}>
+                        <List.Cell.Start>
+                          <Avatar size="medium" variant="primary">A</Avatar>
+                        </List.Cell.Start>
                         <List.Cell.Title>
                           Henter aktivitet
                           <List.Cell.Title.Subline variant="description">
@@ -91,6 +94,9 @@ export default function ActivitiesPage() {
                         key={a.rad}
                         onClick={() => router.push(`/growthHacking/aktiviteter/${a.rad}`)}
                       >
+                        <List.Cell.Start>
+                          <Avatar size="medium" variant="primary">{a.navn.charAt(0)}</Avatar>
+                        </List.Cell.Start>
                         <List.Cell.Title>
                           {a.navn}
                           <List.Cell.Title.Subline variant="description">

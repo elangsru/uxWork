@@ -17,12 +17,6 @@ const listOverrides = `
         'footer footer footer footer footer footer footer';
     }
   }
-  @media screen and (max-width: 25em) {
-    .gh-results-list .dnb-list__item:has(.dnb-list__item__start):has(.dnb-list__item__title) {
-      --item-grid-template-areas: 'chevron-left start icon title center end chevron-right'
-        'footer footer footer footer footer footer footer';
-    }
-  }
 `;
 
 export default function ActivityDetailPage() {
