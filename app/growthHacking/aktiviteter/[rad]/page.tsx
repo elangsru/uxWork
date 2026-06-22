@@ -153,7 +153,7 @@ export default function ActivityDetailPage() {
 
               <div style={{ marginTop: locked ? "2rem" : 0 }}>
                 <List.Container className="gh-results-list">
-                  {participants.map((p, i) => {
+                  {participants.filter(p => locked ? p.harSvart : true).map((p, i) => {
                     const dev = p.verdi != null && fasit != null ? p.verdi - fasit : null;
                     const label = p.isMe ? `${p.navn} (deg)` : p.navn;
 
@@ -176,7 +176,7 @@ export default function ActivityDetailPage() {
                             </List.Cell.Title.Subline>
                           </List.Cell.Title>
                           <List.Cell.End>
-                            {dev == null ? "Ikke svart" : `${dev > 0 ? "+" : ""}${dev}`}
+                            {dev == null ? "–" : `${dev > 0 ? "+" : ""}${parseFloat(dev.toFixed(2))}`}
                           </List.Cell.End>
                         </List.Item.Basic>
                       );
