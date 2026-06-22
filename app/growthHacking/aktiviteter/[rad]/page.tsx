@@ -176,7 +176,7 @@ export default function ActivityDetailPage() {
                             </List.Cell.Title.Subline>
                           </List.Cell.Title>
                           <List.Cell.End>
-                            {dev == null ? "Ikke svart" : `${dev > 0 ? "+" : ""}${dev}% avvik`}
+                            {dev == null ? "Ikke svart" : `${dev > 0 ? "+" : ""}${dev}%`}
                           </List.Cell.End>
                         </List.Item.Basic>
                       );
