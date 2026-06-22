@@ -40,16 +40,31 @@ export async function callAppsScript(
     return { ok: false, error: "missing_env" };
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ secret, action, ...payload }),
-    redirect: "follow",
-    cache: "no-store",
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret, action, ...payload }),
+      redirect: "follow",
+      cache: "no-store",
+    });
+  } catch {
+    return { ok: false, error: "upstream_unreachable" };
+  }
 
   if (!res.ok) {
     return { ok: false, error: `upstream_${res.status}` };
   }
-  return (await res.json()) as GhResponse;
+
+  const contentType = res.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) {
+    return { ok: false, error: "upstream_non_json" };
+  }
+
+  try {
+    return (await res.json()) as GhResponse;
+  } catch {
+    return { ok: false, error: "upstream_bad_json" };
+  }
 }

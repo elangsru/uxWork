@@ -86,10 +86,10 @@ export default function ActivityDetailPage() {
             <style>{listOverrides}</style>
 
             <H1 size="x-large" top={false} bottom={false} suppressHydrationWarning>
-              Growth hacking Konto og Kort
+              Growth hacking
             </H1>
             <H2 size="large" top="large" bottom={false} suppressHydrationWarning>
-              {locked ? "Resultater" : "Tipp resultatet"}
+              {locked ? "Resultater - konto og kort" : "Tipp resultatet"}
             </H2>
             <P top="small" bottom={false}>
               {locked

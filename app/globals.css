@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Tailwinds preflight setter `svg { display: block }`, som bryter Eufemias
+   inline-ikoner (f.eks. launch-ikonet i Anchor) til ny linje. Gjenopprett
+   inline-visning for alle Eufemia-ikon-SVG-er. */
+.dnb-icon svg {
+  display: inline-block;
+  vertical-align: top;
+}
+
 /* Reset chevron rotation for action rows nested inside accordion */
 .dnb-list__item__action .dnb-list__item__chevron .dnb-icon {
   transform: none;
