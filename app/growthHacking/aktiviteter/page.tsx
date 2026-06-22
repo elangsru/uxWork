@@ -43,7 +43,6 @@ export default function ActivitiesPage() {
   return (
     <Theme colorScheme="light">
       <main className="gh-main" style={{ background: "var(--token-color-background-neutral-subtle)", minHeight: "100vh" }}>
-        <style>{`.gh-main { padding: 48px; } @media (max-width: 768px) { .gh-main { padding: 16px; } }`}</style>
         <div style={{ maxWidth: "72rem", margin: "0 auto" }}>
           <div style={{ maxWidth: "560px", display: "flex", flexDirection: "column" }}>
             <style>{`
