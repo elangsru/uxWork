@@ -11,6 +11,18 @@ import { gh, getSession, clearSession, type Participant } from "../../shared";
 const listOverrides = `
   .dnb-list__item:has(.dnb-list__item__subline) .dnb-list__item__start { place-self: center !important; }
   .dnb-list__item:has(.dnb-list__item__subline) .dnb-list__item__end { place-self: center !important; }
+  @media screen and (max-width: 40em) {
+    .gh-results-list .dnb-list__item:has(.dnb-list__item__start):has(.dnb-list__item__title) {
+      --item-grid-template-areas: 'chevron-left start icon title center end chevron-right'
+        'footer footer footer footer footer footer footer';
+    }
+  }
+  @media screen and (max-width: 25em) {
+    .gh-results-list .dnb-list__item:has(.dnb-list__item__start):has(.dnb-list__item__title) {
+      --item-grid-template-areas: 'chevron-left start icon title center end chevron-right'
+        'footer footer footer footer footer footer footer';
+    }
+  }
 `;
 
 export default function ActivityDetailPage() {
@@ -126,7 +138,7 @@ export default function ActivityDetailPage() {
               {locked && error && <FormStatus state="error" stretch text={error} bottom="large" />}
 
               {locked && (
-                <List.Container>
+                <List.Container className="gh-results-list">
                   <List.Item.Basic title="Fasit">
                     <List.Cell.Start>
                       <Avatar size="medium" variant="primary" icon={goal_medium} />
@@ -143,7 +155,7 @@ export default function ActivityDetailPage() {
               )}
 
               <div style={{ marginTop: locked ? "2rem" : 0 }}>
-                <List.Container>
+                <List.Container className="gh-results-list">
                   {participants.map((p, i) => {
                     const dev = p.verdi != null && fasit != null ? p.verdi - fasit : null;
                     const label = p.isMe ? `${p.navn} (deg)` : p.navn;

@@ -51,6 +51,19 @@ export default function ActivitiesPage() {
               .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__chevron { place-self: center !important; }
               .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__start { place-self: center !important; }
               .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__end { place-self: center !important; }
+              @media screen and (max-width: 40em) {
+                .gh-list .dnb-list__item:has(.dnb-list__item__start):has(.dnb-list__item__title) {
+                  --item-grid-template-areas: 'chevron-left start icon title center end chevron-right'
+                    'footer footer footer footer footer footer footer';
+                }
+              }
+              @media screen and (max-width: 25em) {
+                .gh-list .dnb-list__item:has(.dnb-list__item__start):has(.dnb-list__item__title) {
+                  --item-grid-template-areas: 'chevron-left start icon title center end chevron-right'
+                    'footer footer footer footer footer footer footer';
+                }
+              }
+              .gh-list .dnb-list__item__end { padding-right: 1rem; }
             `}</style>
             <H1 size="x-large" top={false} bottom={false} suppressHydrationWarning>Growth hacking</H1>
             <H2 size="large" top="large" bottom={false} suppressHydrationWarning>Aktiviteter - konto og kort</H2>
@@ -59,7 +72,7 @@ export default function ActivitiesPage() {
             {error && <FormStatus state="error" stretch text={error} top="large" />}
 
             <Skeleton show={loading} top="large">
-              <List.Container>
+              <List.Container className="gh-list">
                 {loading
                   ? Array.from({ length: 3 }).map((_, i) => (
                       <List.Item.Basic key={`skeleton-${i}`}>
