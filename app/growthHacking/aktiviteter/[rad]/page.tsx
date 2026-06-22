@@ -161,9 +161,13 @@ export default function ActivityDetailPage() {
                       return (
                         <List.Item.Basic key={`${p.navn}-${i}`}>
                           <List.Cell.Start>
-                            <Avatar size="medium" variant="primary">
-                              {i + 1}
-                            </Avatar>
+                            {i < 3 ? (
+                              <span style={{ fontSize: "1.5rem", lineHeight: 1, display: "flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem" }}>
+                                {(["🥇", "🥈", "🥉"] as const)[i]}
+                              </span>
+                            ) : (
+                              <Avatar size="medium" variant="primary">{i + 1}</Avatar>
+                            )}
                           </List.Cell.Start>
                           <List.Cell.Title>
                             {label}
