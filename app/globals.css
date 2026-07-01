@@ -14,3 +14,21 @@
   transition: none;
 }
 
+/* Eufemia colors accordion header icons teal (--item-icon-color) but Basic items inherit neutral (#333).
+   Override to keep all list icons consistent. */
+.dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-icon {
+  color: var(--token-color-icon-neutral);
+}
+
+/* When accordion opens, inner items with sublines trigger Eufemia's :is(:has(.subline)) rule
+   (0,3,0) which sets place-self:start on chevron, icon, and title. Double class to beat it (0,4,0).
+   Use place-self to override both align-self and justify-self, preventing layout jump on single-line
+   headers when content with sublines is revealed. */
+.dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__chevron.dnb-list__item__chevron {
+  place-self: center;
+}
+.dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__title.dnb-list__item__title {
+  align-self: center;
+}
+
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import SubmitIndicator from "@dnb/eufemia/extensions/forms/Form/SubmitIndicator/SubmitIndicator";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tooltip } from "@dnb/eufemia/components";
@@ -160,6 +160,8 @@ export default function PaymentsOverview() {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const visSaldoRef = useRef<HTMLDivElement>(null);
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const visibleTransactions = transactions.filter(t =>
     (selectedAccountKey === null || t.accountKey === selectedAccountKey) &&
@@ -231,7 +233,7 @@ export default function PaymentsOverview() {
               style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-md)", borderTopRightRadius: "var(--token-radius-md)", ...(!showSaldo ? { borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } : {}) } as React.CSSProperties}
             >
               <List.Item.Accordion.Header onClick={() => toggleGroup(accountKey)}>
-                <List.Cell.Title fontWeight="medium">{acct.name} {acct.number}</List.Cell.Title>
+                <List.Cell.Title style={{ fontWeight: 500 }}>{acct.name} {acct.number}</List.Cell.Title>
                 {showSaldo && <List.Cell.End><span style={{ fontWeight: 400 }}>{fmtNok(acct.balance)}</span></List.Cell.End>}
               </List.Item.Accordion.Header>
               <List.Item.Accordion.Content>
@@ -279,7 +281,7 @@ export default function PaymentsOverview() {
               style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-md)", borderTopRightRadius: "var(--token-radius-md)", ...(!showSaldo ? { borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } : {}) } as React.CSSProperties}
             >
               <List.Item.Accordion.Header onClick={() => toggleGroup(dateValue)}>
-                <List.Cell.Title fontWeight="medium">{dateLabel}</List.Cell.Title>
+                <List.Cell.Title style={{ fontWeight: 500 }}>{dateLabel}</List.Cell.Title>
               </List.Item.Accordion.Header>
               <List.Item.Accordion.Content>
                 <List.Container>
@@ -303,6 +305,16 @@ export default function PaymentsOverview() {
         </div>
       );
     });
+  }
+
+  if (!mounted) {
+    return (
+      <Theme colorScheme="light">
+        <main style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
+          <P>Laster …</P>
+        </main>
+      </Theme>
+    );
   }
 
   return (
@@ -513,10 +525,10 @@ export default function PaymentsOverview() {
                 values={paymentTypes}
                 onChange={({ values }) => setPaymentTypes(values as string[])}
               >
-                <ToggleButton variant="checkbox" text="Overføring" value="overforing" />
-                <ToggleButton variant="checkbox" text="Betaling" value="betaling" />
-                <ToggleButton variant="checkbox" text="AvtaleGiro" value="avtalegiro" />
-                <ToggleButton variant="checkbox" text={efakturaLabel} value="efaktura" />
+                <ToggleButton text="Overføring" value="overforing" />
+                <ToggleButton text="Betaling" value="betaling" />
+                <ToggleButton text="AvtaleGiro" value="avtalegiro" />
+                <ToggleButton text={efakturaLabel} value="efaktura" />
               </ToggleButton.Group>
               <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
                 <Switch
