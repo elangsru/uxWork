@@ -212,7 +212,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const pengebrukMain = fieldValue(selected, /^pengebruk main$/i);
   const pengebrukIconField = fieldValue(selected, /^pengebruk icon$/i);
   const hasPengebruk  = Boolean(pengebrukSub || pengebrukMain);
-  const pengebrukIcon = (pengebrukIconField ? lookupEufemiaIcon(pengebrukIconField) : null) ?? getPengebrukIcon(pengebrukSub || pengebrukMain);
+  const pengebrukIcon = ((pengebrukIconField ? lookupEufemiaIcon(pengebrukIconField) : null) ?? getPengebrukIcon(pengebrukSub || pengebrukMain)) as ReturnType<typeof getPengebrukIcon>;
   const transactionTags = fieldValue(selected, /^pengebruk tag$/i)
     .split(",").map((t) => t.trim()).filter(Boolean);
 
