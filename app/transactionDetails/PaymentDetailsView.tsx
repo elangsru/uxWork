@@ -42,6 +42,18 @@ function fieldDisplay(record: PaymentRecord | undefined, re: RegExp, showNames: 
   return showNames ? `{${field.label}}` : field.value;
 }
 
+/** Løser en logoverdi fra regnearket til en sti under /public.
+ *  Godtar filnavn ("visa", "visa.svg", "Apple Pay"), ferdig sti ("/wallet/vipps.svg")
+ *  eller full URL – URL-er og absolutte stier brukes som de er. */
+function logoSrc(value: string, folder: "kortnettverk" | "wallet"): string {
+  const raw = value.trim();
+  if (!raw) return "";
+  if (/^(https?:)?\/\//i.test(raw)) return raw;
+  if (raw.startsWith("/")) return raw;
+  const file = raw.toLowerCase().replace(/\s+/g, "");
+  return `/${folder}/${/\.(svg|png|jpe?g|webp)$/i.test(file) ? file : `${file}.svg`}`;
+}
+
 /** Formaterer DD.MM.YYYY → "15. januar 2026" (norsk) */
 function formatDateNo(raw: string): string {
   const m = raw.trim().match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
@@ -575,7 +587,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                           <List.Cell.End fontWeight="regular">
                             {showFieldNames
                               ? fd(/^(kortnettverk logo|fra kortnettverk logo)$/i)
-                              : <img src={cardNetworkLogo} alt={cardNetwork} style={{ height: "24px", width: "auto", display: "block" }} />
+                              : <img src={logoSrc(cardNetworkLogo, "kortnettverk")} alt={cardNetwork} style={{ height: "24px", width: "auto", display: "block" }} />
                             }
                           </List.Cell.End>
                         )}
@@ -594,7 +606,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                           {showFieldNames
                             ? fd(/^digital wallet logo$/i)
                             : digitalWalletLogo
-                              ? <Tooltip targetElement={<img src={digitalWalletLogo} alt={digitalWallet} style={{ height: "24px", width: "auto", display: "block" }} />}>{`Betalt med ${digitalWallet}`}</Tooltip>
+                              ? <Tooltip targetElement={<img src={logoSrc(digitalWalletLogo, "wallet")} alt={digitalWallet} style={{ height: "24px", width: "auto", display: "block" }} />}>{`Betalt med ${digitalWallet}`}</Tooltip>
                               : null}
                         </List.Cell.End>
                       </List.Item.Basic>
