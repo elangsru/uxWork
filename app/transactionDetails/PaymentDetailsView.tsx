@@ -44,7 +44,7 @@ function fieldDisplay(record: PaymentRecord | undefined, re: RegExp, showNames: 
 
 /** Fallback-definisjon for "Foreløpig kategori" – kan overstyres fra termdefinition-raden. */
 const FORELOPIG_KATEGORI_DEF =
-  "Vi viser en foreløpig kategori basert på MCC-koder mens transaksjonen er reservert. Når den er bokført vil den bli kategorisert i pengebruk.";
+  "Vi viser en foreløpig kategori basert på informasjon fra forhandler mens transaksjonen er reservert. Når den er bokført vil den bli kategorisert i pengebruk.";
 
 /** Løser en logoverdi fra regnearket til en sti under /public.
  *  Godtar filnavn ("visa", "visa.svg", "Apple Pay"), ferdig sti ("/wallet/vipps.svg")
