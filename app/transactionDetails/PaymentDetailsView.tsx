@@ -42,10 +42,6 @@ function fieldDisplay(record: PaymentRecord | undefined, re: RegExp, showNames: 
   return showNames ? `{${field.label}}` : field.value;
 }
 
-/** Fallback-definisjon for "Foreløpig kategori" – kan overstyres fra termdefinition-raden. */
-const FORELOPIG_KATEGORI_DEF =
-  "Vi viser en foreløpig kategori basert på informasjon fra forhandler mens transaksjonen er reservert. Når den er bokført vil den bli kategorisert i pengebruk.";
-
 /** Løser en logoverdi fra regnearket til en sti under /public.
  *  Godtar filnavn ("visa", "visa.svg", "Apple Pay"), ferdig sti ("/wallet/vipps.svg")
  *  eller full URL – URL-er og absolutte stier brukes som de er. */
@@ -197,8 +193,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const kortreklamasjoner = fieldValue(selected, /^kortreklamasjon(er)?$/i);
   const transactionId     = fieldValue(selected, /^transaksjonsid$/i);
   const termDefRecord = payments.find((p) => /^termdefinition$/i.test(p.type));
-  const td = (label: string, children: ReactNode = label, fallback?: string): ReactNode => {
-    const def = termDefRecord?.fields.find((f) => f.label === label)?.value || fallback;
+  const td = (label: string, children: ReactNode = label): ReactNode => {
+    const def = termDefRecord?.fields.find((f) => f.label === label)?.value;
     return def ? <TermDefinition content={def}>{children}</TermDefinition> : children;
   };
   const kvittering       = fieldValue(selected, /^kvittering$/i);
@@ -631,7 +627,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                   <P style={{ margin: 0, fontWeight: 600 }}>Pengebruk</P>
                   <List.Container>
                     {showReserved ? (
-                      <List.Item.Basic icon={coins_1_medium} title={td("Foreløpig kategori", "Foreløpig kategori", FORELOPIG_KATEGORI_DEF)}>
+                      <List.Item.Basic icon={coins_1_medium} title={td("Pengebruk reservert", "Foreløpig kategori")}>
                         {pengebrukReservert && (
                           <List.Cell.End fontWeight="regular">
                             {fd(/^pengebruk reservert$/i)}
