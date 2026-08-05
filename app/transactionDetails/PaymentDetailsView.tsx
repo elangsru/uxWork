@@ -20,7 +20,7 @@ const COUNTRY_ISO: Record<string, string> = {
 
 /* Felt som rendres i kortet og derfor ikke i detaljlisten */
 const BENEFICIARY_LABELS =
-  /^(logo\/avatar|logourl|mottaker navn|mottaker konto|mottaker konto ?type|mottaker land|mottaker adresse 1|mottaker adresse 2|mottaker postnr|mottaker sted\/by|mottaker web|mottaker orgnr|mottaker telefon|telefon|orgnr|org\.?nr\.?|organisasjonsnummer|melding|kid|pengebruk tag|dato|transaksjonsdato|reservert dato|reservasjonsdato|bokf[øo]rt dato|bokf[øo]ringsdato|rentedato|beløp|beløp nok|nok beløp|beløp valuta|valuta beløp|valutabeløp|vekslingskurs|valutasort|res(?:erv|v)ert melding|kontonavn|fra kontonavn|kontotype|konto type|fra konto type|kontonummer|fra kontonummer|fra konto|kortnavn|fra kortnavn|kortnummer|kortnummer pan|kortnummer\/pan|fra kortnummer\/pan|fra kortnummer pan|pan|kortnettverk|fra kortnettverk|kortnettverk logo|fra kortnettverk logo|digital wallet|digital wallet logo|klokkeslett|pengebruk sub|pengebruk main|sas eurobonuspoeng|eurobonus poeng|sas bonus|betalingsprodukt|kvittering|efaktura|efaktura-vedlegg|betalingsbekreftelse|pris|gebyr|pris\/gebyr|lån avdrag|lån renter|kortreklamasjon(er)?|transaksjonsid|fra milj[øo]|pengebruk icon)$/i;
+  /^(logo\/avatar|logourl|mottaker navn|mottaker navn reservert|mottaker konto|mottaker konto ?type|mottaker land|mottaker adresse 1|mottaker adresse 2|mottaker postnr|mottaker sted\/by|mottaker web|mottaker orgnr|mottaker telefon|telefon|orgnr|org\.?nr\.?|organisasjonsnummer|melding|kid|pengebruk tag|dato|transaksjonsdato|reservert dato|reservasjonsdato|bokf[øo]rt dato|bokf[øo]ringsdato|rentedato|beløp|beløp nok|nok beløp|beløp valuta|valuta beløp|valutabeløp|vekslingskurs|valutasort|res(?:erv|v)ert melding|kontonavn|fra kontonavn|kontotype|konto type|fra konto type|kontonummer|fra kontonummer|fra konto|kortnavn|fra kortnavn|kortnummer|kortnummer pan|kortnummer\/pan|fra kortnummer\/pan|fra kortnummer pan|pan|kortnettverk|fra kortnettverk|kortnettverk logo|fra kortnettverk logo|digital wallet|digital wallet logo|klokkeslett|pengebruk sub|pengebruk main|sas eurobonuspoeng|eurobonus poeng|sas bonus|betalingsprodukt|kvittering|efaktura|efaktura-vedlegg|betalingsbekreftelse|pris|gebyr|pris\/gebyr|lån avdrag|lån renter|kortreklamasjon(er)?|transaksjonsid|fra milj[øo]|pengebruk icon)$/i;
 
 /* Valutakode → ISO-landkode for CountryFlag */
 const CURRENCY_FLAG: Record<string, string> = {
@@ -138,7 +138,12 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   /* ── Datauttrekk ───────────────────────────────────────────────── */
   const selected         = payments.find((p) => p.type === selectedType);
   const fd               = (re: RegExp) => fieldDisplay(selected, re, showFieldNames);
-  const name             = fieldValue(selected, /^mottaker navn$/i) || fieldValue(selected, /^mottaker$/i);
+  const nameReserved     = fieldValue(selected, /^mottaker navn reservert$/i);
+  const useReservedName  = showReserved && Boolean(nameReserved);
+  const nameRe           = useReservedName ? /^mottaker navn reservert$/i : /^mottaker navn$/i;
+  const name             = useReservedName
+    ? nameReserved
+    : fieldValue(selected, /^mottaker navn$/i) || fieldValue(selected, /^mottaker$/i);
   const account          = fieldValue(selected, /^mottaker konto/i);
   const mottakerKontoType = fieldValue(selected, /^mottaker konto ?type$/i);
   const country          = fieldValue(selected, /^mottaker land$/i);
@@ -406,7 +411,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                           )}
                         </List.Cell.Start>
                         <List.Cell.Title>
-                          {showFieldNames ? (fd(/^mottaker navn$/i) || fd(/^mottaker$/i)) : (name || account)}
+                          {showFieldNames ? (fd(nameRe) || fd(/^mottaker$/i)) : (name || account)}
                           {name && account && (
                             <List.Cell.Title.Subline variant="description">
                               {fd(/^mottaker konto/i)}
