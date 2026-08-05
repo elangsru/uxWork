@@ -20,7 +20,7 @@ const COUNTRY_ISO: Record<string, string> = {
 
 /* Felt som rendres i kortet og derfor ikke i detaljlisten */
 const BENEFICIARY_LABELS =
-  /^(logo\/avatar|logourl|mottaker navn|mottaker navn reservert|mottaker konto|mottaker konto ?type|mottaker land|mottaker adresse 1|mottaker adresse 2|mottaker postnr|mottaker sted\/by|mottaker web|mottaker orgnr|mottaker telefon|telefon|orgnr|org\.?nr\.?|organisasjonsnummer|melding|kid|pengebruk tag|dato|transaksjonsdato|reservert dato|reservasjonsdato|bokf[øo]rt dato|bokf[øo]ringsdato|rentedato|beløp|beløp nok|nok beløp|beløp valuta|valuta beløp|valutabeløp|vekslingskurs|valutasort|res(?:erv|v)ert melding|kontonavn|fra kontonavn|kontotype|konto type|fra konto type|kontonummer|fra kontonummer|fra konto|kortnavn|fra kortnavn|kortnummer|kortnummer pan|kortnummer\/pan|fra kortnummer\/pan|fra kortnummer pan|pan|kortnettverk|fra kortnettverk|kortnettverk logo|fra kortnettverk logo|digital wallet|digital wallet logo|klokkeslett|pengebruk sub|pengebruk main|sas eurobonuspoeng|eurobonus poeng|sas bonus|betalingsprodukt|kvittering|efaktura|efaktura-vedlegg|betalingsbekreftelse|pris|gebyr|pris\/gebyr|lån avdrag|lån renter|kortreklamasjon(er)?|transaksjonsid|fra milj[øo]|pengebruk icon)$/i;
+  /^(logo\/avatar|logourl|mottaker navn|mottaker navn reservert|mottaker konto|mottaker konto ?type|mottaker land|mottaker adresse 1|mottaker adresse 2|mottaker postnr|mottaker sted\/by|mottaker web|mottaker orgnr|mottaker telefon|telefon|orgnr|org\.?nr\.?|organisasjonsnummer|melding|kid|pengebruk tag|dato|transaksjonsdato|reservert dato|reservasjonsdato|bokf[øo]rt dato|bokf[øo]ringsdato|rentedato|beløp|beløp nok|nok beløp|beløp valuta|valuta beløp|valutabeløp|vekslingskurs|valutasort|res(?:erv|v)ert melding|kontonavn|fra kontonavn|kontotype|konto type|fra konto type|kontonummer|fra kontonummer|fra konto|kortnavn|fra kortnavn|kortnummer|kortnummer pan|kortnummer\/pan|fra kortnummer\/pan|fra kortnummer pan|pan|kortnettverk|fra kortnettverk|kortnettverk logo|fra kortnettverk logo|digital wallet|digital wallet logo|klokkeslett|pengebruk sub|pengebruk main|pengebruk reservert|sas eurobonuspoeng|eurobonus poeng|sas bonus|betalingsprodukt|kvittering|efaktura|efaktura-vedlegg|betalingsbekreftelse|pris|gebyr|pris\/gebyr|lån avdrag|lån renter|kortreklamasjon(er)?|transaksjonsid|fra milj[øo]|pengebruk icon)$/i;
 
 /* Valutakode → ISO-landkode for CountryFlag */
 const CURRENCY_FLAG: Record<string, string> = {
@@ -41,6 +41,10 @@ function fieldDisplay(record: PaymentRecord | undefined, re: RegExp, showNames: 
   if (!field) return "";
   return showNames ? `{${field.label}}` : field.value;
 }
+
+/** Fallback-definisjon for "Foreløpig kategori" – kan overstyres fra termdefinition-raden. */
+const FORELOPIG_KATEGORI_DEF =
+  "Vi viser en foreløpig kategori basert på MCC-koder mens transaksjonen er reservert. Når den er bokført vil den bli kategorisert i pengebruk.";
 
 /** Løser en logoverdi fra regnearket til en sti under /public.
  *  Godtar filnavn ("visa", "visa.svg", "Apple Pay"), ferdig sti ("/wallet/vipps.svg")
@@ -193,8 +197,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const kortreklamasjoner = fieldValue(selected, /^kortreklamasjon(er)?$/i);
   const transactionId     = fieldValue(selected, /^transaksjonsid$/i);
   const termDefRecord = payments.find((p) => /^termdefinition$/i.test(p.type));
-  const td = (label: string, children: ReactNode = label): ReactNode => {
-    const def = termDefRecord?.fields.find((f) => f.label === label)?.value;
+  const td = (label: string, children: ReactNode = label, fallback?: string): ReactNode => {
+    const def = termDefRecord?.fields.find((f) => f.label === label)?.value || fallback;
     return def ? <TermDefinition content={def}>{children}</TermDefinition> : children;
   };
   const kvittering       = fieldValue(selected, /^kvittering$/i);
@@ -228,7 +232,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const pengebrukSub  = fieldValue(selected, /^pengebruk sub$/i);
   const pengebrukMain = fieldValue(selected, /^pengebruk main$/i);
   const pengebrukIconField = fieldValue(selected, /^pengebruk icon$/i);
-  const hasPengebruk  = Boolean(pengebrukSub || pengebrukMain);
+  const pengebrukReservert = fieldValue(selected, /^pengebruk reservert$/i);
+  const hasPengebruk  = Boolean(pengebrukSub || pengebrukMain || (showReserved && pengebrukReservert));
   const pengebrukIcon = ((pengebrukIconField ? lookupEufemiaIcon(pengebrukIconField) : null) ?? getPengebrukIcon(pengebrukSub || pengebrukMain)) as ReturnType<typeof getPengebrukIcon>;
   const transactionTags = fieldValue(selected, /^pengebruk tag$/i)
     .split(",").map((t) => t.trim()).filter(Boolean);
@@ -626,7 +631,13 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                   <P style={{ margin: 0, fontWeight: 600 }}>Pengebruk</P>
                   <List.Container>
                     {showReserved ? (
-                      <List.Item.Basic icon={coins_1_medium} title="(kategoriseres når bokført)" />
+                      <List.Item.Basic icon={coins_1_medium} title={td("Foreløpig kategori", "Foreløpig kategori", FORELOPIG_KATEGORI_DEF)}>
+                        {pengebrukReservert && (
+                          <List.Cell.End fontWeight="regular">
+                            {fd(/^pengebruk reservert$/i)}
+                          </List.Cell.End>
+                        )}
+                      </List.Item.Basic>
                     ) : (
                       <List.Item.Accordion icon={pengebrukIcon}>
                         <List.Item.Accordion.Header>
