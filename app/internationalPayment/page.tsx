@@ -610,11 +610,11 @@ export default function InternationalPayment() {
   // tillates mens man skriver, slik at feilmeldingen ikke blinker på "10,".
   const agreedRateError =
     agreedRate.trim() !== "" && !/^\d+(,\d*)?$/.test(agreedRate.trim())
-      ? "Bruk kun tall med komma som desimalskilletegn, for eksempel 10,84."
+      ? "Bruk kun tall"
       : undefined;
   const referenceError =
     reference.trim() !== "" && !/^[A-Za-zÆØÅæøå]+$/.test(reference.trim())
-      ? "Bruk kun bokstaver."
+      ? "Bruk kun bokstaver"
       : undefined;
 
   function handleNext() {
