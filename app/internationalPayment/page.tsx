@@ -1157,7 +1157,7 @@ export default function InternationalPayment() {
                   if (date) setPaymentDate(date);
                 }}
               />
-              <Accordion title="Tilleggstjenester" variant="outlined" iconPosition="right">
+              <Accordion title="Valgfrie tilleggstjenester" variant="outlined" iconPosition="right">
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   <H3>Avtalt valutakurs</H3>
                   <P>
