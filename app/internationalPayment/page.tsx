@@ -138,17 +138,12 @@ function SummaryStep({
   currency,
   amount,
   amountInNok,
-  showFixedRate,
   showPurpose,
   customInfoStyle,
   paymentType,
   fullWidth,
   costOption,
   setCostOption,
-  agreedRate,
-  setAgreedRate,
-  reference,
-  setReference,
   purpose,
   setPurpose,
   description,
@@ -160,17 +155,12 @@ function SummaryStep({
   currency: Currency | null;
   amount: string;
   amountInNok: boolean;
-  showFixedRate: boolean;
   showPurpose: boolean;
   customInfoStyle: boolean;
   paymentType: string;
   fullWidth: boolean;
   costOption: string;
   setCostOption: (value: string) => void;
-  agreedRate: string;
-  setAgreedRate: (value: string) => void;
-  reference: string;
-  setReference: (value: string) => void;
   purpose: string;
   setPurpose: (value: string) => void;
   description: string;
@@ -214,15 +204,6 @@ function SummaryStep({
     : costOption === "mottaker"
     ? `Kostnader belastet av andre banker blir trukket fra beløpet som sendes (${currencyCode} ${fmtAmount(foreignAmount)}). Sørg for å ha nok til å dekke det du skal betale for.`
     : "Transaksjonskostnaden er delt mellom deg og mottaker. Dette er din pris.";
-
-  const optionalLabel = (text: string) => (
-    <>
-      {text}{" "}
-      <span style={{ color: "var(--token-color-text-neutral-alternative)", fontWeight: "normal" }}>
-        Valgfritt felt
-      </span>
-    </>
-  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: fullWidth ? "100%" : "488px", width: "100%" }}>
@@ -340,32 +321,6 @@ function SummaryStep({
           )}
         </div>
       </div>
-
-      {/* Avtalt valutakurs */}
-      {showFixedRate && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          <H3>Avtalt valutakurs</H3>
-          <P>
-            Når beløp overstiger tre millioner kroner, kan vekslingskurs avtales for oppdraget. Kontakt en av våre valutameglere på telefon +47 24 16 90 90.
-          </P>
-          <Input
-            label={optionalLabel("Avtalt kurs")}
-            size="medium"
-            stretch
-            placeholder={`Valutakurs (${currencyCode})`}
-            value={agreedRate}
-            onChange={({ value }) => setAgreedRate(value)}
-          />
-          <Input
-            label={optionalLabel("Referanse")}
-            size="medium"
-            stretch
-            placeholder="Navn/avtalenummer"
-            value={reference}
-            onChange={({ value }) => setReference(value)}
-          />
-        </div>
-      )}
 
       {/* Formål med betalingen */}
       {showPurpose && (
@@ -533,7 +488,6 @@ export default function InternationalPayment() {
   const [currentStep, setCurrentStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
-  const [showFixedRate, setShowFixedRate] = useState(false);
   const [showPurpose, setShowPurpose] = useState(false);
   const [customInfoStyle, setCustomInfoStyle] = useState(false);
   const [fullWidth, setFullWidth] = useState(true);
@@ -1192,6 +1146,36 @@ export default function InternationalPayment() {
                   if (date) setPaymentDate(date);
                 }}
               />
+              <Accordion title="Tilleggsvalg" variant="outlined" iconPosition="right">
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <H3>Avtalt valutakurs</H3>
+                  <P>
+                    For større beløp kan valutakurs avtales. Kontakt en av våre valutameglere +47 24 16 90 90 og fyll inn avtalt kurs under.
+                  </P>
+                  <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+                    <div style={{ flex: "1 0 0", minWidth: 0 }}>
+                      <Input
+                        label={`Avtalt kurs${selectedCurrency ? ` (${selectedCurrency.code})` : ""}`}
+                        size="medium"
+                        stretch
+                        placeholder="Vekslingskurs"
+                        value={agreedRate}
+                        onChange={({ value }) => setAgreedRate(value)}
+                      />
+                    </div>
+                    <div style={{ flex: "1 0 0", minWidth: 0 }}>
+                      <Input
+                        label="Avtalt med (referanse)"
+                        size="medium"
+                        stretch
+                        placeholder="Initialer"
+                        value={reference}
+                        onChange={({ value }) => setReference(value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </Accordion>
               <div>
                 <Button
                   variant="primary"
@@ -1209,17 +1193,12 @@ export default function InternationalPayment() {
               currency={selectedCurrency}
               amount={amount}
               amountInNok={amountInNok}
-              showFixedRate={showFixedRate}
               showPurpose={showPurpose}
               customInfoStyle={customInfoStyle}
               paymentType={paymentType}
               fullWidth={fullWidth}
               costOption={costOption}
               setCostOption={setCostOption}
-              agreedRate={agreedRate}
-              setAgreedRate={setAgreedRate}
-              reference={reference}
-              setReference={setReference}
               purpose={purpose}
               setPurpose={setPurpose}
               description={description}
@@ -1298,11 +1277,6 @@ export default function InternationalPayment() {
                     onChange={({ data }) => setPaymentType(typeof data?.selectedKey === "string" ? data.selectedKey : "cross-border")}
                   />
                 </div>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-                <P size="basis" style={{ margin: 0 }}>Show fixed rate</P>
-                <Switch label="Show fixed rate" labelSrOnly checked={showFixedRate} onChange={({ checked }) => setShowFixedRate(checked)} />
               </div>
 
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
