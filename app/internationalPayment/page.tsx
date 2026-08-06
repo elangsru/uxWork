@@ -1150,7 +1150,7 @@ export default function InternationalPayment() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   <H3>Avtalt valutakurs</H3>
                   <P>
-                    For større beløp kan valutakurs avtales. Kontakt en av våre valutameglere +47 24 16 90 90 og fyll inn avtalt kurs under.
+                    For større beløp kan valutakurs avtales. Kontakt en av våre valutameglere på telefon +47 24 16 90 90.
                   </P>
                   <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
                     <div style={{ flex: "1 0 0", minWidth: 0 }}>
