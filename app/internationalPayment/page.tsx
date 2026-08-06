@@ -490,7 +490,7 @@ export default function InternationalPayment() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showPurpose, setShowPurpose] = useState(false);
   const [customInfoStyle, setCustomInfoStyle] = useState(false);
-  const [fullWidth, setFullWidth] = useState(true);
+  const [fullWidth, setFullWidth] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [paymentType, setPaymentType] = useState("sepa");
@@ -504,7 +504,7 @@ export default function InternationalPayment() {
     const fw = sessionStorage.getItem("fullWidth");
     const dm = sessionStorage.getItem("darkMode");
     const to = sessionStorage.getItem("toolsOpen");
-    setFullWidth(fw === null ? true : fw === "true");
+    setFullWidth(fw === "true");
     setDarkMode(dm === "true");
     setToolsOpen(to === "true");
     setHydrated(true);
