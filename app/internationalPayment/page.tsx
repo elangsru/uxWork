@@ -606,6 +606,17 @@ export default function InternationalPayment() {
     : currencies;
   const messageError = submitted && !message.trim() ? "Dette feltet må fylles ut." : undefined;
 
+  // Avtalt kurs: kun tall med komma som desimalskilletegn. Komma uten desimaler
+  // tillates mens man skriver, slik at feilmeldingen ikke blinker på "10,".
+  const agreedRateError =
+    agreedRate.trim() !== "" && !/^\d+(,\d*)?$/.test(agreedRate.trim())
+      ? "Bruk kun tall med komma som desimalskilletegn, for eksempel 10,84."
+      : undefined;
+  const referenceError =
+    reference.trim() !== "" && !/^[A-Za-zÆØÅæøå]+$/.test(reference.trim())
+      ? "Bruk kun bokstaver."
+      : undefined;
+
   function handleNext() {
     setSubmitted(true);
     if (selectedRecipient && message.trim()) {
@@ -1160,6 +1171,7 @@ export default function InternationalPayment() {
                         stretch
                         placeholder="Vekslingskurs"
                         value={agreedRate}
+                        status={agreedRateError}
                         onChange={({ value }) => setAgreedRate(value)}
                       />
                     </div>
@@ -1170,6 +1182,7 @@ export default function InternationalPayment() {
                         stretch
                         placeholder="Initialer"
                         value={reference}
+                        status={referenceError}
                         onChange={({ value }) => setReference(value)}
                       />
                     </div>
