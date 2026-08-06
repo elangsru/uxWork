@@ -1177,7 +1177,7 @@ export default function InternationalPayment() {
                     </div>
                     <div style={{ flex: "1 0 0", minWidth: 0 }}>
                       <Input
-                        label="Avtalt med (referanse)"
+                        label="Din referanse hos DNB"
                         size="medium"
                         stretch
                         placeholder="Initialer"
