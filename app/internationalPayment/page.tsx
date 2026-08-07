@@ -499,6 +499,7 @@ export default function InternationalPayment() {
   const [agreedRate, setAgreedRate] = useState("");
   const [reference, setReference] = useState("");
   const [purpose, setPurpose] = useState("");
+  const [extraServicesOpen, setExtraServicesOpen] = useState(false);
 
   useEffect(() => {
     const fw = sessionStorage.getItem("fullWidth");
@@ -1157,8 +1158,21 @@ export default function InternationalPayment() {
                   if (date) setPaymentDate(date);
                 }}
               />
-              <Accordion title="Valgfrie tilleggstjenester" variant="outlined" iconPosition="right">
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px", alignItems: "flex-start" }}>
+                <Button
+                  variant="tertiary"
+                  text="Valgfrie tilleggstjenester"
+                  icon={extraServicesOpen ? chevron_up : chevron_down}
+                  iconPosition="right"
+                  aria-expanded={extraServicesOpen}
+                  aria-controls="valgfrie-tilleggstjenester"
+                  onClick={() => setExtraServicesOpen(!extraServicesOpen)}
+                />
+                {extraServicesOpen && (
+                <div
+                  id="valgfrie-tilleggstjenester"
+                  style={{ width: "100%", display: "flex", flexDirection: "column", gap: "16px" }}
+                >
                   <H3>Avtalt valutakurs</H3>
                   <P>
                     For større beløp kan valutakurs avtales. Kontakt en av våre valutameglere på telefon +47 24 16 90 90.
@@ -1188,7 +1202,8 @@ export default function InternationalPayment() {
                     </div>
                   </div>
                 </div>
-              </Accordion>
+                )}
+              </div>
               <div>
                 <Button
                   variant="primary"
