@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, Input, FormStatus, Skeleton, List, Avatar, Badge } from "@dnb/eufemia/components";
 import { H1, H2, P } from "@dnb/eufemia/elements";
-import { chevron_left, goal_medium } from "@dnb/eufemia/icons";
+import { chevron_left, goal_medium, refresh } from "@dnb/eufemia/icons";
 import { gh, getSession, clearSession, type Participant } from "../../shared";
 
 const listOverrides = `
@@ -32,6 +32,7 @@ export default function ActivityDetailPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -82,6 +83,13 @@ export default function ActivityDetailPage() {
     }
     await load();
     setSaving(false);
+  }
+
+  async function onRefresh() {
+    setError(null);
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
   }
 
   return (
@@ -139,9 +147,28 @@ export default function ActivityDetailPage() {
               )}
 
               {!locked && (
-                <P top="large" bottom="x-small" style={{ fontWeight: 500 }}>
-                  Deltakere
-                </P>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "1rem",
+                    marginTop: "2rem",
+                    marginBottom: "0.25rem",
+                  }}
+                >
+                  <P bottom={false} style={{ fontWeight: 500 }}>
+                    Deltakere
+                  </P>
+                  <Button
+                    variant="tertiary"
+                    text={refreshing ? "Oppdaterer …" : "Oppdater listen"}
+                    icon={refresh}
+                    iconPosition="left"
+                    disabled={refreshing}
+                    onClick={onRefresh}
+                  />
+                </div>
               )}
 
               <div style={{ marginTop: locked ? "2rem" : 0 }}>
