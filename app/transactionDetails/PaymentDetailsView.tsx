@@ -43,14 +43,18 @@ function fieldDisplay(record: PaymentRecord | undefined, re: RegExp, showNames: 
 }
 
 /** Løser en logoverdi fra regnearket til en sti under /public.
- *  Godtar filnavn ("visa", "visa.svg", "Apple Pay"), ferdig sti ("/wallet/vipps.svg")
- *  eller full URL – URL-er og absolutte stier brukes som de er. */
-function logoSrc(value: string, folder: "kortnettverk" | "wallet"): string {
+ *  Godtar filnavn ("visa", "visa.svg", "Apple Pay", "Rema"), ferdig sti
+ *  ("/wallet/vipps.svg") eller full URL – URL-er og absolutte stier brukes som de er. */
+function logoSrc(value: string, folder: "kortnettverk" | "wallet" | "merchants"): string {
   const raw = value.trim();
   if (!raw) return "";
   if (/^(https?:)?\/\//i.test(raw)) return raw;
   if (raw.startsWith("/")) return raw;
-  const file = raw.toLowerCase().replace(/\s+/g, "");
+  // merchants-filene har stor forbokstav ("Rema.svg"), i motsetning til
+  // kortnettverk/wallet som er små. Railway kjører Linux med case-sensitivt
+  // filsystem, så her må vi beholde casingen fra arket.
+  const stripped = raw.replace(/\s+/g, "");
+  const file = folder === "merchants" ? stripped : stripped.toLowerCase();
   return `/${folder}/${/\.(svg|png|jpe?g|webp)$/i.test(file) ? file : `${file}.svg`}`;
 }
 
@@ -158,6 +162,11 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const tilLabel         = isOverforing ? "Overført til" : "Betalt til";
   const fraLabel         = isOverforing ? "Overført fra" : "Betalt fra";
   const logoUrl          = fieldValue(selected, /^logourl$/i);
+  // Innlimt URL → gammel oppførsel: avataren beholdes, logoen vises til høyre.
+  // Filnavn ("Netflix") → logoen erstatter avataren, hentet fra /merchants.
+  const logoIsUrl        = /^(https?:)?\/\//i.test(logoUrl.trim());
+  const externalLogo     = showLogo && logoIsUrl ? logoUrl.trim() : "";
+  const merchantLogo     = showLogo && !logoIsUrl ? logoSrc(logoUrl, "merchants") : "";
 
   const nokAmount        = fieldValue(selected, /^(beløp|beløp nok|nok beløp)$/i);
   const currencyAmount   = fieldValue(selected, /^(beløp valuta|valuta beløp|valutabeløp)$/i);
@@ -237,6 +246,30 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const detailFields = selected
     ? selected.fields.filter((f) => !BENEFICIARY_LABELS.test(f.label.trim()))
     : [];
+
+  /* Logo erstatter Avatar når "Vis logo" er slått på og typen har en logo.
+     Boksen er 2rem for å matche Avatar size="medium", så listejusteringen
+     holder seg lik på tvers av radene. */
+  const beneficiaryMark: ReactNode = merchantLogo ? (
+    <span
+      style={{
+        width: "2rem",
+        height: "2rem",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <img
+        src={merchantLogo}
+        alt={name}
+        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }}
+      />
+    </span>
+  ) : (
+    <Avatar size="medium" variant="primary">{initial}</Avatar>
+  );
 
   /* ── SSR-hydration guard ───────────────────────────────────────── */
   if (!hydrated) {
@@ -405,10 +438,10 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             <Icon icon={mottakerKontoIcon} size="medium" style={{ color: "var(--token-color-icon-action)" }} />
                           ) : showFlag ? (
                             <Badge content={<CountryFlag iso={flagIso} size="small" />} vertical="bottom" horizontal="right" variant="content">
-                              <Avatar size="medium" variant="primary">{initial}</Avatar>
+                              {beneficiaryMark}
                             </Badge>
                           ) : (
-                            <Avatar size="medium" variant="primary">{initial}</Avatar>
+                            beneficiaryMark
                           )}
                         </List.Cell.Start>
                         <List.Cell.Title>
@@ -419,9 +452,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             </List.Cell.Title.Subline>
                           )}
                         </List.Cell.Title>
-                        {showLogo && logoUrl && (
+                        {externalLogo && (
                           <List.Cell.End fontWeight="regular">
-                            <img src={logoUrl} alt={name} style={{ height: "24px", width: "auto", display: "block" }} />
+                            <img src={externalLogo} alt={name} style={{ height: "24px", width: "auto", display: "block" }} />
                           </List.Cell.End>
                         )}
                       </List.Item.Accordion.Header>

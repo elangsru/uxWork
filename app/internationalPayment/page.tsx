@@ -195,10 +195,8 @@ function SummaryStep({
     : isSepa
     ? "kr 0,00"
     : `NOK ${fmtAmount(cost)}`;
-  const costMessage = isSepa
+  const costMessage = isSepa || isEuropa
     ? null
-    : isEuropa
-    ? "Transaksjonskostnaden er delt mellom deg og mottaker. Dette er din pris."
     : costOption === "jeg"
     ? "Ekstra gebyr (NOK 350,00) legges til prisen (NOK 60,00) for å dekke kostnader belastet i andre banker."
     : costOption === "mottaker"
