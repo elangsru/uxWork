@@ -7,7 +7,7 @@ import {
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { H1, H2, P, Hr } from "@dnb/eufemia/elements";
-import { filter, close, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, launch, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium } from "@dnb/eufemia/icons";
+import { filter, close, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, launch, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
@@ -158,6 +158,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const initial          = name.trim().charAt(0).toUpperCase() || "?";
   const hasBeneficiary   = Boolean(name.trim() || account);
   const isAvtalegiro     = /avtalegiro/i.test(selectedType);
+  const isEfaktura       = /efaktura/i.test(selectedType);
   const isOverforing     = /overf[øo]ring|boliglån/i.test(selectedType);
   const tilLabel         = isOverforing ? "Overført til" : "Betalt til";
   const fraLabel         = isOverforing ? "Overført fra" : "Betalt fra";
@@ -557,6 +558,15 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
+                            {isEfaktura && (
+                              <List.Item.Basic icon={einvoice_medium} title={td("eFakturahistorikk")}>
+                                <List.Cell.End fontWeight="regular">
+                                  <Anchor href="#" icon={launch} iconPosition="right" target="_blank">
+                                    Vis eFakturaer
+                                  </Anchor>
+                                </List.Cell.End>
+                              </List.Item.Basic>
+                            )}
                             <List.Item.Basic icon={history_medium} title={td("Historikk")}>
                               <List.Cell.End fontWeight="regular">
                                 <Anchor href="#" target="_blank">
@@ -692,7 +702,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                   />
                                 </List.Cell.End>
                               </List.Item.Basic>
-                              <List.Item.Basic title={td("Egendefinert tag")}>
+                              <List.Item.Basic title={td("Pengebruk tag", "Egendefinert tag")}>
                                 <List.Cell.End>
                                   <Tag.Group label="Egendefinert tag">
                                     {showFieldNames ? (
