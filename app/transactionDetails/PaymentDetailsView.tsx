@@ -680,6 +680,18 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                         <List.Item.Accordion.Content>
                           <div className="dnb-card" style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)" }}>
                             <List.Container>
+                              <List.Item.Action title="Bytt kategori" />
+                              <List.Item.Action title="Splitt transaksjonen" />
+                              <List.Item.Basic title={td("Skjul i pengebruk")}>
+                                <List.Cell.End>
+                                  <Switch
+                                    label="Skjul i pengebruk"
+                                    labelSrOnly
+                                    checked={hideFromSpending}
+                                    onChange={({ checked }) => setHideFromSpending(checked)}
+                                  />
+                                </List.Cell.End>
+                              </List.Item.Basic>
                               <List.Item.Basic title={td("Egendefinert tag")}>
                                 <List.Cell.End>
                                   <Tag.Group label="Egendefinert tag">
@@ -699,18 +711,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                     ))}
                                     <Tag variant="addable" onClick={() => setExtraTags((prev) => [...prev, "#eksempel tag"])}>Legg til</Tag>
                                   </Tag.Group>
-                                </List.Cell.End>
-                              </List.Item.Basic>
-                              <List.Item.Action title="Bytt kategori" />
-                              <List.Item.Action title="Splitt transaksjonen" />
-                              <List.Item.Basic title={td("Skjul i pengebruk")}>
-                                <List.Cell.End>
-                                  <Switch
-                                    label="Skjul i pengebruk"
-                                    labelSrOnly
-                                    checked={hideFromSpending}
-                                    onChange={({ checked }) => setHideFromSpending(checked)}
-                                  />
                                 </List.Cell.End>
                               </List.Item.Basic>
                             </List.Container>
