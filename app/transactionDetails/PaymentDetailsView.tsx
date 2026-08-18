@@ -7,7 +7,7 @@ import {
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { H1, H2, P, Hr } from "@dnb/eufemia/elements";
-import { filter, close, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, launch, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium } from "@dnb/eufemia/icons";
+import { filter, close, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, launch, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, stopwatch_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
@@ -79,7 +79,7 @@ function accountIcon(type: string) {
 
 function getMottakerKontoIcon(type: string) {
   return /sparekonto/i.test(type) ? savings_account_medium
-    : /lån/i.test(type)           ? loan_medium
+    : /lån/i.test(type)           ? house_value_medium
     : account_medium;
 }
 
@@ -160,7 +160,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const isAvtalegiro     = /avtalegiro/i.test(selectedType);
   const isEfaktura       = /efaktura/i.test(selectedType);
   const isOverforing     = /overf[øo]ring|boliglån/i.test(selectedType);
-  const tilLabel         = isOverforing ? "Overført til" : "Betalt til";
+  const isGebyrRenter    = /gebyr og renter/i.test(selectedType);
+  const tilLabel         = isGebyrRenter ? "Innbetalt" : isOverforing ? "Overført til" : "Betalt til";
   const fraLabel         = isOverforing ? "Overført fra" : "Betalt fra";
   const logoUrl          = fieldValue(selected, /^logourl$/i);
   // Innlimt URL → gammel oppførsel: avataren beholdes, logoen vises til høyre.
@@ -179,7 +180,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const avdrag           = fieldValue(selected, /^lån avdrag$/i);
   const renter           = fieldValue(selected, /^lån renter$/i);
   const hasLoanBreakdown = Boolean(avdrag || renter);
-  const betalingsproduktIcon = /straksbetaling/i.test(betalingsprodukt) ? null : globe_medium;
+  const betalingsproduktIcon = /straksbetaling/i.test(betalingsprodukt) ? stopwatch_medium : globe_medium;
   const reservedMessage  = fieldValue(selected, /^res(erv|v)ert melding$/i);
   const transaksjonsDato = fieldValue(selected, /^transaksjonsdato$/i);
   const reservertDate    = fieldValue(selected, /^(reservert dato|reservasjonsdato)$/i);
@@ -267,6 +268,21 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
         alt={name}
         style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }}
       />
+    </span>
+  ) : isGebyrRenter ? (
+    /* Gebyr og renter har ingen mottaker — ikon i stedet for initial-avatar.
+       Samme 2rem-boks som logoen, så radjusteringen holder seg. */
+    <span
+      style={{
+        width: "2rem",
+        height: "2rem",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <Icon icon={hand_money_medium} size="medium" style={{ color: "var(--token-color-icon-action)" }} />
     </span>
   ) : (
     <Avatar size="medium" variant="primary">{initial}</Avatar>
@@ -379,7 +395,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                       <>
                         <div style={{ padding: "0 16px" }}><Hr space={0} /></div>
                         <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px 16px" }}>
-                          <img src="/sas_avatar.svg" alt="SAS" width={24} height={24} style={{ flexShrink: 0 }} />
+                          <img src="/merchants/SAS.svg" alt="SAS" width={24} height={24} style={{ flexShrink: 0 }} />
                           <P style={{ margin: 0 }}>
                             {showSasBonus && sasPoints
                               ? `SAS Eurobonuspoeng ${fd(/^(sas eurobonuspoeng|eurobonus poeng|sas bonus)$/i)}`
@@ -414,6 +430,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                       <>
                         <div style={{ padding: "0 16px" }}><Hr space={0} /></div>
                         <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px 16px" }}>
+                          <Icon icon={loan_medium} size="medium" style={{ flexShrink: 0, color: "var(--token-color-icon-action)" }} />
                           <P style={{ margin: 0 }}>
                             {showFieldNames
                               ? `${fd(/^lån avdrag$/i)} og ${fd(/^lån renter$/i)}`
@@ -552,8 +569,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             {isAvtalegiro && (
                               <List.Item.Basic icon={ainvoice_medium} title={td("Avtalegiro")}>
                                 <List.Cell.End fontWeight="regular">
-                                  <Anchor href="#" target="_blank">
-                                    Rediger avtale
+                                  <Anchor href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/DirectDebit/70011960764123/details" target="_blank">
+                                    Vis avtale
                                   </Anchor>
                                 </List.Cell.End>
                               </List.Item.Basic>
@@ -561,7 +578,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             {isEfaktura && (
                               <List.Item.Basic icon={einvoice_medium} title={td("eFakturahistorikk")}>
                                 <List.Cell.End fontWeight="regular">
-                                  <Anchor href="#" icon={launch} iconPosition="right" target="_blank">
+                                  <Anchor href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/einvoice/mine/issuers/917245975" icon={launch} iconPosition="right" target="_blank">
                                     Vis eFakturaer
                                   </Anchor>
                                 </List.Cell.End>
@@ -579,7 +596,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                 <List.Cell.End fontWeight="regular">
                                   {showFieldNames
                                     ? fd(/^kortreklamasjon(er)?$/i)
-                                    : <Anchor href="#" icon={launch} iconPosition="right" target="_blank">Rapporter</Anchor>}
+                                    : <Anchor href="https://www.dnb.no/segp/apps/besok/card_complaints/dashboard?segment=segp" icon={launch} iconPosition="right" target="_blank">Rapporter</Anchor>}
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
@@ -702,9 +719,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                   />
                                 </List.Cell.End>
                               </List.Item.Basic>
-                              <List.Item.Basic title={td("Pengebruk tag", "Egendefinert tag")}>
+                              <List.Item.Basic title={td("Pengebruk tag", "Tagger")}>
                                 <List.Cell.End>
-                                  <Tag.Group label="Egendefinert tag">
+                                  <Tag.Group label="Tagger">
                                     {showFieldNames ? (
                                       <Tag variant="clickable" onClick={() => {}}>{fd(/^pengebruk tag$/i)}</Tag>
                                     ) : (
