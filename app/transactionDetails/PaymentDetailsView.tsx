@@ -3,7 +3,7 @@
 import { useState, useEffect, type ReactNode } from "react";
 import {
   Button, Icon, Switch, Dropdown, List, TermDefinition, Tag,
-  Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip, Breadcrumb,
+  Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip, Breadcrumb, Dialog, Autocomplete,
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { H2, P, Hr } from "@dnb/eufemia/elements";
@@ -124,6 +124,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const [hydrated, setHydrated]         = useState(false);
   const [kidCopied, setKidCopied] = useState(false);
   const [extraTags, setExtraTags] = useState<string[]>([]);
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
+  const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
     setDarkMode(sessionStorage.getItem("darkMode") === "true");
@@ -244,6 +246,25 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const pengebrukIcon = ((pengebrukIconField ? lookupEufemiaIcon(pengebrukIconField) : null) ?? getPengebrukIcon(pengebrukSub || pengebrukMain)) as ReturnType<typeof getPengebrukIcon>;
   const transactionTags = fieldValue(selected, /^pengebruk tag$/i)
     .split(",").map((t) => t.trim()).filter(Boolean);
+
+  /* Forslag i tagg-dialogen: alle tagger som finnes i arket, minus de som
+     allerede ligger på denne transaksjonen. TermDefinition-kolonnen holder
+     ordforklaringer, ikke tagger, så den holdes utenfor. Fritekst er tillatt. */
+  const tagSuggestions = Array.from(new Set(
+    payments
+      .filter((p) => !/^termdefinition$/i.test(p.type))
+      .flatMap((p) => p.fields.filter((f) => /^pengebruk tag$/i.test(f.label.trim())))
+      .flatMap((f) => f.value.split(",").map((t) => t.trim()))
+      .filter(Boolean)
+  )).filter((t) => !transactionTags.includes(t) && !extraTags.includes(t));
+
+  const saveTag = () => {
+    const value = tagInput.trim().replace(/^#\s*/, "");
+    if (!value) return;
+    setExtraTags((prev) => [...prev, `#${value}`]);
+    setTagInput("");
+    setTagDialogOpen(false);
+  };
 
   const detailFields = selected
     ? selected.fields.filter((f) => !BENEFICIARY_LABELS.test(f.label.trim()))
@@ -767,7 +788,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                         {tag}
                                       </Tag>
                                     ))}
-                                    <Tag variant="addable" onClick={() => setExtraTags((prev) => [...prev, "#eksempel tag"])}>Legg til</Tag>
+                                    <Tag variant="addable" onClick={() => setTagDialogOpen(true)}>Legg til</Tag>
                                   </Tag.Group>
                                 </List.Cell.End>
                               </List.Item.Basic>
@@ -982,6 +1003,34 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           </div>
         </div>
       )}
+
+      {/* ── Tagg-dialog ────────────────────────────────────────────── */}
+      <Dialog
+        omitTriggerButton
+        open={tagDialogOpen}
+        noAnimation
+        onClose={() => setTagDialogOpen(false)}
+        title="Legg til tagg"
+        variant="information"
+        maxWidth="49rem"
+      >
+        <Autocomplete
+          label="Skriv inn navn på tagg"
+          labelDirection="vertical"
+          placeholder="# text"
+          data={tagSuggestions}
+          showSubmitButton
+          noOptions="Ingen treff — trykk Lagre for å bruke det du har skrevet"
+          onType={({ value }) => setTagInput(value)}
+          onChange={({ data }) =>
+            setTagInput(typeof data === "string" ? data : String(data?.content ?? ""))
+          }
+          onSubmit={saveTag}
+        />
+        <Button variant="primary" size="large" onClick={saveTag} top="medium">
+          Lagre
+        </Button>
+      </Dialog>
     </Theme>
   );
 }
