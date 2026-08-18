@@ -3,10 +3,10 @@
 import { useState, useEffect, type ReactNode } from "react";
 import {
   Button, Icon, Switch, Dropdown, List, TermDefinition, Tag,
-  Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip,
+  Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip, Breadcrumb,
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { H1, H2, P, Hr } from "@dnb/eufemia/elements";
+import { H2, P, Hr } from "@dnb/eufemia/elements";
 import { filter, close, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, launch, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, stopwatch_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
@@ -314,8 +314,46 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
         .dnb-list__item.dnb-list__item .dnb-list__item__end.dnb-list__item__end { align-self: center; }
       `}</style>
 
+      {/* ── Page header (netbank-shell) ─────────────────────────────
+          Ligger utenfor det hvite innholdskortet: full bredde, egen hvit
+          flate, med innholdet innrykket i linje med kortet under. */}
+      <div style={{
+        background: "var(--token-color-background-page-background, var(--token-color-background-neutral))",
+        height: "80px",
+        display: "flex",
+        alignItems: "flex-end",
+        boxSizing: "border-box",
+      }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "32px",
+          height: "62px",
+          padding: "0 48px",
+          maxWidth: "calc(72rem + 96px)",
+          margin: "0 auto",
+          width: "100%",
+          boxSizing: "border-box",
+        }}>
+          <Breadcrumb
+            variant="multiple"
+            navText="Sidehierarki"
+            data={[
+              { text: "Hjem", href: "#" },
+              { text: "Kontoer", href: "#" },
+              { text: "Brukskonto", href: "#" },
+              { text: "Transaksjonsdetaljer" },
+            ]}
+          />
+          <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+            <Avatar size="medium" variant="primary" hasLabel>E</Avatar>
+            <Button variant="tertiary" size="small" icon="chevron_down" iconPosition="right">Meg</Button>
+          </div>
+        </div>
+      </div>
+
       {/* Page background */}
-      <div style={{ background: "var(--token-color-background-neutral-subtle)", minHeight: "100vh", padding: "48px", boxSizing: "border-box" }}>
+      <div style={{ background: "var(--token-color-background-neutral-subtle)", minHeight: "calc(100vh - 80px)", padding: "48px", boxSizing: "border-box" }}>
 
         {/* Content card */}
         <div style={{
@@ -326,19 +364,12 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           display: "flex",
           flexDirection: "column",
           gap: "48px",
-          minHeight: "calc(100vh - 96px)",
+          minHeight: "calc(100vh - 176px)",
           boxSizing: "border-box",
           maxWidth: "72rem",
           margin: "0 auto",
           width: "100%",
         }}>
-
-          {/* ── Tittel ─────────────────────────────────────────── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <H1 size="x-large">Transaksjonsdetaljer</H1>
-            <P>Velg Trx type fra konfigurasjonsmenyen for å endre visning</P>
-            <Hr space={0} />
-          </div>
 
           {/* ── Innhold ────────────────────────────────────────── */}
           {payments.length === 0 ? (
@@ -865,7 +896,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
       </div>
 
       {/* ── Konfigurasjons-knapp ───────────────────────────────────── */}
-      <div style={{ position: "fixed", top: "32px", right: "32px", zIndex: 100 }}>
+      <div style={{ position: "fixed", bottom: "32px", right: "32px", zIndex: 100 }}>
         <Button
           variant="secondary"
           icon={filter}
@@ -878,7 +909,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
       {/* ── Konfigurasjons-popover ─────────────────────────────────── */}
       {toolsOpen && (
         <div style={{
-          position: "fixed", top: "92px", right: "32px",
+          position: "fixed", bottom: "92px", right: "32px",
+          maxHeight: "calc(100vh - 124px)",
+          overflowY: "auto",
           background: "var(--token-color-background-neutral)",
           border: "1px solid var(--token-color-stroke-neutral-subtle)",
           filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.08))",

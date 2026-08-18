@@ -573,7 +573,7 @@ export default function PaymentsOverview() {
     </div>
 
     {/* Tools button */}
-    <div style={{ position: "fixed", top: "32px", right: "32px", zIndex: 100 }}>
+    <div style={{ position: "fixed", bottom: "32px", right: "32px", zIndex: 100 }}>
       <Button
         variant="secondary"
         icon={filter}
@@ -588,8 +588,10 @@ export default function PaymentsOverview() {
       <div
         style={{
           position: "fixed",
-          top: "92px",
+          bottom: "92px",
           right: "32px",
+          maxHeight: "calc(100vh - 124px)",
+          overflowY: "auto",
           background: "var(--token-color-background-neutral)",
           border: "1px solid var(--token-color-stroke-neutral-subtle, #ebebeb)",
           filter: "drop-shadow(0px 8px 8px rgba(0,0,0,0.08))",
