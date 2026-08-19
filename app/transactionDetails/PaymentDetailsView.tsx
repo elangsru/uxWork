@@ -644,7 +644,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
-                            <List.Item.Basic icon={history_medium} title={td("Historikk")}>
+                            <List.Item.Basic icon={history_medium} title={td("Historikk", "Betalingshistorikk")}>
                               <List.Cell.End fontWeight="regular">
                                 <Anchor href="#" target="_blank">
                                   Vis transaksjoner
@@ -741,6 +741,50 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                 </div>
               )}
 
+              {/* ── Vedlegg ──────────────────────────────────────── */}
+              {hasVedlegg && (
+                <div>
+                  <List.Container>
+                  <List.Item.Accordion icon={attachment_medium}>
+                    <List.Item.Accordion.Header>
+                      <List.Cell.Title>Vedlegg</List.Cell.Title>
+                    </List.Item.Accordion.Header>
+                    <List.Item.Accordion.Content>
+                      <div className="dnb-card" style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)" }}>
+                        <List.Container>
+                          {kvittering && (
+                            <List.Item.Basic title={td("Kjøpskvittering")}>
+                              <List.Cell.End fontWeight="regular">
+                                {/^vis$/i.test(kvittering) ? (
+                                  <Anchor href="#" target="_blank">Vis</Anchor>
+                                ) : /^last opp$/i.test(kvittering) ? (
+                                  <Anchor href="#" icon={upload} iconPosition="right">Last opp</Anchor>
+                                ) : null}
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
+                          {efaktura && (
+                            <List.Item.Basic title={td("eFaktura")}>
+                              <List.Cell.End fontWeight="regular">
+                                <Anchor href="#" target="_blank">Vis</Anchor>
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
+                          {betalingsbekreftelse && (
+                            <List.Item.Basic title={td("Betalingsbekreftelse")}>
+                              <List.Cell.End fontWeight="regular">
+                                <Anchor href="#" icon={download} iconPosition="right">Last ned</Anchor>
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
+                        </List.Container>
+                      </div>
+                    </List.Item.Accordion.Content>
+                  </List.Item.Accordion>
+                </List.Container>
+                </div>
+              )}
+
               {/* ── Pengebruk ──────────────────────────────────── */}
               {hasPengebruk && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -806,50 +850,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                       </List.Item.Accordion>
                     )}
                   </List.Container>
-                </div>
-              )}
-
-              {/* ── Vedlegg ──────────────────────────────────────── */}
-              {hasVedlegg && (
-                <div>
-                  <List.Container>
-                  <List.Item.Accordion icon={attachment_medium}>
-                    <List.Item.Accordion.Header>
-                      <List.Cell.Title>Vedlegg</List.Cell.Title>
-                    </List.Item.Accordion.Header>
-                    <List.Item.Accordion.Content>
-                      <div className="dnb-card" style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)" }}>
-                        <List.Container>
-                          {kvittering && (
-                            <List.Item.Basic title={td("Kjøpskvittering")}>
-                              <List.Cell.End fontWeight="regular">
-                                {/^vis$/i.test(kvittering) ? (
-                                  <Anchor href="#" target="_blank">Vis</Anchor>
-                                ) : /^last opp$/i.test(kvittering) ? (
-                                  <Anchor href="#" icon={upload} iconPosition="right">Last opp</Anchor>
-                                ) : null}
-                              </List.Cell.End>
-                            </List.Item.Basic>
-                          )}
-                          {efaktura && (
-                            <List.Item.Basic title={td("eFaktura")}>
-                              <List.Cell.End fontWeight="regular">
-                                <Anchor href="#" target="_blank">Vis</Anchor>
-                              </List.Cell.End>
-                            </List.Item.Basic>
-                          )}
-                          {betalingsbekreftelse && (
-                            <List.Item.Basic title={td("Betalingsbekreftelse")}>
-                              <List.Cell.End fontWeight="regular">
-                                <Anchor href="#" icon={download} iconPosition="right">Last ned</Anchor>
-                              </List.Cell.End>
-                            </List.Item.Basic>
-                          )}
-                        </List.Container>
-                      </div>
-                    </List.Item.Accordion.Content>
-                  </List.Item.Accordion>
-                </List.Container>
                 </div>
               )}
 
