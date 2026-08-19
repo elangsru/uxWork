@@ -7,7 +7,7 @@ import {
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { H2, P, Hr } from "@dnb/eufemia/elements";
-import { filter, close, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, launch, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, stopwatch_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
+import { filter, close, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, stopwatch_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
@@ -566,22 +566,30 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                               </List.Item.Basic>
                             )}
                             {hasAddress && (
-                              <List.Item.Basic icon={location_medium} title={td("Adresse")}>
+                              <List.Item.Basic
+                                icon={location_medium}
+                                title={
+                                  /* Adressen står som tittel i stedet for labelen «Adresse».
+                                     Ingen ordforklaring finnes for dette feltet, så td() droppes. */
+                                  [
+                                    address1 && fd(/^mottaker adresse 1$/i),
+                                    address2 && fd(/^mottaker adresse 2$/i),
+                                    postalLine && (showFieldNames
+                                      ? [fd(/^mottaker postnr$/i), fd(/^mottaker sted\/by$/i)].filter(Boolean).join(" ")
+                                      : postalLine),
+                                    country && fd(/^mottaker land$/i),
+                                  ]
+                                    .filter(Boolean)
+                                    .map((line, i) => (
+                                      <span key={i} style={{ display: "block" }}>{line}</span>
+                                    ))
+                                }
+                              >
                                 <List.Cell.End fontWeight="regular">
-                                  {address1   && <span style={{ display: "block" }}>{fd(/^mottaker adresse 1$/i)}</span>}
-                                  {address2   && <span style={{ display: "block" }}>{fd(/^mottaker adresse 2$/i)}</span>}
-                                  {postalLine && (
-                                    <span style={{ display: "block" }}>
-                                      {showFieldNames
-                                        ? [fd(/^mottaker postnr$/i), fd(/^mottaker sted\/by$/i)].filter(Boolean).join(" ")
-                                        : postalLine}
-                                    </span>
-                                  )}
                                   {hasStreetAddress && (
                                     <Anchor
                                       href={`https://maps.google.com/?q=${encodeURIComponent([address1, address2, postalLine, country].filter(Boolean).join(", "))}`}
                                       target="_blank"
-                                      style={{ display: "block", marginTop: "8px" }}
                                     >Vis i kart</Anchor>
                                   )}
                                 </List.Cell.End>
@@ -630,7 +638,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             {isEfaktura && (
                               <List.Item.Basic icon={einvoice_medium} title={td("eFakturahistorikk")}>
                                 <List.Cell.End fontWeight="regular">
-                                  <Anchor href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/einvoice/mine/issuers/917245975" icon={launch} iconPosition="right" target="_blank">
+                                  <Anchor href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/einvoice/mine/issuers/917245975" target="_blank">
                                     Vis eFakturaer
                                   </Anchor>
                                 </List.Cell.End>
@@ -648,7 +656,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                 <List.Cell.End fontWeight="regular">
                                   {showFieldNames
                                     ? fd(/^kortreklamasjon(er)?$/i)
-                                    : <Anchor href="https://www.dnb.no/segp/apps/besok/card_complaints/dashboard?segment=segp" icon={launch} iconPosition="right" target="_blank">Rapporter</Anchor>}
+                                    : <Anchor href="https://www.dnb.no/segp/apps/besok/card_complaints/dashboard?segment=segp" target="_blank">Rapporter</Anchor>}
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
