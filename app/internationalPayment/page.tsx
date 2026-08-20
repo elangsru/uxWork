@@ -1163,6 +1163,11 @@ export default function InternationalPayment() {
   const editRecipientContent = selectedRecipient && (
     <div className="ip-recipient-cards" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
       <style>{recipientCardStyles}</style>
+      <FormStatus
+        state="information"
+        stretch
+        text="Info om mottakers bank kan foreløpig ikke redigeres"
+      />
       <List.Container>
         <List.Item.Accordion icon={bank_medium} title="Mottakers bank" open>
           <List.Item.Accordion.Content>
