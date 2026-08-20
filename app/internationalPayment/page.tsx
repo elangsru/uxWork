@@ -996,7 +996,7 @@ export default function InternationalPayment() {
   );
 
   const bankFieldsCard = (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-medium)", width: "100%" }}>
       <Autocomplete
         label="Bankens land"
         size="medium"
@@ -1084,7 +1084,7 @@ export default function InternationalPayment() {
   );
 
   const recipientFieldsCard = (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-medium)", width: "100%" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
         <Input
           label="Navn/firma"
