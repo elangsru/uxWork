@@ -2,9 +2,9 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormStatus, Radio, Dropdown, Popover, Dialog, Accordion, Tabs } from "@dnb/eufemia/components";
-import { H1, H3, P } from "@dnb/eufemia/elements";
-import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close, bank_medium, location_medium, edit } from "@dnb/eufemia/icons";
+import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Tabs } from "@dnb/eufemia/components";
+import { H1, H3, P, Hr } from "@dnb/eufemia/elements";
+import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close, bank_medium, location_medium } from "@dnb/eufemia/icons";
 
 const fromAccountList = [
   { content: ["Lønnskonto", "7001 19 60764"], suffixValue: "NOK 7 804,46" },
@@ -28,6 +28,11 @@ type Recipient = {
   bankAddress: string[];
   swift: string;
   address: string[];
+  // Strukturerte felter for «Rediger mottaker», der adressen fylles inn i
+  // separate inputs. address[] brukes fortsatt til visning i popoveren.
+  addressLine1: string;
+  postalCode: string;
+  city: string;
 };
 
 const recipients: Recipient[] = [
@@ -41,6 +46,9 @@ const recipients: Recipient[] = [
     bankAddress: ["Friedrich-Wilhelm-Raiffeisenplatz 1", "Austria"],
     swift: "RLNWATWWXXX",
     address: ["Streetname 123", "12345 Vienna", "Austria"],
+    addressLine1: "Streetname 123",
+    postalCode: "12345",
+    city: "Vienna",
   },
   {
     name: "John Jones",
@@ -52,6 +60,9 @@ const recipients: Recipient[] = [
     bankAddress: ["1 Churchill Place", "London", "United Kingdom"],
     swift: "BUKBGB22",
     address: ["12 Baker Street", "W1U 6TT London", "United Kingdom"],
+    addressLine1: "12 Baker Street",
+    postalCode: "W1U 6TT",
+    city: "London",
   },
   {
     name: "Jose Martinez",
@@ -63,6 +74,9 @@ const recipients: Recipient[] = [
     bankAddress: ["Av. Diagonal 621", "Barcelona", "Spain"],
     swift: "CAIXESBBXXX",
     address: ["Carrer de Mallorca 401", "08013 Barcelona", "Spain"],
+    addressLine1: "Carrer de Mallorca 401",
+    postalCode: "08013",
+    city: "Barcelona",
   },
   {
     name: "Medel Svedsson",
@@ -74,6 +88,9 @@ const recipients: Recipient[] = [
     bankAddress: ["Kungsträdgårdsgatan 2", "Stockholm", "Sweden"],
     swift: "HANDSESS",
     address: ["Drottninggatan 15", "111 51 Stockholm", "Sweden"],
+    addressLine1: "Drottninggatan 15",
+    postalCode: "111 51",
+    city: "Stockholm",
   },
 ];
 
@@ -381,80 +398,163 @@ const currencies = currencyList.map((c) => ({
   ),
 }));
 
-type BankCountry = { code: string; name: string; iso: string };
+type BankCountry = { code: string; name: string; iso: string; usesIban: boolean };
 
-const bankCountryList: BankCountry[] = [
-  { code: "AU", name: "Australia", iso: "AU" },
-  { code: "DK", name: "Danmark", iso: "DK" },
-  { code: "FR", name: "Frankrike", iso: "FR" },
-  { code: "ES", name: "Spania", iso: "ES" },
-  { code: "GB", name: "Storbritannia", iso: "GB" },
-  { code: "SE", name: "Sverige", iso: "SE" },
-  { code: "DE", name: "Tyskland", iso: "DE" },
-  { code: "US", name: "USA", iso: "US" },
+// Felles landregister. Brukes i sin helhet som «Mottakers land», siden det
+// bare er et adressefelt.
+const countryList: BankCountry[] = [
+  { code: "AR", name: "Argentina", iso: "AR", usesIban: false },
+  { code: "AU", name: "Australia", iso: "AU", usesIban: false },
+  { code: "DK", name: "Danmark", iso: "DK", usesIban: true },
+  { code: "FR", name: "Frankrike", iso: "FR", usesIban: true },
+  { code: "ES", name: "Spania", iso: "ES", usesIban: true },
+  { code: "GB", name: "Storbritannia", iso: "GB", usesIban: true },
+  { code: "SE", name: "Sverige", iso: "SE", usesIban: true },
+  { code: "DE", name: "Tyskland", iso: "DE", usesIban: true },
+  { code: "AT", name: "Østerrike", iso: "AT", usesIban: true },
+  { code: "US", name: "USA", iso: "US", usesIban: false },
 ];
 
-const bankCountries = bankCountryList.map((c) => ({
-  selectedKey: c.code,
-  selectedValue: c.name,
-  searchContent: [c.name, c.code],
-  content: (
-    <div style={{ display: "flex", alignItems: "center", gap: "12px", width: "100%" }}>
-      <CountryFlag iso={c.iso} size="medium" />
-      <span>{c.name}</span>
-    </div>
-  ),
-}));
+// «Bankens land» er foreløpig begrenset til disse to, siden kontonummer-
+// logikken (lengde, prefiks, bankoppslag) kun er satt opp for dem.
+const bankCountryCodes = new Set(["DK", "AR"]);
+const bankCountryList = countryList.filter((c) => bankCountryCodes.has(c.code));
+
+const toAutocompleteData = (list: BankCountry[]) =>
+  list.map((c) => ({
+    selectedKey: c.code,
+    selectedValue: c.name,
+    searchContent: [c.name, c.code],
+    content: (
+      <div style={{ display: "flex", alignItems: "center", gap: "12px", width: "100%" }}>
+        <CountryFlag iso={c.iso} size="medium" />
+        <span>{c.name}</span>
+      </div>
+    ),
+  }));
+
+const bankCountries = toAutocompleteData(bankCountryList);
+const recipientCountries = toAutocompleteData(countryList);
 
 type BankDetails = { swift: string; name: string; address: string };
 
 const prefixValidatedCountries = new Set(["DK", "ES", "SE", "DE", "FR"]);
 
-// Example IBANs following each country's structure (iban.com/structure)
-const ibanExamples: Record<string, string> = {
+// Eksempelkontonummer per land, gruppert i firere som i IBAN-notasjon.
+// Lengden matcher accountNumberLengths, slik at eksempel og teller stemmer.
+// IBAN-landene følger iban.com/structure; AR er et konstruert CBU-lignende
+// nummer tilpasset de 30 tegnene som er satt for Argentina.
+const accountNumberExamples: Record<string, string> = {
   DK: "DK50 0040 0440 1162 43",
   ES: "ES91 2100 0418 4502 0005 1332",
   SE: "SE45 5000 0000 0583 9825 7466",
   DE: "DE89 3704 0044 0532 0130 00",
   FR: "FR14 2004 1010 0505 0001 3M02 606",
+  AR: "2850 5909 4009 0418 1352 0199 1234 56",
 };
 
-// IBAN total length (excl. spaces) per country (iban.com/structure)
-const ibanLengths: Record<string, number> = {
+// Antall tegn i kontonummeret per land, eksklusiv mellomrom. For IBAN-land
+// er dette IBAN-lengden (iban.com/structure), og den brukes da også som
+// kriterium for bankoppslaget. Argentina bruker CBU, ikke IBAN.
+const accountNumberLengths: Record<string, number> = {
   DK: 18,
   ES: 24,
   SE: 24,
   DE: 22,
   FR: 27,
+  AR: 30,
 };
 
-const bankLookup: Record<string, BankDetails> = {
-  DK12345: {
+const bankByCountry: Record<string, BankDetails> = {
+  DK: {
     swift: "DABADKKK",
     name: "Danske Bank",
     address: "Holmens Kanal 2-12\n1092 København K\nDanmark",
   },
-  ES12345: {
+  ES: {
     swift: "BSCHESMMXXX",
     name: "Banco Santander",
     address: "Paseo de Pereda 9-12\n39004 Santander\nSpania",
   },
-  SE12345: {
+  SE: {
     swift: "SWEDSESS",
     name: "Swedbank",
     address: "Landsvägen 40\n172 63 Sundbyberg\nSverige",
   },
-  DE12345: {
+  DE: {
     swift: "DEUTDEFF",
     name: "Deutsche Bank",
     address: "Taunusanlage 12\n60325 Frankfurt am Main\nTyskland",
   },
-  FR12345: {
+  FR: {
     swift: "BNPAFRPP",
     name: "BNP Paribas",
     address: "16 Boulevard des Italiens\n75009 Paris\nFrankrike",
   },
+  // Argentina bruker ikke IBAN. Banken identifiseres av SWIFT/BIC, så bare
+  // adressen brukes her — swift/name fylles aldri inn av oppslaget.
+  AR: {
+    swift: "NACNARBAXXX",
+    name: "Banco de la Nación Argentina",
+    address: "Bartolomé Mitre 326\nC1036AAF Buenos Aires\nArgentina",
+  },
 };
+
+// Snarvei for demoing: "DK12345" fyller banken uten et fullstendig IBAN.
+const bankLookup: Record<string, BankDetails> = Object.fromEntries(
+  Object.entries(bankByCountry).map(([code, details]) => [`${code}12345`, details])
+);
+
+// Banken fylles ut når kontonummeret er et komplett IBAN for valgt land:
+// riktig antall tegn (accountNumberLengths) og riktig landprefiks.
+function resolveBank(accountNumber: string, country: BankCountry | null): BankDetails | null {
+  const value = accountNumber.replace(/\s/g, "").toUpperCase();
+  if (bankLookup[value]) return bankLookup[value];
+  if (!country || !country.usesIban) return null;
+  const expectedLength = accountNumberLengths[country.code];
+  if (expectedLength === undefined || value.length !== expectedLength) return null;
+  if (prefixValidatedCountries.has(country.code) && !value.startsWith(country.code)) return null;
+  return bankByCountry[country.code] ?? null;
+}
+
+// Delt av «Ny mottaker» og «Rediger mottaker», som bruker samme kortoppsett.
+const recipientCardStyles = `
+  .ip-recipient-cards .dnb-list__container {
+    padding-right: 0;
+  }
+  .ip-recipient-cards .dnb-list__item::after {
+    border-color: var(--token-color-background-neutral-alternative);
+  }
+  .ip-recipient-cards .dnb-list__item .dnb-list__item__icon .dnb-icon {
+    color: var(--token-color-icon-action);
+  }
+  .ip-recipient-cards .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-icon {
+    color: var(--token-color-icon-action);
+  }
+  .ip-recipient-cards .dnb-list__item__accordion--open {
+    --item-background-color: var(--token-color-background-neutral-subtle);
+  }
+  .ip-recipient-cards .dnb-list__item__accordion__content {
+    background-color: var(--token-color-background-neutral);
+  }
+  .ip-recipient-cards .ip-row-divider {
+    margin: 0 -1rem;
+    width: auto;
+  }
+  .ip-recipient-cards .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__chevron.dnb-list__item__chevron {
+    place-self: center;
+    display: flex;
+  }
+  .ip-recipient-cards .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__icon.dnb-list__item__icon {
+    place-self: center;
+  }
+  .ip-recipient-cards .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__title.dnb-list__item__title {
+    align-self: center;
+  }
+  .ip-recipient-cards .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__end.dnb-list__item__end {
+    align-self: center;
+  }
+`;
 
 export default function InternationalPayment() {
   const [fromOpen, setFromOpen] = useState(false);
@@ -492,12 +592,13 @@ export default function InternationalPayment() {
   const [darkMode, setDarkMode] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [paymentType, setPaymentType] = useState("sepa");
-  const [recipientLayout, setRecipientLayout] = useState<"none" | "accordion" | "tabs">("none");
+  const [recipientLayout, setRecipientLayout] = useState<"current" | "tabs" | "accordion">("accordion");
   const [costOption, setCostOption] = useState("delt");
   const [agreedRate, setAgreedRate] = useState("");
   const [reference, setReference] = useState("");
   const [purpose, setPurpose] = useState("");
   const [extraServicesOpen, setExtraServicesOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
     const fw = sessionStorage.getItem("fullWidth");
@@ -623,9 +724,79 @@ export default function InternationalPayment() {
     }
   }
 
+  // Kalles både når kontonummeret og når landet endres, slik at banken
+  // ikke blir stående med treff fra et tidligere valgt land.
+  function applyBankLookup(nextAccountNumber: string, country: BankCountry | null) {    const bank = resolveBank(nextAccountNumber, country);
+    setSwiftBic(bank?.swift ?? "");
+    setBankName(bank?.name ?? "");
+    setBankAddress(bank?.address ?? "");
+  }
+
+  // For land uten IBAN fylles SWIFT/BIC inn manuelt, så oppslaget må ikke
+  // overskrive det brukeren skriver. Ved landbytte kjøres applyBankLookup
+  // uansett, slik at treff fra forrige land nullstilles.
+  function handleAccountNumberChange(value: string) {
+    setAccountNumber(value);
+    if (selectedBankCountry && !selectedBankCountry.usesIban) return;
+    applyBankLookup(value, selectedBankCountry);
+  }
+
+  // «Endre» i popoveren åpner samme kortoppsett som «Ny mottaker», men med
+  // bankinfo som read-only og mottakerfeltene forhåndsutfylt.
+  function openEditRecipient() {
+    if (!selectedRecipient) return;
+    setRecipientName(selectedRecipient.name);
+    setRecipientCountry(countryList.find((c) => c.code === selectedRecipient.iso) ?? null);
+    setAddressLine1(selectedRecipient.addressLine1);
+    setAddressLine2("");
+    setPostalCode(selectedRecipient.postalCode);
+    setCity(selectedRecipient.city);
+    setEditOpen(true);
+  }
+
   if (!hydrated) {
     return <div style={{ minHeight: "100vh", background: "var(--token-color-background-neutral-subtle)" }} />;
   }
+
+  // SWIFT/BIC vises kun når den er utledet fra IBAN. For land uten IBAN
+  // fylles den inn manuelt, og feltet må derfor alltid være synlig.
+  const showSwiftBic = Boolean(
+    selectedBankCountry && (!selectedBankCountry.usesIban || swiftBic)
+  );
+
+  const swiftBicLength = 11;
+
+  // IBAN-land får bankens adresse fra kontonummer-oppslaget. For land uten
+  // IBAN identifiseres banken av SWIFT/BIC, og en komplett kode på 11 tegn
+  // avdekker adressen.
+  function resolveShownBankAddress() {
+    if (!selectedBankCountry) return "";
+    if (selectedBankCountry.usesIban) return bankAddress;
+    if (swiftBic.replace(/\s/g, "").length !== swiftBicLength) return "";
+    return bankByCountry[selectedBankCountry.code]?.address ?? "";
+  }
+  const shownBankAddress = resolveShownBankAddress();
+
+  // Utfylte, ikke-redigerbare bankfelter vises som label + grå verdi
+  // (Figma «Edit»-tilstand), ikke som disablede inputs.
+  // FormLabel har 8px margin-bottom fra Eufemia. Den nulles her, slik at
+  // avstanden styres av gap alene — ellers ville de summert seg.
+  const readOnlyField = (label: string, lines: string[]) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-xx-small)" }}>
+      <FormLabel style={{ marginBottom: 0 }}>{label}</FormLabel>
+      <div style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+        {lines.map((line) => (
+          <P key={line} style={{ color: "inherit" }}>
+            {line}
+          </P>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Skillelinje mellom de read-only bankradene. Går kant til kant, så den
+  // må bryte ut av de 16px paddingen i accordion-innholdet.
+  const rowDivider = <Hr className="ip-row-divider" />;
 
   const bankFields = (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
@@ -649,64 +820,67 @@ export default function InternationalPayment() {
             const country = bankCountryList.find((x) => x.code === code) ?? null;
             setSelectedBankCountry(country);
             setRecipientCountry(country);
+            applyBankLookup(accountNumber, country);
           } else {
             setSelectedBankCountry(null);
+            applyBankLookup(accountNumber, null);
           }
         }}
       />
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <Input
-          label={
-            selectedBankCountry && prefixValidatedCountries.has(selectedBankCountry.code)
-              ? "Kontonummer (IBAN)"
-              : "Kontonummer"
-          }
-          size="medium"
-          stretch
-          disabled={!selectedBankCountry}
-          placeholder={
-            selectedBankCountry && ibanExamples[selectedBankCountry.code]
-              ? `e.g. ${ibanExamples[selectedBankCountry.code]}`
-              : undefined
-          }
-          value={accountNumber}
-          status={
-            selectedBankCountry &&
-            prefixValidatedCountries.has(selectedBankCountry.code) &&
-            accountNumber.trim().length >= 2 &&
-            !accountNumber.trim().toUpperCase().startsWith(selectedBankCountry.code)
-              ? `Kontonummer for ${selectedBankCountry.name} må starte med ${selectedBankCountry.code}.`
-              : undefined
-          }
-          onChange={({ value }) => {
-            setAccountNumber(value);
-            const match = bankLookup[value.trim().toUpperCase()];
-            setSwiftBic(match?.swift ?? "");
-            setBankName(match?.name ?? "");
-            setBankAddress(match?.address ?? "");
-          }}
-        />
-        {selectedBankCountry && ibanLengths[selectedBankCountry.code] && (
-          <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-            {Math.max(
-              ibanLengths[selectedBankCountry.code] - accountNumber.replace(/\s/g, "").length,
-              0
-            )}{" "}
-            av {ibanLengths[selectedBankCountry.code]} tegn gjenstår.
-          </P>
-        )}
-      </div>
       {selectedBankCountry && (
-        <>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <Input
-            label="SWIFT/BIC"
+            label={selectedBankCountry.usesIban ? "Kontonummer (IBAN)" : "Kontonummer"}
             size="medium"
             stretch
-            disabled
-            placeholder="e.g. DK9UIZZKQDK"
-            value={swiftBic}
-            onChange={({ value }) => setSwiftBic(value)}
+            placeholder={
+              accountNumberExamples[selectedBankCountry.code]
+                ? `e.g. ${accountNumberExamples[selectedBankCountry.code]}`
+                : undefined
+            }
+            value={accountNumber}
+            status={
+              prefixValidatedCountries.has(selectedBankCountry.code) &&
+              accountNumber.trim().length >= 2 &&
+              !accountNumber.trim().toUpperCase().startsWith(selectedBankCountry.code)
+                ? `Kontonummer for ${selectedBankCountry.name} må starte med ${selectedBankCountry.code}.`
+                : undefined
+            }
+            onChange={({ value }) => handleAccountNumberChange(value)}
           />
+          {accountNumberLengths[selectedBankCountry.code] && (
+            <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+              {Math.max(
+                accountNumberLengths[selectedBankCountry.code] - accountNumber.replace(/\s/g, "").length,
+                0
+              )}{" "}
+              av {accountNumberLengths[selectedBankCountry.code]} tegn gjenstår.
+            </P>
+          )}
+        </div>
+      )}
+      {showSwiftBic &&
+        (selectedBankCountry?.usesIban ? (
+          readOnlyField("SWIFT/BIC-kode", [swiftBic])
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <Input
+              label="SWIFT/BIC"
+              size="medium"
+              stretch
+              maxLength={swiftBicLength}
+              placeholder="e.g. DK9UIZZKQDK"
+              value={swiftBic}
+              onChange={({ value }) => setSwiftBic(value)}
+            />
+            <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+              {Math.max(swiftBicLength - swiftBic.replace(/\s/g, "").length, 0)} av{" "}
+              {swiftBicLength} tegn gjenstår.
+            </P>
+          </div>
+        ))}
+      {selectedBankCountry && (
+        <>
           <Input
             label="Bankens navn"
             size="medium"
@@ -721,7 +895,7 @@ export default function InternationalPayment() {
             stretch
             rows={3}
             disabled
-            value={bankAddress}
+            value={shownBankAddress}
             onChange={({ value }) => setBankAddress(value)}
           />
         </>
@@ -749,7 +923,7 @@ export default function InternationalPayment() {
       <Autocomplete
         label="Mottakers land"
         size="medium"
-        data={bankCountries}
+        data={recipientCountries}
         placeholder="Velg land"
         stretch
         showSubmitButton
@@ -760,9 +934,9 @@ export default function InternationalPayment() {
         onOpen={() => setRecipientCountryOpen(true)}
         onClose={() => setRecipientCountryOpen(false)}
         onChange={({ selectedItem }) => {
-          if (typeof selectedItem === "number" && bankCountries[selectedItem]) {
-            const code = String(bankCountries[selectedItem].selectedKey);
-            setRecipientCountry(bankCountryList.find((x) => x.code === code) ?? null);
+          if (typeof selectedItem === "number" && recipientCountries[selectedItem]) {
+            const code = String(recipientCountries[selectedItem].selectedKey);
+            setRecipientCountry(countryList.find((x) => x.code === code) ?? null);
           } else {
             setRecipientCountry(null);
           }
@@ -815,8 +989,208 @@ export default function InternationalPayment() {
     </Button>
   );
 
+  const optionalSuffix = (
+    <span style={{ fontWeight: 400, marginLeft: "0.5rem", color: "var(--token-color-text-neutral-alternative)" }}>
+      Valgfritt felt
+    </span>
+  );
+
+  const bankFieldsCard = (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+      <Autocomplete
+        label="Bankens land"
+        size="medium"
+        data={bankCountries}
+        placeholder="Velg land"
+        stretch
+        showSubmitButton
+        icon={selectedBankCountry ? <CountryFlag iso={selectedBankCountry.iso} size="small" /> : undefined}
+        value={selectedBankCountry?.code ?? undefined}
+        onChange={({ selectedItem }) => {
+          if (typeof selectedItem === "number" && bankCountries[selectedItem]) {
+            const code = String(bankCountries[selectedItem].selectedKey);
+            const country = bankCountryList.find((x) => x.code === code) ?? null;
+            setSelectedBankCountry(country);
+            setRecipientCountry(country);
+            applyBankLookup(accountNumber, country);
+          } else {
+            setSelectedBankCountry(null);
+            applyBankLookup(accountNumber, null);
+          }
+        }}
+      />
+      {selectedBankCountry && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <Input
+            label={selectedBankCountry.usesIban ? "Kontonummer (IBAN)" : "Kontonummer"}
+            size="medium"
+            stretch
+            placeholder={
+              accountNumberExamples[selectedBankCountry.code]
+                ? `e.g. ${accountNumberExamples[selectedBankCountry.code]}`
+                : undefined
+            }
+            value={accountNumber}
+            status={
+              prefixValidatedCountries.has(selectedBankCountry.code) &&
+              accountNumber.trim().length >= 2 &&
+              !accountNumber.trim().toUpperCase().startsWith(selectedBankCountry.code)
+                ? `Kontonummer for ${selectedBankCountry.name} må starte med ${selectedBankCountry.code}.`
+                : undefined
+            }
+            onChange={({ value }) => handleAccountNumberChange(value)}
+          />
+          {accountNumberLengths[selectedBankCountry.code] && (
+            <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+              {Math.max(
+                accountNumberLengths[selectedBankCountry.code] - accountNumber.replace(/\s/g, "").length,
+                0
+              )}{" "}
+              av {accountNumberLengths[selectedBankCountry.code]} tegn gjenstår.
+            </P>
+          )}
+        </div>
+      )}
+      {showSwiftBic &&
+        (selectedBankCountry?.usesIban ? (
+          <>
+            {rowDivider}
+            {readOnlyField("SWIFT/BIC-kode", [swiftBic])}
+          </>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <Input
+              label="SWIFT/BIC-KODE"
+              size="medium"
+              stretch
+              maxLength={swiftBicLength}
+              placeholder="e.g. DK9UIZZKQDK"
+              value={swiftBic}
+              onChange={({ value }) => setSwiftBic(value)}
+            />
+            <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+              {Math.max(swiftBicLength - swiftBic.replace(/\s/g, "").length, 0)} av{" "}
+              {swiftBicLength} tegn gjenstår.
+            </P>
+          </div>
+        ))}
+      {shownBankAddress && (
+        <>
+          {rowDivider}
+          {readOnlyField("Bankens adresse", shownBankAddress.split("\n"))}
+        </>
+      )}
+    </div>
+  );
+
+  const recipientFieldsCard = (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <Input
+          label="Navn/firma"
+          size="medium"
+          stretch
+          placeholder="Navn eller firmanavn på mottaker"
+          value={recipientName}
+          maxLength={recipientNameMaxLength}
+          onChange={({ value }) => setRecipientName(value)}
+        />
+        <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+          {recipientNameMaxLength - recipientName.length} av {recipientNameMaxLength} tegn gjenstår.
+        </P>
+      </div>
+      <Autocomplete
+        label="Mottakers land"
+        size="medium"
+        data={recipientCountries}
+        placeholder="Velg land"
+        stretch
+        showSubmitButton
+        icon={recipientCountry ? <CountryFlag iso={recipientCountry.iso} size="small" /> : undefined}
+        value={recipientCountry?.code ?? undefined}
+        onChange={({ selectedItem }) => {
+          if (typeof selectedItem === "number" && recipientCountries[selectedItem]) {
+            const code = String(recipientCountries[selectedItem].selectedKey);
+            setRecipientCountry(countryList.find((x) => x.code === code) ?? null);
+          } else {
+            setRecipientCountry(null);
+          }
+        }}
+      />
+      <Input
+        label={<>Adresselinje 1{optionalSuffix}</>}
+        size="medium"
+        stretch
+        placeholder="F.eks. Storgata 10"
+        value={addressLine1}
+        onChange={({ value }) => setAddressLine1(value)}
+      />
+      <Input
+        label={<>Adresselinje 2{optionalSuffix}</>}
+        size="medium"
+        stretch
+        placeholder="F.eks. Bygning 1A"
+        value={addressLine2}
+        onChange={({ value }) => setAddressLine2(value)}
+      />
+      <div style={{ display: "flex", gap: "16px" }}>
+        <div style={{ flex: 1 }}>
+          <Input
+            label="Postnummer"
+            size="medium"
+            stretch
+            placeholder="F.eks. 1234"
+            value={postalCode}
+            onChange={({ value }) => setPostalCode(value)}
+          />
+        </div>
+        <div style={{ flex: 4 }}>
+          <Input
+            label="Sted/by"
+            size="medium"
+            stretch
+            placeholder="F.eks. Oslo"
+            value={city}
+            onChange={({ value }) => setCity(value)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // «Rediger mottaker»: bankinfo hentes fra mottakeren og er read-only,
+  // mottakerens adresse gjenbruker de redigerbare feltene fra «Ny mottaker».
+  const editRecipientContent = selectedRecipient && (
+    <div className="ip-recipient-cards" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+      <style>{recipientCardStyles}</style>
+      <List.Container>
+        <List.Item.Accordion icon={bank_medium} title="Mottakers bank" open>
+          <List.Item.Accordion.Content>
+            <List.Cell.Start innerSpace>
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+                {readOnlyField("Kontonummer (IBAN)", [selectedRecipient.iban])}
+                {rowDivider}
+                {readOnlyField("SWIFT/BIC-kode", [selectedRecipient.swift])}
+                {rowDivider}
+                {readOnlyField("Bankens adresse", selectedRecipient.bankAddress)}
+              </div>
+            </List.Cell.Start>
+          </List.Item.Accordion.Content>
+        </List.Item.Accordion>
+      </List.Container>
+      <List.Container>
+        <List.Item.Accordion icon={location_medium} title="Mottakers adresse" open>
+          <List.Item.Accordion.Content>
+            <List.Cell.Start innerSpace>{recipientFieldsCard}</List.Cell.Start>
+          </List.Item.Accordion.Content>
+        </List.Item.Accordion>
+      </List.Container>
+      {saveButton}
+    </div>
+  );
+
   const recipientModalContent =
-    recipientLayout === "none" ? (
+    recipientLayout === "current" ? (
       <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           <H3 style={{ margin: 0 }}>Mottakers bank</H3>
@@ -841,17 +1215,24 @@ export default function InternationalPayment() {
         {saveButton}
       </>
     ) : (
-      <>
-        <Accordion.Group expandBehavior="multiple" allowCloseAll>
-          <Accordion title="Mottakers bank" expanded variant="outlined">
-            {bankFields}
-          </Accordion>
-          <Accordion title="Mottakers adresse" variant="outlined" top="large">
-            {recipientFields}
-          </Accordion>
-        </Accordion.Group>
+      <div className="ip-recipient-cards" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+        <style>{recipientCardStyles}</style>
+        <List.Container>
+          <List.Item.Accordion icon={bank_medium} title="Mottakers bank" open>
+            <List.Item.Accordion.Content>
+              <List.Cell.Start innerSpace>{bankFieldsCard}</List.Cell.Start>
+            </List.Item.Accordion.Content>
+          </List.Item.Accordion>
+        </List.Container>
+        <List.Container>
+          <List.Item.Accordion icon={location_medium} title="Mottakers adresse" open>
+            <List.Item.Accordion.Content>
+              <List.Cell.Start innerSpace>{recipientFieldsCard}</List.Cell.Start>
+            </List.Item.Accordion.Content>
+          </List.Item.Accordion>
+        </List.Container>
         {saveButton}
-      </>
+      </div>
     );
 
   return (
@@ -1009,59 +1390,27 @@ export default function InternationalPayment() {
               </div>
               {selectedRecipient && (
                 <div style={{ marginTop: "-16px" }}>
-                  <Popover
-                    title="Info om betalingsmottaker"
-                    placement="bottom"
-                    alignOnTarget="center"
-                    arrowPosition="center"
-                    trigger={({ ref, toggle }) => (
-                      <Button
-                        ref={ref as React.Ref<HTMLButtonElement>}
-                        variant="tertiary"
-                        text={selectedRecipient.name}
-                        icon={chevron_right}
-                        iconPosition="right"
-                        onClick={() => toggle()}
-                      />
-                    )}
-                  >
-                    <div
-                      style={{
-                        outline: "1px solid var(--token-color-stroke-neutral-alternative)",
-                        borderRadius: "var(--token-radius-md)",
-                        padding: "16px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "16px",
-                      }}
-                    >
-                      <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                        <Icon icon={bank_medium} size="medium" />
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <P style={{ fontWeight: 500, margin: 0 }}>Mottakers bank:</P>
-                          <P style={{ margin: 0 }}>{selectedRecipient.bankName}</P>
-                          {selectedRecipient.bankAddress.map((line) => (
-                            <P key={line} style={{ margin: 0 }}>{line}</P>
-                          ))}
-                          <P style={{ fontWeight: 500, margin: 0, marginTop: "8px" }}>SWIFT/BIC-kode:</P>
-                          <P style={{ margin: 0 }}>{selectedRecipient.swift}</P>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                        <Icon icon={location_medium} size="medium" />
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                          <P style={{ fontWeight: 500, margin: 0 }}>Mottakers adresse:</P>
-                          {selectedRecipient.address.map((line) => (
-                            <P key={line} style={{ margin: 0 }}>{line}</P>
-                          ))}
-                        </div>
-                      </div>
-                      <div style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)", paddingTop: "12px" }}>
-                        <Button variant="tertiary" text="Endre" icon={edit} iconPosition="left" />
-                      </div>
-                    </div>
-                  </Popover>
+                  <Button
+                    variant="tertiary"
+                    text={selectedRecipient.name}
+                    icon={chevron_right}
+                    iconPosition="right"
+                    onClick={openEditRecipient}
+                  />
                 </div>
+              )}
+              {/* Monteres først når den skal åpnes: Eufemias Modal åpner ikke
+                  på en false→true-overgang med mindre props-identiteten også
+                  endres, men åpner korrekt når den monteres med open={true}. */}
+              {editOpen && (
+                <Dialog
+                  title="Rediger mottaker"
+                  open
+                  omitTriggerButton
+                  onClose={() => setEditOpen(false)}
+                >
+                  {editRecipientContent}
+                </Dialog>
               )}
               <Autocomplete
                 label="Valuta som sendes"
@@ -1327,13 +1676,13 @@ export default function InternationalPayment() {
                   size="small"
                   value={recipientLayout}
                   data={[
-                    { selectedKey: "none", content: "None" },
                     { selectedKey: "accordion", content: "Accordion" },
                     { selectedKey: "tabs", content: "Tabs" },
+                    { selectedKey: "current", content: "Current" },
                   ]}
                   onChange={({ data }) =>
                     setRecipientLayout(
-                      data?.selectedKey === "none" || data?.selectedKey === "tabs"
+                      data?.selectedKey === "current" || data?.selectedKey === "tabs"
                         ? data.selectedKey
                         : "accordion"
                     )
