@@ -1665,13 +1665,13 @@ export default function InternationalPayment() {
 
           {currentStep === 0 && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-              <P size="basis" style={{ margin: 0 }}>New recipient</P>
+              <P size="basis" style={{ margin: 0 }}>New/edit recipient</P>
               <div className="narrow-dropdown">
                 <style>{`
                   .narrow-dropdown .dnb-dropdown { --dropdown-width: 10rem; }
                 `}</style>
                 <Dropdown
-                  label="New recipient"
+                  label="New/edit recipient"
                   labelSrOnly
                   size="small"
                   value={recipientLayout}
