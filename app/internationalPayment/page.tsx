@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Tabs } from "@dnb/eufemia/components";
+import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Skeleton, Tabs } from "@dnb/eufemia/components";
 import { H1, H3, P, Hr } from "@dnb/eufemia/elements";
 import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close, bank_medium, location_medium } from "@dnb/eufemia/icons";
 
@@ -599,6 +599,7 @@ export default function InternationalPayment() {
   const [purpose, setPurpose] = useState("");
   const [extraServicesOpen, setExtraServicesOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [bankSkeleton, setBankSkeleton] = useState(false);
 
   useEffect(() => {
     const fw = sessionStorage.getItem("fullWidth");
@@ -726,10 +727,28 @@ export default function InternationalPayment() {
 
   // Kalles både når kontonummeret og når landet endres, slik at banken
   // ikke blir stående med treff fra et tidligere valgt land.
-  function applyBankLookup(nextAccountNumber: string, country: BankCountry | null) {    const bank = resolveBank(nextAccountNumber, country);
+  function applyBankLookup(nextAccountNumber: string, country: BankCountry | null) {
+    const bank = resolveBank(nextAccountNumber, country);
     setSwiftBic(bank?.swift ?? "");
     setBankName(bank?.name ?? "");
     setBankAddress(bank?.address ?? "");
+    if (bank) showBankSkeleton();
+  }
+
+  // Simulerer oppslagstid mot banken: read-only bankdata vises som skeleton
+  // i 1 sekund før verdiene dukker opp.
+  function showBankSkeleton() {
+    setBankSkeleton(true);
+    setTimeout(() => setBankSkeleton(false), 1000);
+  }
+
+  // SWIFT/BIC skrives manuelt for land uten IBAN, og bankens adresse avdekkes
+  // når koden blir komplett. Skeletonen trigges på den overgangen.
+  function handleSwiftBicChange(value: string) {
+    const wasComplete = swiftBic.replace(/\s/g, "").length === swiftBicLength;
+    const isComplete = value.replace(/\s/g, "").length === swiftBicLength;
+    setSwiftBic(value);
+    if (isComplete && !wasComplete) showBankSkeleton();
   }
 
   // For land uten IBAN fylles SWIFT/BIC inn manuelt, så oppslaget må ikke
@@ -739,6 +758,34 @@ export default function InternationalPayment() {
     setAccountNumber(value);
     if (selectedBankCountry && !selectedBankCountry.usesIban) return;
     applyBankLookup(value, selectedBankCountry);
+  }
+
+  // Nullstiller hele mottakerskjemaet, slik at neste åpning starter tomt
+  // i stedet for å vise igjen data fra forrige gang dialogen var åpen.
+  function resetRecipientForm() {
+    setSelectedBankCountry(null);
+    setAccountNumber("");
+    setSwiftBic("");
+    setBankName("");
+    setBankAddress("");
+    setRecipientName("");
+    setRecipientCountry(null);
+    setAddressLine1("");
+    setAddressLine2("");
+    setPostalCode("");
+    setCity("");
+  }
+
+  // Landbytte nullstiller kontonummeret: formatet er landavhengig, så en
+  // verdi fra forrige land er alltid ugyldig. Oppslaget kjøres med tom verdi
+  // slik at SWIFT og bankadresse tømmes samtidig. Velges samme land om igjen
+  // beholdes det som alt er skrevet.
+  function handleBankCountryChange(country: BankCountry | null) {
+    if (country?.code === selectedBankCountry?.code) return;
+    setSelectedBankCountry(country);
+    if (country) setRecipientCountry(country);
+    setAccountNumber("");
+    applyBankLookup("", country);
   }
 
   // «Endre» i popoveren åpner samme kortoppsett som «Ny mottaker», men med
@@ -752,6 +799,7 @@ export default function InternationalPayment() {
     setPostalCode(selectedRecipient.postalCode);
     setCity(selectedRecipient.city);
     setEditOpen(true);
+    showBankSkeleton();
   }
 
   if (!hydrated) {
@@ -784,13 +832,31 @@ export default function InternationalPayment() {
   const readOnlyField = (label: string, lines: string[]) => (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-xx-small)" }}>
       <FormLabel style={{ marginBottom: 0 }}>{label}</FormLabel>
-      <div style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-        {lines.map((line) => (
-          <P key={line} style={{ color: "inherit" }}>
-            {line}
-          </P>
-        ))}
-      </div>
+      {/* dnb-skeleton--font maskerer selve teksten (transparent text-fill +
+          background-clip). Skeleton-komponenten alene gir kun aria-busy og
+          stripet bakgrunn, så teksten ville vært lesbar oppå.
+          Timingen må overstyres på P-en, ikke wrapperen: Eufemia gir P-en
+          klassen dnb-skeleton, som redeklarerer variablene lokalt og dermed
+          slår ut arvede verdier. Defaultene (5s delay + 5s sveip fra +30rem
+          til -30rem) er laget for lange lastinger — stripene ville nådd et
+          felt på denne bredden først etter ~2s, altså etter at skeletonen
+          vår er borte. 1s sveip gir én synlig passering i vinduet. */}
+      <Skeleton show={bankSkeleton} className={bankSkeleton ? "dnb-skeleton--font" : undefined}>
+        <div style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+          {lines.map((line) => (
+            <P
+              key={line}
+              style={{
+                color: "inherit",
+                "--skeleton-delay": "0s",
+                animationDuration: "1s",
+              } as CSSProperties}
+            >
+              {line}
+            </P>
+          ))}
+        </div>
+      </Skeleton>
     </div>
   );
 
@@ -817,13 +883,9 @@ export default function InternationalPayment() {
         onChange={({ selectedItem }) => {
           if (typeof selectedItem === "number" && bankCountries[selectedItem]) {
             const code = String(bankCountries[selectedItem].selectedKey);
-            const country = bankCountryList.find((x) => x.code === code) ?? null;
-            setSelectedBankCountry(country);
-            setRecipientCountry(country);
-            applyBankLookup(accountNumber, country);
+            handleBankCountryChange(bankCountryList.find((x) => x.code === code) ?? null);
           } else {
-            setSelectedBankCountry(null);
-            applyBankLookup(accountNumber, null);
+            handleBankCountryChange(null);
           }
         }}
       />
@@ -871,7 +933,7 @@ export default function InternationalPayment() {
               maxLength={swiftBicLength}
               placeholder="e.g. DK9UIZZKQDK"
               value={swiftBic}
-              onChange={({ value }) => setSwiftBic(value)}
+              onChange={({ value }) => handleSwiftBicChange(value)}
             />
             <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
               {Math.max(swiftBicLength - swiftBic.replace(/\s/g, "").length, 0)} av{" "}
@@ -1009,13 +1071,9 @@ export default function InternationalPayment() {
         onChange={({ selectedItem }) => {
           if (typeof selectedItem === "number" && bankCountries[selectedItem]) {
             const code = String(bankCountries[selectedItem].selectedKey);
-            const country = bankCountryList.find((x) => x.code === code) ?? null;
-            setSelectedBankCountry(country);
-            setRecipientCountry(country);
-            applyBankLookup(accountNumber, country);
+            handleBankCountryChange(bankCountryList.find((x) => x.code === code) ?? null);
           } else {
-            setSelectedBankCountry(null);
-            applyBankLookup(accountNumber, null);
+            handleBankCountryChange(null);
           }
         }}
       />
@@ -1066,7 +1124,7 @@ export default function InternationalPayment() {
               maxLength={swiftBicLength}
               placeholder="e.g. DK9UIZZKQDK"
               value={swiftBic}
-              onChange={({ value }) => setSwiftBic(value)}
+              onChange={({ value }) => handleSwiftBicChange(value)}
             />
             <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
               {Math.max(swiftBicLength - swiftBic.replace(/\s/g, "").length, 0)} av{" "}
@@ -1388,6 +1446,7 @@ export default function InternationalPayment() {
                     title="Ny mottaker"
                     trigger={Button}
                     triggerAttributes={{ text: "Ny", variant: "secondary", icon: add, iconPosition: "left" }}
+                    onClose={resetRecipientForm}
                   >
                     {recipientModalContent}
                   </Dialog>
@@ -1412,7 +1471,10 @@ export default function InternationalPayment() {
                   title="Rediger mottaker"
                   open
                   omitTriggerButton
-                  onClose={() => setEditOpen(false)}
+                  onClose={() => {
+                    setEditOpen(false);
+                    resetRecipientForm();
+                  }}
                 >
                   {editRecipientContent}
                 </Dialog>
@@ -1479,10 +1541,10 @@ export default function InternationalPayment() {
                       const foreign = rate ? amountNum / rate : 0;
                       const recipientName = selectedRecipient?.name ?? "Mottaker";
                       const code = selectedCurrency?.code ?? "—";
-                      return `${recipientName} mottar ca ${code} ${formatted(foreign)}. Korrekt kurs fastsettes når betalingen gjennomføres.`;
+                      return `${recipientName} mottar ca ${code} ${formatted(foreign)}.`;
                     }
                     const nok = amountNum * rate;
-                    return `Du blir belastet ca NOK ${formatted(nok)}. Korrekt kurs fastsettes når betalingen gjennomføres.`;
+                    return `Du blir belastet ca NOK ${formatted(nok)}.`;
                   })()}
                 </P>
               </div>
