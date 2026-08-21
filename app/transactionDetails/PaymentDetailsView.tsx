@@ -242,7 +242,11 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const pengebrukMain = fieldValue(selected, /^pengebruk main$/i);
   const pengebrukIconField = fieldValue(selected, /^pengebruk icon$/i);
   const pengebrukReservert = fieldValue(selected, /^pengebruk reservert$/i);
-  const hasPengebruk  = Boolean(pengebrukSub || pengebrukMain || (showReserved && pengebrukReservert));
+  // Reservert-modus viser kun «Pengebruk reservert»-raden, så seksjonen må
+  // styres av det feltet alene — ikke av de vanlige pengebruk-feltene.
+  const hasPengebruk  = showReserved
+    ? Boolean(pengebrukReservert)
+    : Boolean(pengebrukSub || pengebrukMain);
   const pengebrukIcon = ((pengebrukIconField ? lookupEufemiaIcon(pengebrukIconField) : null) ?? getPengebrukIcon(pengebrukSub || pengebrukMain)) as ReturnType<typeof getPengebrukIcon>;
   const transactionTags = fieldValue(selected, /^pengebruk tag$/i)
     .split(",").map((t) => t.trim()).filter(Boolean);
