@@ -94,6 +94,10 @@ const recipients: Recipient[] = [
   },
 ];
 
+// Midlertidig: én bestemt mottaker gir en feilmelding på «Til konto» mens
+// flyten prototypes. Matcher på navnet som vises i lista.
+const errorRecipientName = "Jose Martinez";
+
 const toAccounts = recipients.map((r) => ({
   selectedKey: r.iban,
   selectedValue: r.iban,
@@ -683,7 +687,20 @@ export default function InternationalPayment() {
   }, [selectedCurrency, hydrated]);
   const [description, setDescription] = useState("");
 
-  const recipientError = submitted && !selectedRecipient ? "Dette feltet må fylles ut." : undefined;
+  // Denne mottakeren driver adressefeil-scenarioet: feilmelding på «Til
+  // konto», tomt Sted/by og lukket bankkort i redigeringsdialogen.
+  const isErrorRecipient = selectedRecipient?.name === errorRecipientName;
+
+  // Sted/by er påkrevd i «Rediger mottaker». editOpen-gaten hindrer at et
+  // tomt felt gir feil i «Ny mottaker», der brukeren ikke har rukket noe ennå.
+  const cityError = editOpen && !city.trim() ? "Dette feltet må fylles ut." : undefined;
+
+  // Vises via Autocompletens status-prop, altså mellom feltet og navnet.
+  const recipientError = submitted && !selectedRecipient
+    ? "Dette feltet må fylles ut."
+    : isErrorRecipient
+    ? "Manglende info om mottaker, vennligst oppdater før du fortsetter betalingen."
+    : undefined;
 
   useEffect(() => {
     if (selectedRecipient?.name === "John Jones") {
@@ -797,7 +814,9 @@ export default function InternationalPayment() {
     setAddressLine1(selectedRecipient.addressLine1);
     setAddressLine2("");
     setPostalCode(selectedRecipient.postalCode);
-    setCity(selectedRecipient.city);
+    // Sted/by lates stå tom for mottakeren som skal vise adressefeil, slik at
+    // påkrevd-valideringen slår inn med en gang dialogen åpnes.
+    setCity(selectedRecipient.name === errorRecipientName ? "" : selectedRecipient.city);
     setEditOpen(true);
     showBankSkeleton();
   }
@@ -1208,6 +1227,7 @@ export default function InternationalPayment() {
             size="medium"
             stretch
             placeholder="F.eks. Oslo"
+            status={cityError}
             value={city}
             onChange={({ value }) => setCity(value)}
           />
@@ -1221,17 +1241,23 @@ export default function InternationalPayment() {
   const editRecipientContent = selectedRecipient && (
     <div className="ip-recipient-cards" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
       <style>{recipientCardStyles}</style>
-      <FormStatus
-        state="information"
-        stretch
-        text="Info om mottakers bank kan foreløpig ikke redigeres"
-      />
       <List.Container>
-        <List.Item.Accordion icon={bank_medium} title="Mottakers bank" open>
+        {/* Lukket for mottakeren med adressefeil, slik at oppmerksomheten
+            går til adressefeltene som må rettes. */}
+        <List.Item.Accordion
+          icon={bank_medium}
+          title="Mottakers bank"
+          open={!isErrorRecipient}
+        >
           <List.Item.Accordion.Content>
             <List.Cell.Start innerSpace>
               <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
                 {readOnlyField("Kontonummer (IBAN)", [selectedRecipient.iban])}
+                <FormStatus
+                  state="information"
+                  stretch
+                  text="Info om mottakers bank kan foreløpig ikke redigeres"
+                />
                 {rowDivider}
                 {readOnlyField("SWIFT/BIC-kode", [selectedRecipient.swift])}
                 {rowDivider}
