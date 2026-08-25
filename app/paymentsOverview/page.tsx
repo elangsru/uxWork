@@ -5,7 +5,7 @@ import SubmitIndicator from "@dnb/eufemia/extensions/forms/Form/SubmitIndicator/
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tabs, TermDefinition } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
-import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan, loan_medium, trash, edit, filter, close, globe } from "@dnb/eufemia/icons";
+import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan, loan_medium, trash, edit, filter, close, globe, office_buildings } from "@dnb/eufemia/icons";
 
 const accounts = [
   { content: ["Alle kontoer"], value: "alle" },
@@ -20,11 +20,12 @@ const accountDetails = {
 type AccountKey = keyof typeof accountDetails;
 
 // Syntetiske fødselsnummer etter Skatteetatens konvensjon for testdata: 80 er
-// lagt til månedssifrene (03 → 83, 07 → 87), slik at numrene ikke kan kollidere
-// med et virkelig fødselsnummer. Statiske literaler — ikke Math.random(), som
-// ville gitt ulik verdi på server og klient og dermed hydration mismatch.
+// lagt til månedssifrene (07 → 87), slik at numrene ikke kan kollidere med et
+// virkelig fødselsnummer. Statiske literaler — ikke Math.random(), som ville gitt
+// ulik verdi på server og klient og dermed hydration mismatch.
+// Innehaveren selv står uten nummer — «Espen Langsrud (deg)» har ingen rad her,
+// og ownerLabel faller tilbake til rent navn når eieren mangler oppslag.
 const invoiceOwnerSsn: Record<string, string> = {
-  "Ola Nordmann": "158385 12345",
   "Kari Nordmann": "248788 03918",
 };
 
@@ -45,7 +46,9 @@ interface Transaction {
   unconfirmed?: boolean;
   badge?: "AvtaleGiro" | "eFaktura";
   icon?: "transfer" | "loan";
-  avatarLetter?: string;
+  /** Avgjør avatarens fallback. Eufemia: person → bokstavversjon, selskap → ikon.
+      Bokstaven utledes av Avatar selv fra `recipient` — ikke lagre den her. */
+  avatarKind?: "person" | "company";
   flagIso?: string;
   foreignAmount?: string;
   nokEquivalent?: string;
@@ -74,15 +77,15 @@ function relativeDate(daysFromToday: number): { date: string; dateValue: string 
 }
 
 const transactions: Transaction[] = [
-  { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, amountDisplay: "500,00 NOK", accountKey: "felleskonto", type: "betaling", avatarLetter: "K" },
+  { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, amountDisplay: "500,00 NOK", accountKey: "felleskonto", type: "betaling", avatarKind: "person" },
   { id: "intro-aksel", ...relativeDate(9), recipient: "Intro Aksel", amountNok: 300, amountDisplay: "300,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "transfer" },
-  { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, amountDisplay: "299,00 NOK", accountKey: "lonnskonto", type: "avtalegiro", avatarLetter: "H", badge: "AvtaleGiro" },
-  { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, amountDisplay: "312,00 NOK", accountKey: "felleskonto", type: "efaktura", avatarLetter: "S", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Ola Nordmann" },
-  { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, amountDisplay: "1 545,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "A", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Ola Nordmann" },
-  { id: "tibber-ubekreftet", ...relativeDate(16), recipient: "Tibber AS", amountNok: 1129, amountDisplay: "1 129,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "T", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Kari Nordmann" },
+  { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, amountDisplay: "299,00 NOK", accountKey: "lonnskonto", type: "avtalegiro", avatarKind: "company", badge: "AvtaleGiro" },
+  { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, amountDisplay: "312,00 NOK", accountKey: "felleskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
+  { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, amountDisplay: "1 545,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
+  { id: "fremtind", ...relativeDate(16), recipient: "Fremtind Forsikring AS", amountNok: 1129, amountDisplay: "1 129,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Kari Nordmann" },
   { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, amountDisplay: "12 345,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "loan" },
-  { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarLetter: "J", flagIso: "ES", foreignAmount: "500,00 EUR", nokEquivalent: "ca 5234,98 NOK" },
-  { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, amountDisplay: "2 445,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "T", badge: "eFaktura" },
+  { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES", foreignAmount: "500,00 EUR", nokEquivalent: "ca 5234,98 NOK" },
+  { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, amountDisplay: "2 445,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura" },
 ];
 
 function fmtNok(value: number): string {
@@ -99,15 +102,31 @@ function TransactionRow({ tx, overline, balanceAfter, warning, isConfirmed, onCo
     ? { ...itemStyle, backgroundImage: "repeating-linear-gradient(-45deg, var(--token-color-stroke-neutral-subtle) 1px 2px, transparent 0 6px)" }
     : itemStyle;
 
+  // Eufemia: person får bokstavversjonen, selskap får ikonversjonen. Bokstaven
+  // sendes IKKE inn ferdig utregnet — Avatar tar charAt(0).toUpperCase() av
+  // children selv, og legger hele strengen i en .dnb-sr-only. Sender vi bare «K»
+  // blir skjermlesertekst «K» i stedet for «Kim Olsen».
+  // aria-hidden fordi radens tittel alt viser mottakernavnet: avataren er
+  // dekorativ her, og duplisert opplesing ville vært støy. hasLabel forteller
+  // Eufemia at merkingen er håndtert utenfor komponenten — kilden sjekker
+  // `if (!avatarGroupContext && !hasLabel)`, så aria-hidden alene demper ikke
+  // «Avatar group required». Docs peker på nettopp aria-hidden som gyldig grunn
+  // til å sette hasLabel i stedet for å pakke hver rad i en Avatar.Group.
+  const avatarNode = tx.avatarKind === "company" ? (
+    <Avatar size="small" variant="primary" icon={office_buildings} hasLabel aria-hidden />
+  ) : tx.avatarKind === "person" ? (
+    <Avatar size="small" variant="primary" hasLabel aria-hidden>{tx.recipient}</Avatar>
+  ) : null;
+
   let startNode: React.ReactNode;
-  if (tx.flagIso && tx.avatarLetter) {
+  if (tx.flagIso && avatarNode) {
     startNode = (
       <Badge content={<CountryFlag iso={tx.flagIso} size="xx-small" />} vertical="bottom" horizontal="right" variant="content">
-        <Avatar size="small" variant="primary">{tx.avatarLetter}</Avatar>
+        {avatarNode}
       </Badge>
     );
-  } else if (tx.avatarLetter) {
-    startNode = <Avatar size="small" variant="primary">{tx.avatarLetter}</Avatar>;
+  } else if (avatarNode) {
+    startNode = avatarNode;
   } else if (tx.icon) {
     startNode = <Icon icon={tx.icon === "transfer" ? transfer_medium : loan_medium} />;
   }
@@ -131,7 +150,7 @@ function TransactionRow({ tx, overline, balanceAfter, warning, isConfirmed, onCo
         {tx.recipient}
         {tx.badge && (
           <List.Cell.Title.Subline>
-            <Badge variant="information" subtle content={tx.badge} />
+            <Badge status="neutral" subtle content={tx.badge} />
           </List.Cell.Title.Subline>
         )}
       </List.Cell.Title>
@@ -435,6 +454,16 @@ export default function PaymentsOverview() {
         box-shadow: none;
         left: -96px;
         width: calc(100% + 192px);
+      }
+      /* Ikon inne i en Avatar skal ha samme farge som bokstavversjonen. Lists egen
+         regel .dnb-list__item__action .dnb-icon setter color til var(--item-icon-color).
+         Den er ment for ikoner som ligger direkte i raden (transfer/loan), men slår
+         også inn på ikonet inne i avataren og gjør det grønt på mørkegrønn bunn.
+         inherit henter avatarens egen tekstfarge, så den følger variant automatisk
+         i stedet for å hardkodes. Selektoren er ett nivå mer spesifikk enn Lists,
+         så den vinner uavhengig av rekkefølgen på stilark. */
+      .dnb-list__item__action .dnb-avatar .dnb-icon {
+        color: inherit;
       }
       /* 16px luft mellom flere ubekreftede fakturaer i samme accordion. Radene er
          ikke søsken — hver ligger i sin egen div.dnb-space — så :not(:last-child)
