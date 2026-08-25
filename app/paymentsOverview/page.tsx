@@ -19,6 +19,20 @@ const accountDetails = {
 } as const;
 type AccountKey = keyof typeof accountDetails;
 
+// Syntetiske fødselsnummer etter Skatteetatens konvensjon for testdata: 80 er
+// lagt til månedssifrene (03 → 83, 07 → 87), slik at numrene ikke kan kollidere
+// med et virkelig fødselsnummer. Statiske literaler — ikke Math.random(), som
+// ville gitt ulik verdi på server og klient og dermed hydration mismatch.
+const invoiceOwnerSsn: Record<string, string> = {
+  "Ola Nordmann": "158385 12345",
+  "Kari Nordmann": "248788 03918",
+};
+
+function ownerLabel(owner: string): string {
+  const ssn = invoiceOwnerSsn[owner];
+  return ssn ? `${owner} (${ssn})` : owner;
+}
+
 interface Transaction {
   id: string;
   date: string;
@@ -35,6 +49,9 @@ interface Transaction {
   flagIso?: string;
   foreignAmount?: string;
   nokEquivalent?: string;
+  /** Personen fakturaen er adressert til. Brukes til gruppering på
+      «Ubekreftede eFakturaer»-tabben, og går på tvers av konto. */
+  invoiceOwner?: string;
 }
 
 // Hvordan én kontogruppe skal rendres. «Til forfall» og «Ubekreftede eFakturaer»
@@ -60,9 +77,9 @@ const transactions: Transaction[] = [
   { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, amountDisplay: "500,00 NOK", accountKey: "felleskonto", type: "betaling", avatarLetter: "K" },
   { id: "intro-aksel", ...relativeDate(9), recipient: "Intro Aksel", amountNok: 300, amountDisplay: "300,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "transfer" },
   { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, amountDisplay: "299,00 NOK", accountKey: "lonnskonto", type: "avtalegiro", avatarLetter: "H", badge: "AvtaleGiro" },
-  { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, amountDisplay: "312,00 NOK", accountKey: "felleskonto", type: "efaktura", avatarLetter: "S", badge: "eFaktura", unconfirmed: true },
-  { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, amountDisplay: "1 545,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "A", badge: "eFaktura", unconfirmed: true },
-  { id: "tibber-ubekreftet", ...relativeDate(16), recipient: "Tibber AS", amountNok: 1129, amountDisplay: "1 129,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "T", badge: "eFaktura", unconfirmed: true },
+  { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, amountDisplay: "312,00 NOK", accountKey: "felleskonto", type: "efaktura", avatarLetter: "S", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Ola Nordmann" },
+  { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, amountDisplay: "1 545,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "A", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Ola Nordmann" },
+  { id: "tibber-ubekreftet", ...relativeDate(16), recipient: "Tibber AS", amountNok: 1129, amountDisplay: "1 129,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "T", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Kari Nordmann" },
   { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, amountDisplay: "12 345,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "loan" },
   { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarLetter: "J", flagIso: "ES", foreignAmount: "500,00 EUR", nokEquivalent: "ca 5234,98 NOK" },
   { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, amountDisplay: "2 445,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "T", badge: "eFaktura" },
@@ -170,6 +187,7 @@ export default function PaymentsOverview() {
   const [startDate, setStartDate] = useState(fmt(today));
   const [endDate, setEndDate] = useState(fmt(in30Days));
   const [groupBy, setGroupBy] = useState("konto");
+  const [efakturaGroupBy, setEfakturaGroupBy] = useState("konto");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -210,10 +228,16 @@ export default function PaymentsOverview() {
 
   // Egen nøkkel-namespace for eFaktura-tabben, ellers deler de to tabbene
   // åpne/lukket-tilstand for samme konto.
+  // Egne nøkkel-namespace per gruppering, ellers deler tabbene (og de to
+  // grupperingene) åpne/lukket-tilstand for samme navn.
   const EFAKTURA_PREFIX = "ef:";
-  const efakturaGroupKeys = (Object.keys(accountDetails) as AccountKey[])
-    .filter(k => unconfirmedEfakturas.some(t => t.accountKey === k))
-    .map(k => `${EFAKTURA_PREFIX}${k}`);
+  const EFAKTURA_EIER_PREFIX = "ef-eier:";
+  const efakturaOwners = [...new Set(unconfirmedEfakturas.map(t => t.invoiceOwner ?? "Uten eier"))];
+  const efakturaGroupKeys = efakturaGroupBy === "konto"
+    ? (Object.keys(accountDetails) as AccountKey[])
+        .filter(k => unconfirmedEfakturas.some(t => t.accountKey === k))
+        .map(k => `${EFAKTURA_PREFIX}${k}`)
+    : efakturaOwners.map(o => `${EFAKTURA_EIER_PREFIX}${o}`);
   const efakturaAllOpen = efakturaGroupKeys.every(k => isGroupOpen(k));
 
   const runningBalanceMap = (() => {
@@ -297,6 +321,51 @@ export default function PaymentsOverview() {
     });
   }
 
+  // Gruppering på fakturaeier for eFaktura-tabben. Speiler renderDatoGroups:
+  // ingen sum-rad og ingen saldo i headeren, siden en eier ikke har en saldo.
+  // Kontoen flyttes til overline på hver rad, ettersom den ikke lenger er
+  // gruppenøkkel — datoen beholdes der også, begge er relevante for en faktura.
+  function renderEierGroups(source: Transaction[]) {
+    return efakturaOwners.map(owner => {
+      const txs = source.filter(t => (t.invoiceOwner ?? "Uten eier") === owner);
+      if (txs.length === 0) return null;
+      const groupKey = `${EFAKTURA_EIER_PREFIX}${owner}`;
+      const open = isGroupOpen(groupKey);
+
+      return (
+        <div key={groupKey} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
+          <List.Container>
+            <List.Item.Accordion
+              open={open}
+              chevronPosition="right"
+              style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderRadius: "var(--token-radius-md)" } as React.CSSProperties}
+            >
+              <List.Item.Accordion.Header onClick={() => toggleGroup(groupKey)}>
+                <List.Cell.Title style={{ fontWeight: 500 }}>{ownerLabel(owner)}</List.Cell.Title>
+              </List.Item.Accordion.Header>
+              <List.Item.Accordion.Content>
+                <List.Container>
+                  {txs.map(tx => {
+                    const acct = accountDetails[tx.accountKey];
+                    return (
+                      <TransactionRow
+                        key={tx.id}
+                        tx={tx}
+                        overline={`${tx.date} · ${acct.name} ${acct.number}`}
+                        isConfirmed={confirmedIds.has(tx.id)}
+                        onConfirm={() => setConfirmedIds(prev => new Set([...prev, tx.id]))}
+                      />
+                    );
+                  })}
+                </List.Container>
+              </List.Item.Accordion.Content>
+            </List.Item.Accordion>
+          </List.Container>
+        </div>
+      );
+    });
+  }
+
   function renderDatoGroups() {
     return dateKeys.map(dateValue => {
       const txs = visibleTransactions.filter(t => t.dateValue === dateValue);
@@ -366,6 +435,19 @@ export default function PaymentsOverview() {
         box-shadow: none;
         left: -96px;
         width: calc(100% + 192px);
+      }
+      /* 16px luft mellom flere ubekreftede fakturaer i samme accordion. Radene er
+         ikke søsken — hver ligger i sin egen div.dnb-space — så :not(:last-child)
+         på raden treffer ingenting. Løsningen settes derfor på UL.dnb-list__container,
+         som allerede er en flex-kolonne med row-gap: 0. Wrapperne har
+         space__top/bottom--zero, så gapet blir nøyaktig 16px uten margin i tillegg.
+         Scopet til .po-efaktura fordi renderKontoGroups deles med «Til forfall».
+         Bakgrunnen: UL er transparent, så accordionens grå (#f2f2f5) lyste gjennom
+         i gapet. Radene har allerede egen hvit backgroundColor med skravuren malt
+         over, så en hvit UL endrer bare gapet — ikke radenes utseende. */
+      .po-efaktura .dnb-list__item__accordion__content .dnb-list__container {
+        row-gap: 1rem;
+        background-color: var(--token-color-background-neutral);
       }
       /* Avstanden label → knapper inne i ToggleButton.Group er margin-top: 16px
          fra Eufemias .dnb-space__top--small på shell-wrapperen. Ingen prop styrer
@@ -663,7 +745,7 @@ export default function PaymentsOverview() {
         </div>
               </>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+              <div className="po-efaktura" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
                 {unconfirmedEfakturaCount === 0 ? (
                   <div
                     style={{
@@ -678,7 +760,17 @@ export default function PaymentsOverview() {
                   </div>
                 ) : (
                   <>
-                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "-24px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "-24px" }}>
+                      <Radio.Group
+                        label="Gruppering:"
+                        labelDirection="horizontal"
+                        layoutDirection="row"
+                        value={efakturaGroupBy}
+                        onChange={({ value }) => setEfakturaGroupBy(value)}
+                      >
+                        <Radio label="Konto" value="konto" />
+                        <Radio label="Fakturaeier" value="fakturaeier" />
+                      </Radio.Group>
                       <Button
                         variant="tertiary"
                         text={efakturaAllOpen ? "Lukk alle" : "Åpne alle"}
@@ -688,13 +780,15 @@ export default function PaymentsOverview() {
                       />
                     </div>
 
-                    {renderKontoGroups(unconfirmedEfakturas, {
-                      keyPrefix: EFAKTURA_PREFIX,
-                      showBalance: true,
-                      showSum: false,
-                      rowBalance: false,
-                      warnings: false,
-                    })}
+                    {efakturaGroupBy === "konto"
+                      ? renderKontoGroups(unconfirmedEfakturas, {
+                          keyPrefix: EFAKTURA_PREFIX,
+                          showBalance: true,
+                          showSum: false,
+                          rowBalance: false,
+                          warnings: false,
+                        })
+                      : renderEierGroups(unconfirmedEfakturas)}
                   </>
                 )}
               </div>
