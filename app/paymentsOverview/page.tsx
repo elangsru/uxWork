@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import SubmitIndicator from "@dnb/eufemia/extensions/forms/Form/SubmitIndicator/SubmitIndicator";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tooltip } from "@dnb/eufemia/components";
+import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tabs, TermDefinition } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
 import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan, loan_medium, trash, edit, filter, close } from "@dnb/eufemia/icons";
 
@@ -37,6 +37,17 @@ interface Transaction {
   nokEquivalent?: string;
 }
 
+// Hvordan én kontogruppe skal rendres. «Til forfall» og «Ubekreftede eFakturaer»
+// deler samme renderer, men viser ulike deler av den: eFaktura-tabben har ingen
+// sum-rad, siden ubekreftede beløp ikke trekkes fra saldo.
+type GroupOptions = {
+  keyPrefix?: string;
+  showBalance: boolean;
+  showSum: boolean;
+  rowBalance: boolean;
+  warnings: boolean;
+};
+
 function relativeDate(daysFromToday: number): { date: string; dateValue: string } {
   const d = new Date();
   d.setDate(d.getDate() + daysFromToday);
@@ -49,7 +60,9 @@ const transactions: Transaction[] = [
   { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, amountDisplay: "500,00 NOK", accountKey: "felleskonto", type: "betaling", avatarLetter: "K" },
   { id: "intro-aksel", ...relativeDate(9), recipient: "Intro Aksel", amountNok: 300, amountDisplay: "300,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "transfer" },
   { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, amountDisplay: "299,00 NOK", accountKey: "lonnskonto", type: "avtalegiro", avatarLetter: "H", badge: "AvtaleGiro" },
+  { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, amountDisplay: "312,00 NOK", accountKey: "felleskonto", type: "efaktura", avatarLetter: "S", badge: "eFaktura", unconfirmed: true },
   { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, amountDisplay: "1 545,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "A", badge: "eFaktura", unconfirmed: true },
+  { id: "tibber-ubekreftet", ...relativeDate(16), recipient: "Tibber AS", amountNok: 1129, amountDisplay: "1 129,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "T", badge: "eFaktura", unconfirmed: true },
   { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, amountDisplay: "12 345,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "loan" },
   { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarLetter: "J", flagIso: "ES", foreignAmount: "500,00 EUR", nokEquivalent: "ca 5234,98 NOK" },
   { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, amountDisplay: "2 445,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarLetter: "T", badge: "eFaktura" },
@@ -151,14 +164,13 @@ export default function PaymentsOverview() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
-  const [showUnconfirmed, setShowUnconfirmed] = useState(true);
+  const [showUnconfirmed, setShowUnconfirmed] = useState(false);
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   const [accountOpen, setAccountOpen] = useState(false);
   const [startDate, setStartDate] = useState(fmt(today));
   const [endDate, setEndDate] = useState(fmt(in30Days));
   const [groupBy, setGroupBy] = useState("konto");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-  const visSaldoRef = useRef<HTMLDivElement>(null);
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -171,7 +183,12 @@ export default function PaymentsOverview() {
     (showUnconfirmed || !t.unconfirmed || confirmedIds.has(t.id))
   );
 
-  const unconfirmedEfakturaCount = transactions.filter(t => t.unconfirmed && !confirmedIds.has(t.id) && t.type === "efaktura").length;
+  // Ubekreftede eFakturaer har sin egen tab og er derfor uavhengige av
+  // filterboksen og «Show unconfirmed eInvoices»-switchen — de vises alltid der.
+  const unconfirmedEfakturas = transactions.filter(
+    t => t.unconfirmed && !confirmedIds.has(t.id) && t.type === "efaktura"
+  );
+  const unconfirmedEfakturaCount = unconfirmedEfakturas.length;
   const efakturaLabel = unconfirmedEfakturaCount > 0 && showUnconfirmed
     ? `eFaktura (${unconfirmedEfakturaCount} ny)`
     : "eFaktura";
@@ -191,6 +208,14 @@ export default function PaymentsOverview() {
   const currentGroupKeys = groupBy === "konto" ? kontoKeys : dateKeys;
   const allOpen = currentGroupKeys.every(k => isGroupOpen(k));
 
+  // Egen nøkkel-namespace for eFaktura-tabben, ellers deler de to tabbene
+  // åpne/lukket-tilstand for samme konto.
+  const EFAKTURA_PREFIX = "ef:";
+  const efakturaGroupKeys = (Object.keys(accountDetails) as AccountKey[])
+    .filter(k => unconfirmedEfakturas.some(t => t.accountKey === k))
+    .map(k => `${EFAKTURA_PREFIX}${k}`);
+  const efakturaAllOpen = efakturaGroupKeys.every(k => isGroupOpen(k));
+
   const runningBalanceMap = (() => {
     const map: Record<string, number> = {};
     (Object.keys(accountDetails) as AccountKey[]).forEach(accountKey => {
@@ -204,47 +229,57 @@ export default function PaymentsOverview() {
     return map;
   })();
 
-  function toggleAll() {
-    const newState = !allOpen;
-    const updates: Record<string, boolean> = {};
-    currentGroupKeys.forEach(k => { updates[k] = newState; });
-    setOpenGroups(updates);
+  // Slår sammen med forrige tilstand i stedet for å erstatte hele mappet, slik
+  // at «Åpne alle» i én tab ikke nullstiller den andre tabben.
+  function toggleAllFor(keys: string[]) {
+    const newState = !keys.every(k => isGroupOpen(k));
+    setOpenGroups(prev => {
+      const updates: Record<string, boolean> = { ...prev };
+      keys.forEach(k => { updates[k] = newState; });
+      return updates;
+    });
   }
 
-  function renderKontoGroups() {
-    return kontoKeys.map(accountKey => {
+  function renderKontoGroups(source: Transaction[], opts: GroupOptions) {
+    const { keyPrefix = "", showBalance, showSum, rowBalance, warnings } = opts;
+    const keys = (Object.keys(accountDetails) as AccountKey[]).filter(
+      k => source.some(t => t.accountKey === k)
+    );
+
+    return keys.map(accountKey => {
       const acct = accountDetails[accountKey];
-      const txs = visibleTransactions.filter(t => t.accountKey === accountKey);
+      const groupKey = `${keyPrefix}${accountKey}`;
+      const txs = source.filter(t => t.accountKey === accountKey);
       const confirmedTxs = txs.filter(t => !t.unconfirmed || confirmedIds.has(t.id));
       const totalNok = confirmedTxs.reduce((s, t) => s + t.amountNok, 0);
       const fremtidigSaldo = acct.balance - totalNok;
       const unconfirmedCount = txs.filter(t => t.unconfirmed && !confirmedIds.has(t.id)).length;
       const sumLabel = `Sum ${confirmedTxs.length} transaksjon${confirmedTxs.length !== 1 ? "er" : ""}${unconfirmedCount > 0 ? ` (${unconfirmedCount} ubekreftet)` : ""}`;
-      const open = isGroupOpen(accountKey);
+      const open = isGroupOpen(groupKey);
 
       const lastPaymentDate = txs.reduce((max, t) => t.dateValue > max.dateValue ? t : max, txs[0]).date;
 
       return (
-        <div key={accountKey} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
+        <div key={groupKey} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
           <List.Container>
             <List.Item.Accordion
               open={open}
               chevronPosition="right"
-              style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-md)", borderTopRightRadius: "var(--token-radius-md)", ...(!showSaldo ? { borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } : {}) } as React.CSSProperties}
+              style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-md)", borderTopRightRadius: "var(--token-radius-md)", ...(!showSum ? { borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } : {}) } as React.CSSProperties}
             >
-              <List.Item.Accordion.Header onClick={() => toggleGroup(accountKey)}>
+              <List.Item.Accordion.Header onClick={() => toggleGroup(groupKey)}>
                 <List.Cell.Title style={{ fontWeight: 500 }}>{acct.name} {acct.number}</List.Cell.Title>
-                {showSaldo && <List.Cell.End><span style={{ fontWeight: 400 }}>{fmtNok(acct.balance)}</span></List.Cell.End>}
+                {showBalance && <List.Cell.End><span style={{ fontWeight: 400 }}>{fmtNok(acct.balance)}</span></List.Cell.End>}
               </List.Item.Accordion.Header>
               <List.Item.Accordion.Content>
                 <List.Container>
                   {txs.map(tx => (
-                    <TransactionRow key={tx.id} tx={tx} overline={tx.date} balanceAfter={showSaldo ? runningBalanceMap[tx.id] : undefined} warning={showWarnings && tx.id === "intro-aksel" ? "Betaling stoppet, det var ikke nok penger på konto." : showWarnings && tx.id === "happybytes" ? "Betalingen ble stoppet fordi beløpet overstiger den månedlige beløpsgrensen for AvtaleGiro." : undefined} isConfirmed={confirmedIds.has(tx.id)} onConfirm={() => setConfirmedIds(prev => new Set([...prev, tx.id]))} />
+                    <TransactionRow key={tx.id} tx={tx} overline={tx.date} balanceAfter={rowBalance ? runningBalanceMap[tx.id] : undefined} warning={warnings && tx.id === "intro-aksel" ? "Betaling stoppet, det var ikke nok penger på konto." : warnings && tx.id === "happybytes" ? "Betalingen ble stoppet fordi beløpet overstiger den månedlige beløpsgrensen for AvtaleGiro." : undefined} isConfirmed={confirmedIds.has(tx.id)} onConfirm={() => setConfirmedIds(prev => new Set([...prev, tx.id]))} />
                   ))}
                 </List.Container>
               </List.Item.Accordion.Content>
             </List.Item.Accordion>
-            {showSaldo && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
+            {showSum && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
               <List.Cell.Title>
                 {sumLabel}
                 <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>Penger til overs {lastPaymentDate.replace(/\s+\d{4}$/, '')}</List.Cell.Title.Subline>
@@ -321,6 +356,23 @@ export default function PaymentsOverview() {
     <Theme colorScheme={darkMode ? 'dark' : 'light'}>
     <>
     <style>{`
+      /* Divider-linjen er ::before på .dnb-tabs__tabs. Eufemia strekker den
+         to veier: --breakout gir left/width 100vw mot venstre, og
+         :not(.dnb-section) gir box-shadow 100vw mot høyre. breakout={false}
+         fjerner bare den første, så box-shadowen må nulles eksplisitt.
+         Deretter strekkes linjen ut til kortets kanter — kortet har 96px
+         horisontal padding, som linjen ellers ville stoppet innenfor. */
+      .po-tabs .dnb-tabs__tabs::before {
+        box-shadow: none;
+        left: -96px;
+        width: calc(100% + 192px);
+      }
+      /* Avstanden label → knapper inne i ToggleButton.Group er margin-top: 16px
+         fra Eufemias .dnb-space__top--small på shell-wrapperen. Ingen prop styrer
+         den, så den settes ned til 8px her. Scopet til gruppen. */
+      .dnb-toggle-button-group__fieldset .dnb-space__top--small {
+        margin-top: 0.5rem;
+      }
       .dnb-list__item__action .dnb-list__item__chevron .dnb-icon { transform: none !important; transition: none !important; }
       .dnb-list__item__accordion__header { padding-bottom: calc(var(--item-padding)) !important; }
       .dnb-list__item__accordion__header .dnb-list__item__chevron { place-self: center !important; }
@@ -424,6 +476,24 @@ export default function PaymentsOverview() {
           </div>
         </div>
 
+        {/* Tabs: eksisterende oversikt under «Til forfall». Render-funksjonen
+            får TabsSelectedKey (string | number) — ikke annotér den. */}
+        <Tabs
+          className="po-tabs"
+          breakout={false}
+          data={[
+            { title: "Til forfall", key: "forfall" },
+            {
+              title: unconfirmedEfakturaCount > 0
+                ? `Ubekreftede eFakturaer (${unconfirmedEfakturaCount})`
+                : "Ubekreftede eFakturaer",
+              key: "efakturaer",
+            },
+          ]}
+        >
+          {(key) =>
+            key === "forfall" ? (
+              <>
         {/* Filter + View mode */}
         <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
 
@@ -517,58 +587,113 @@ export default function PaymentsOverview() {
             </Grid.Item>
           </Grid.Container>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <P>Betalingstype</P>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
-              <ToggleButton.Group
-                multiselect
-                values={paymentTypes}
-                onChange={({ values }) => setPaymentTypes(values as string[])}
-              >
-                <ToggleButton text="Overføring" value="overforing" />
-                <ToggleButton text="Betaling" value="betaling" />
-                <ToggleButton text="AvtaleGiro" value="avtalegiro" />
-                <ToggleButton text={efakturaLabel} value="efaktura" />
-              </ToggleButton.Group>
-              <div ref={visSaldoRef} style={{ flexShrink: 0 }}>
-                <Switch
-                  label="Penger til overs"
-                  checked={showSaldo}
-                  onChange={({ checked }) => setShowSaldo(checked)}
-                />
-                <Tooltip targetElement={visSaldoRef}>
-                  Viser hva du har til over etter at alle regninger er betalt
-                </Tooltip>
-              </div>
+          {/* Labelen ligger på ToggleButton.Group, ikke som en løs <P> ved siden av,
+              slik at gruppen får et programmatisk navn (role="group" + aria-labelledby).
+              Gruppen er da høyere enn switchen (label + knapper), så alignItems: center
+              ville løftet switchen 16px over knappene. Løsning: flex-end justerer
+              bunnene, og switch-wrapperen får knapperadens høyde (2.5rem) med sentrert
+              innhold — da havner switchen på knappenes senterlinje.
+              Merk: .dnb-toggle-button-group har flex-grow: 1 fra Eufemia, så på smale
+              skjermer bryter switchen til egen linje under knappene. */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "flex-end" }}>
+            <ToggleButton.Group
+              label="Betalingstype"
+              multiselect
+              values={paymentTypes}
+              onChange={({ values }) => setPaymentTypes(values as string[])}
+            >
+              <ToggleButton text="Overføring" value="overforing" />
+              <ToggleButton text="Betaling" value="betaling" />
+              <ToggleButton text="AvtaleGiro" value="avtalegiro" />
+              <ToggleButton text={efakturaLabel} value="efaktura" />
+            </ToggleButton.Group>
+            <div style={{ flexShrink: 0, minHeight: "2.5rem", display: "flex", alignItems: "center" }}>
+              <Switch
+                label={
+                  <TermDefinition content="Når aktiv vises forventet fremtidig saldo etter at betalinger til forfall er trukket fra.">
+                    Penger til overs
+                  </TermDefinition>
+                }
+                checked={showSaldo}
+                onChange={({ checked }) => setShowSaldo(checked)}
+              />
             </div>
           </div>
         </div>
 
         {/* View mode */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "-24px" }}>
-          <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-            <P>Gruppering:</P>
-            <Radio.Group
-              layoutDirection="row"
-              value={groupBy}
-              onChange={({ value }) => setGroupBy(value)}
-            >
-              <Radio label="Konto" value="konto" />
-              <Radio label="Dato" value="dato" />
-            </Radio.Group>
-          </div>
+          {/* labelDirection="horizontal" gir samme side-ved-side-oppsett som den
+              tidligere flex-wrapperen, men med labelen koblet til gruppen. */}
+          <Radio.Group
+            label="Gruppering:"
+            labelDirection="horizontal"
+            layoutDirection="row"
+            value={groupBy}
+            onChange={({ value }) => setGroupBy(value)}
+          >
+            <Radio label="Konto" value="konto" />
+            <Radio label="Dato" value="dato" />
+          </Radio.Group>
           <Button
               variant="tertiary"
               text={allOpen ? "Lukk alle" : "Åpne alle"}
               icon={allOpen ? chevron_up : chevron_down}
               iconPosition="right"
-              onClick={toggleAll}
+              onClick={() => toggleAllFor(currentGroupKeys)}
             />
         </div>
 
-        {groupBy === "konto" ? renderKontoGroups() : renderDatoGroups()}
+        {groupBy === "konto"
+          ? renderKontoGroups(visibleTransactions, {
+              showBalance: showSaldo,
+              showSum: showSaldo,
+              rowBalance: showSaldo,
+              warnings: showWarnings,
+            })
+          : renderDatoGroups()}
 
         </div>
+              </>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+                {unconfirmedEfakturaCount === 0 ? (
+                  <div
+                    style={{
+                      background: "var(--token-color-background-neutral-subtle)",
+                      border: "1px solid var(--token-color-stroke-neutral-alternative)",
+                      borderRadius: "var(--token-radius-md)",
+                      padding: "32px",
+                      textAlign: "center",
+                    }}
+                  >
+                    <P>Du har ingen ubekreftede eFakturaer.</P>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "-24px" }}>
+                      <Button
+                        variant="tertiary"
+                        text={efakturaAllOpen ? "Lukk alle" : "Åpne alle"}
+                        icon={efakturaAllOpen ? chevron_up : chevron_down}
+                        iconPosition="right"
+                        onClick={() => toggleAllFor(efakturaGroupKeys)}
+                      />
+                    </div>
+
+                    {renderKontoGroups(unconfirmedEfakturas, {
+                      keyPrefix: EFAKTURA_PREFIX,
+                      showBalance: true,
+                      showSum: false,
+                      rowBalance: false,
+                      warnings: false,
+                    })}
+                  </>
+                )}
+              </div>
+            )
+          }
+        </Tabs>
       </div>
     </div>
 
