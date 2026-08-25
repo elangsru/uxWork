@@ -607,16 +607,23 @@ export default function PaymentsOverview() {
               <ToggleButton text="AvtaleGiro" value="avtalegiro" />
               <ToggleButton text={efakturaLabel} value="efaktura" />
             </ToggleButton.Group>
-            <div style={{ flexShrink: 0, minHeight: "2.5rem", display: "flex", alignItems: "center" }}>
+            {/* TermDefinition ligger som søsken til Switch, ikke inne i labelen.
+                Grunnen: HTML-spesifikasjonen lar hover over en <label> slå inn på
+                kontrollen den hører til, så en ordforklaring inne i labelen ville
+                trigget switchens hover. Nå har de hver sin: switchen reagerer på
+                sin egen grafikk, teksten på sin Anchor-hover. Switchen beholder
+                labelen som skjult tekst så den fortsatt har tilgjengelig navn.
+                gap: 0.5rem gjenskaper labelens tidligere padding-left på 8px. */}
+            <div style={{ flexShrink: 0, minHeight: "2.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <Switch
-                label={
-                  <TermDefinition content="Når aktiv vises forventet fremtidig saldo etter at betalinger til forfall er trukket fra.">
-                    Penger til overs
-                  </TermDefinition>
-                }
+                label="Penger til overs"
+                labelSrOnly
                 checked={showSaldo}
                 onChange={({ checked }) => setShowSaldo(checked)}
               />
+              <TermDefinition content="Når aktiv vises forventet fremtidig saldo etter at betalinger til forfall er trukket fra.">
+                Penger til overs
+              </TermDefinition>
             </div>
           </div>
         </div>
