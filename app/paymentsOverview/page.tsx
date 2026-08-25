@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import SubmitIndicator from "@dnb/eufemia/extensions/forms/Form/SubmitIndicator/SubmitIndicator";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tabs, TermDefinition } from "@dnb/eufemia/components";
+import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tabs, TermDefinition, Skeleton } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
-import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan, loan_medium, trash, edit, filter, close, globe, office_buildings } from "@dnb/eufemia/icons";
+import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan, loan_medium, trash, edit, filter, close, globe, office_buildings, refresh } from "@dnb/eufemia/icons";
 
 const accounts = [
   { content: ["Alle kontoer"], value: "alle" },
@@ -21,18 +21,61 @@ type AccountKey = keyof typeof accountDetails;
 
 // Syntetiske fødselsnummer etter Skatteetatens konvensjon for testdata: 80 er
 // lagt til månedssifrene (07 → 87), slik at numrene ikke kan kollidere med et
-// virkelig fødselsnummer. Statiske literaler — ikke Math.random(), som ville gitt
-// ulik verdi på server og klient og dermed hydration mismatch.
+// virkelig fødselsnummer. Startsettet er statiske literaler — ikke Math.random(),
+// som ville gitt ulik verdi på server og klient og dermed hydration mismatch.
 // Innehaveren selv står uten nummer — «Espen Langsrud (deg)» har ingen rad her,
-// og ownerLabel faller tilbake til rent navn når eieren mangler oppslag.
+// og labelen faller tilbake til rent navn når eieren mangler oppslag.
 const invoiceOwnerSsn: Record<string, string> = {
   "Kari Nordmann": "248788 03918",
 };
 
-function ownerLabel(owner: string): string {
-  const ssn = invoiceOwnerSsn[owner];
-  return ssn ? `${owner} (${ssn})` : owner;
+// Pool for «Hent flere». Navnene er åpenbare plassholdere (Norges juridiske
+// standardnavn), og hver eier får én faktura fra en tilfeldig utsteder.
+const MORE_OWNER_NAMES = [
+  "Marte Kirkerud",
+  "Peder Ås",
+  "Ingrid Berg",
+  "Lars Holm",
+  "Sofie Lund",
+  "Jonas Vik",
+];
+const MORE_RECIPIENTS = [
+  "Fjordkraft AS",
+  "If Skadeforsikring",
+  "Telia Norge AS",
+  "Storebrand ASA",
+  "Gjensidige Forsikring",
+  "Elvia AS",
+];
+
+// Kalles først etter mount — aldri på modulnivå eller under den første
+// renderen. Math.random() der ville gitt ulik verdi på server og klient og
+// dermed hydration mismatch; etter mount finnes ingen serverrender å avvike fra.
+function randomSyntheticSsn(): string {
+  const dag = String(1 + Math.floor(Math.random() * 28)).padStart(2, "0");
+  const maaned = String(81 + Math.floor(Math.random() * 12)); // 81–92 = måned + 80
+  const aar = String(55 + Math.floor(Math.random() * 45));
+  const rest = String(Math.floor(Math.random() * 100000)).padStart(5, "0");
+  return `${dag}${maaned}${aar} ${rest}`;
 }
+
+// Rammen rundt en gruppe. Delt av begge grupperingene og av skeleton-varianten,
+// så en endring av kant eller radius ikke må gjøres på fire steder.
+const groupOutlineStyle: React.CSSProperties = {
+  outline: "1px solid var(--token-color-stroke-neutral-alternative)",
+  borderRadius: "var(--token-radius-md)",
+  overflow: "hidden",
+};
+
+// Delt av begge tom-tilstandene på eFaktura-tabben: ingen ubekreftede i det hele
+// tatt, og ingen som matcher filteret.
+const efakturaEmptyBoxStyle: React.CSSProperties = {
+  background: "var(--token-color-background-neutral-subtle)",
+  border: "1px solid var(--token-color-stroke-neutral-alternative)",
+  borderRadius: "var(--token-radius-md)",
+  padding: "32px",
+  textAlign: "center",
+};
 
 interface Transaction {
   id: string;
@@ -206,13 +249,99 @@ export default function PaymentsOverview() {
   const [startDate, setStartDate] = useState(fmt(today));
   const [endDate, setEndDate] = useState(fmt(in30Days));
   const [groupBy, setGroupBy] = useState("konto");
-  const [efakturaGroupBy, setEfakturaGroupBy] = useState("konto");
+  const [efakturaGroupBy, setEfakturaGroupBy] = useState("fakturaeier");
+  const [efakturaOwnerFilter, setEfakturaOwnerFilter] = useState<string | null>(null);
+  const [efakturaOwnerOpen, setEfakturaOwnerOpen] = useState(false);
+  const [efakturaAccountFilter, setEfakturaAccountFilter] = useState<AccountKey | null>(null);
+  const [efakturaAccountOpen, setEfakturaAccountOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // Hele poolen får sitt syntetiske fødselsnummer én gang etter mount, ikke ved
+  // innlasting. Da viser nedtrekket og gruppeoverskriften samme identitet for en
+  // person som ennå ikke er lastet inn.
+  const [poolSsn, setPoolSsn] = useState<Record<string, string>>({});
+  useEffect(() => {
+    setMounted(true);
+    setPoolSsn(Object.fromEntries(MORE_OWNER_NAMES.map(n => [n, randomSyntheticSsn()])));
+  }, []);
 
-  const visibleTransactions = transactions.filter(t =>
+  // Innlastede eiere legges til i stedet for å mutere basislisten, så startdataen
+  // blir stående som én kilde og tilleggene er lette å nullstille.
+  const [extraTransactions, setExtraTransactions] = useState<Transaction[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const allTransactions = [...transactions, ...extraTransactions];
+
+  const ownerSsnMap = { ...invoiceOwnerSsn, ...poolSsn };
+  function ownerLabel(owner: string): string {
+    const ssn = ownerSsnMap[owner];
+    return ssn ? `${owner} (${ssn})` : owner;
+  }
+
+  const usedOwners = new Set(
+    allTransactions.map(t => t.invoiceOwner).filter((o): o is string => Boolean(o))
+  );
+  const remainingOwnerNames = MORE_OWNER_NAMES.filter(n => !usedOwners.has(n));
+
+  // Lager én faktura per navn. Feltene utledes av personens plass i poolen, så
+  // samme person alltid får samme utsteder, konto og forfallsdato — uansett om
+  // hen kommer inn via «Hent flere» eller ved å bli valgt i nedtrekket.
+  function loadOwners(names: string[]) {
+    const nye = names
+      .filter(owner => !usedOwners.has(owner))
+      .map<Transaction>(owner => {
+        const nr = MORE_OWNER_NAMES.indexOf(owner);
+        const belop = 200 + Math.floor(Math.random() * 4000);
+        return {
+          id: `lastet-${nr}`,
+          ...relativeDate(17 + nr),
+          recipient: MORE_RECIPIENTS[nr % MORE_RECIPIENTS.length],
+          amountNok: belop,
+          amountDisplay: fmtNok(belop),
+          accountKey: nr % 2 === 0 ? "lonnskonto" : "felleskonto",
+          type: "efaktura",
+          avatarKind: "company",
+          badge: "eFaktura",
+          unconfirmed: true,
+          invoiceOwner: owner,
+        };
+      });
+    if (nye.length === 0) return;
+    // Dedupliseres på id inne i oppdateringen, ikke bare mot usedOwners over.
+    // «Hent flere» venter 2 sekunder før den kaller hit, og i mellomtiden kan
+    // samme person ha blitt hentet inn via nedtrekket — da ville den ytre
+    // sjekken vært utdatert og gitt to rader med samme id.
+    setExtraTransactions(prev => {
+      const finnes = new Set(prev.map(t => t.id));
+      const ufiltrert = nye.filter(t => !finnes.has(t.id));
+      return ufiltrert.length === 0 ? prev : [...prev, ...ufiltrert];
+    });
+  }
+
+  // 2 sekunders skeleton før fakturaene kommer inn. Docs: animasjonen starter
+  // først etter 5 sekunder, så her vises den statiske plassholderen.
+  const SKELETON_COUNT = 3;
+  function loadMoreOwners() {
+    if (loadingMore) return;
+    const picked = remainingOwnerNames.slice(0, SKELETON_COUNT);
+    if (picked.length === 0) return;
+    setLoadingMore(true);
+    setTimeout(() => {
+      loadOwners(picked);
+      setLoadingMore(false);
+    }, 2000);
+  }
+
+  // Velges en person som ennå ikke er lastet, hentes hen inn først — deretter
+  // filtreres visningen til den personen, slik at gruppen faktisk vises.
+  function selectEfakturaOwner(owner: string | null) {
+    if (owner !== null && !usedOwners.has(owner)) {
+      loadOwners([owner]);
+    }
+    setEfakturaOwnerFilter(owner);
+  }
+
+  const visibleTransactions = allTransactions.filter(t =>
     (selectedAccountKey === null || t.accountKey === selectedAccountKey) &&
     (paymentTypes.length === 0 || paymentTypes.includes(t.type)) &&
     t.dateValue >= startDate &&
@@ -220,15 +349,39 @@ export default function PaymentsOverview() {
     (showUnconfirmed || !t.unconfirmed || confirmedIds.has(t.id))
   );
 
-  // Ubekreftede eFakturaer har sin egen tab og er derfor uavhengige av
-  // filterboksen og «Show unconfirmed eInvoices»-switchen — de vises alltid der.
-  const unconfirmedEfakturas = transactions.filter(
+  // Ubekreftede eFakturaer har sin egen tab og er derfor uavhengige av «Til
+  // forfall»-filterboksen og «Show unconfirmed eInvoices»-switchen.
+  const unconfirmedEfakturas = allTransactions.filter(
     t => t.unconfirmed && !confirmedIds.has(t.id) && t.type === "efaktura"
   );
+  // Telleren i tab-tittelen viser alt som venter, uavhengig av eierfilteret —
+  // filteret er en visning, ikke en endring i hvor mange som trenger handling.
   const unconfirmedEfakturaCount = unconfirmedEfakturas.length;
   const efakturaLabel = unconfirmedEfakturaCount > 0 && showUnconfirmed
     ? `eFaktura (${unconfirmedEfakturaCount} ny)`
     : "eFaktura";
+
+  // Alternativene utledes av den UFILTRERTE listen, ellers ville nedtrekket
+  // krympe til det ene valget så snart man filtrerte. I tillegg listes personer
+  // som ennå ikke er lastet inn — de ser like ut som de øvrige, og et valg der
+  // henter inn fakturaen først og filtrerer deretter til personen.
+  const efakturaOwnerOptions = [
+    ...[...new Set(unconfirmedEfakturas.map(t => t.invoiceOwner ?? "Uten eier"))]
+      .map(owner => ({ selectedKey: owner, content: ownerLabel(owner) })),
+    ...remainingOwnerNames.map(owner => ({
+      selectedKey: owner,
+      content: ownerLabel(owner),
+    })),
+  ];
+
+  const efakturaAccountOptions = (Object.keys(accountDetails) as AccountKey[])
+    .filter(k => unconfirmedEfakturas.some(t => t.accountKey === k))
+    .map(k => ({ selectedKey: k, content: [accountDetails[k].name, accountDetails[k].number] }));
+
+  const visibleEfakturas = unconfirmedEfakturas.filter(t =>
+    (efakturaOwnerFilter === null || (t.invoiceOwner ?? "Uten eier") === efakturaOwnerFilter) &&
+    (efakturaAccountFilter === null || t.accountKey === efakturaAccountFilter)
+  );
 
   function isGroupOpen(key: string) {
     return key in openGroups ? openGroups[key] : true;
@@ -251,10 +404,12 @@ export default function PaymentsOverview() {
   // grupperingene) åpne/lukket-tilstand for samme navn.
   const EFAKTURA_PREFIX = "ef:";
   const EFAKTURA_EIER_PREFIX = "ef-eier:";
-  const efakturaOwners = [...new Set(unconfirmedEfakturas.map(t => t.invoiceOwner ?? "Uten eier"))];
+  // Gruppene følger den filtrerte listen, ellers ville «Åpne alle» operert på
+  // nøkler for grupper som ikke er på skjermen.
+  const efakturaOwners = [...new Set(visibleEfakturas.map(t => t.invoiceOwner ?? "Uten eier"))];
   const efakturaGroupKeys = efakturaGroupBy === "konto"
     ? (Object.keys(accountDetails) as AccountKey[])
-        .filter(k => unconfirmedEfakturas.some(t => t.accountKey === k))
+        .filter(k => visibleEfakturas.some(t => t.accountKey === k))
         .map(k => `${EFAKTURA_PREFIX}${k}`)
     : efakturaOwners.map(o => `${EFAKTURA_EIER_PREFIX}${o}`);
   const efakturaAllOpen = efakturaGroupKeys.every(k => isGroupOpen(k));
@@ -303,7 +458,7 @@ export default function PaymentsOverview() {
       const lastPaymentDate = txs.reduce((max, t) => t.dateValue > max.dateValue ? t : max, txs[0]).date;
 
       return (
-        <div key={groupKey} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
+        <div key={groupKey} style={groupOutlineStyle}>
           <List.Container>
             <List.Item.Accordion
               open={open}
@@ -352,7 +507,7 @@ export default function PaymentsOverview() {
       const open = isGroupOpen(groupKey);
 
       return (
-        <div key={groupKey} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
+        <div key={groupKey} style={groupOutlineStyle}>
           <List.Container>
             <List.Item.Accordion
               open={open}
@@ -396,7 +551,7 @@ export default function PaymentsOverview() {
       const sumLabel = `Sum ${confirmedTxs.length} transaksjon${confirmedTxs.length !== 1 ? "er" : ""}${unconfirmedCount > 0 ? ` (${unconfirmedCount} ubekreftet)` : ""}`;
 
       return (
-        <div key={dateValue} style={{ outline: "1px solid var(--token-color-stroke-neutral-alternative)", borderRadius: "var(--token-radius-md)", overflow: "hidden" }}>
+        <div key={dateValue} style={groupOutlineStyle}>
           <List.Container>
             <List.Item.Accordion
               open={open}
@@ -777,48 +932,167 @@ export default function PaymentsOverview() {
             ) : (
               <div className="po-efaktura" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
                 {unconfirmedEfakturaCount === 0 ? (
-                  <div
-                    style={{
-                      background: "var(--token-color-background-neutral-subtle)",
-                      border: "1px solid var(--token-color-stroke-neutral-alternative)",
-                      borderRadius: "var(--token-radius-md)",
-                      padding: "32px",
-                      textAlign: "center",
-                    }}
-                  >
+                  <div style={efakturaEmptyBoxStyle}>
                     <P>Du har ingen ubekreftede eFakturaer.</P>
                   </div>
                 ) : (
                   <>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "-24px" }}>
-                      <Radio.Group
-                        label="Gruppering:"
-                        labelDirection="horizontal"
-                        layoutDirection="row"
-                        value={efakturaGroupBy}
-                        onChange={({ value }) => setEfakturaGroupBy(value)}
-                      >
-                        <Radio label="Konto" value="konto" />
-                        <Radio label="Fakturaeier" value="fakturaeier" />
-                      </Radio.Group>
-                      <Button
-                        variant="tertiary"
-                        text={efakturaAllOpen ? "Lukk alle" : "Åpne alle"}
-                        icon={efakturaAllOpen ? chevron_up : chevron_down}
-                        iconPosition="right"
-                        onClick={() => toggleAllFor(efakturaGroupKeys)}
-                      />
+                    {/* Filter — speiler boksen på «Til forfall». Data bruker
+                        selectedKey, så onChange kan lese valget direkte i stedet
+                        for å strengmatche på content[0] slik kontofilteret der
+                        gjør. Boksen rendres også når filteret gir null treff,
+                        ellers ville brukeren ikke hatt noen vei tilbake. */}
+                    <div
+                      style={{
+                        background: "var(--token-color-background-neutral-subtle)",
+                        border: "1px solid var(--token-color-stroke-neutral-alternative)",
+                        borderRadius: "var(--token-radius-md)",
+                        padding: "16px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "16px",
+                      }}
+                    >
+                      <Grid.Container columns={{ small: 1, medium: 1, large: 2 }} columnGap="medium" rowGap="medium">
+                        <Grid.Item span={{ small: "full", medium: "full", large: [1, 1] }}>
+                          <Autocomplete
+                            label="Fakturaeier"
+                            size="medium"
+                            data={efakturaOwnerOptions}
+                            placeholder="Alle"
+                            stretch
+                            showSubmitButton
+                            submitButtonTitle=""
+                            submitButtonIcon={<Icon icon={efakturaOwnerOpen ? chevron_up : chevron_down} />}
+                            showClearButton
+                            onOpen={() => setEfakturaOwnerOpen(true)}
+                            onClose={() => setEfakturaOwnerOpen(false)}
+                            onChange={({ data }) => {
+                              const key = data && typeof data === "object" && "selectedKey" in data
+                                ? String(data.selectedKey)
+                                : null;
+                              selectEfakturaOwner(key);
+                            }}
+                            onClear={() => setEfakturaOwnerFilter(null)}
+                          />
+                        </Grid.Item>
+                        <Grid.Item span={{ small: "full", medium: "full", large: [2, 2] }}>
+                          <Autocomplete
+                            label="Belastningskonto"
+                            size="medium"
+                            data={efakturaAccountOptions}
+                            placeholder="Alle"
+                            stretch
+                            showSubmitButton
+                            submitButtonTitle=""
+                            submitButtonIcon={<Icon icon={efakturaAccountOpen ? chevron_up : chevron_down} />}
+                            showClearButton
+                            onOpen={() => setEfakturaAccountOpen(true)}
+                            onClose={() => setEfakturaAccountOpen(false)}
+                            onChange={({ data }) => {
+                              const key = data && typeof data === "object" && "selectedKey" in data
+                                ? (String(data.selectedKey) as AccountKey)
+                                : null;
+                              setEfakturaAccountFilter(key);
+                            }}
+                            onClear={() => setEfakturaAccountFilter(null)}
+                          />
+                        </Grid.Item>
+                      </Grid.Container>
                     </div>
 
-                    {efakturaGroupBy === "konto"
-                      ? renderKontoGroups(unconfirmedEfakturas, {
-                          keyPrefix: EFAKTURA_PREFIX,
-                          showBalance: true,
-                          showSum: false,
-                          rowBalance: false,
-                          warnings: false,
-                        })
-                      : renderEierGroups(unconfirmedEfakturas)}
+                    {visibleEfakturas.length === 0 ? (
+                      <div style={efakturaEmptyBoxStyle}>
+                        <P>Ingen ubekreftede eFakturaer matcher filteret.</P>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "-24px" }}>
+                          <Radio.Group
+                            label="Gruppering:"
+                            labelDirection="horizontal"
+                            layoutDirection="row"
+                            value={efakturaGroupBy}
+                            onChange={({ value }) => setEfakturaGroupBy(value)}
+                          >
+                            <Radio label="Fakturaeier" value="fakturaeier" />
+                            <Radio label="Konto (foreslått)" value="konto" />
+                          </Radio.Group>
+                          <Button
+                            variant="tertiary"
+                            text={efakturaAllOpen ? "Lukk alle" : "Åpne alle"}
+                            icon={efakturaAllOpen ? chevron_up : chevron_down}
+                            iconPosition="right"
+                            onClick={() => toggleAllFor(efakturaGroupKeys)}
+                          />
+                        </div>
+
+                        {efakturaGroupBy === "konto"
+                          ? renderKontoGroups(visibleEfakturas, {
+                              keyPrefix: EFAKTURA_PREFIX,
+                              showBalance: true,
+                              showSum: false,
+                              rowBalance: false,
+                              warnings: false,
+                            })
+                          : renderEierGroups(visibleEfakturas)}
+
+                        {/* Plassholdergrupper mens «Hent flere» henter. Én per
+                            faktura som er på vei, med samme ramme og oppbygning
+                            som de virkelige gruppene, så layouten ikke hopper når
+                            innholdet kommer. Teksten er bare bredde-referanse for
+                            Eufemias skeleton og leses ikke opp — Skeleton setter
+                            aria-busy på wrapperen.
+                            Merk: docs foreslår element={false} for å droppe
+                            wrapperen, men i 11.0.2 kaster det «Element type is
+                            invalid … got: boolean» fra SpaceElement. Standard
+                            div-wrapper brukes derfor, og den blir flex-barn av
+                            .po-efaktura — så avstanden mellom plassholderne settes
+                            med marginBottom i stedet for containerens gap. */}
+                        {loadingMore && (
+                          <Skeleton show>
+                            {Array.from({ length: SKELETON_COUNT }, (_, i) => (
+                              <div key={`skeleton-${i}`} style={{ ...groupOutlineStyle, marginBottom: i < SKELETON_COUNT - 1 ? "32px" : 0 }}>
+                                <List.Container>
+                                  <List.Item.Basic
+                                    skeleton
+                                    style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0" } as React.CSSProperties}
+                                  >
+                                    <List.Cell.Title style={{ fontWeight: 500 }}>Henter fakturaeier</List.Cell.Title>
+                                  </List.Item.Basic>
+                                  <List.Item.Basic skeleton style={{ "--item-rounded-corner": "0" } as React.CSSProperties}>
+                                    <List.Cell.Title>
+                                      <List.Cell.Title.Overline>0. måned 0000</List.Cell.Title.Overline>
+                                      Henter faktura
+                                    </List.Cell.Title>
+                                    <List.Cell.End>0 000,00 NOK</List.Cell.End>
+                                  </List.Item.Basic>
+                                </List.Container>
+                              </div>
+                            ))}
+                          </Skeleton>
+                        )}
+
+                        {/* «Hent flere» er en handling, ikke navigasjon, så det er en
+                            tertiær Button — den har lenkestilen i Eufemia, men
+                            riktig semantikk (button, ikke anchor uten mål).
+                            De 32px kommer fra gap på .po-efaktura-containeren:
+                            fragmentet lager ingen flex-item, så denne diven er
+                            søsken til gruppene og får containerens gap. */}
+                        {remainingOwnerNames.length > 0 && (
+                          <div style={{ display: "flex", justifyContent: "center" }}>
+                            <Button
+                              variant="tertiary"
+                              text="Hent flere"
+                              icon={refresh}
+                              iconPosition="left"
+                              disabled={loadingMore}
+                              onClick={loadMoreOwners}
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
                   </>
                 )}
               </div>
