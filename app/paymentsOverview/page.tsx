@@ -5,7 +5,7 @@ import SubmitIndicator from "@dnb/eufemia/extensions/forms/Form/SubmitIndicator/
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tabs, TermDefinition } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
-import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan, loan_medium, trash, edit, filter, close } from "@dnb/eufemia/icons";
+import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan, loan_medium, trash, edit, filter, close, globe } from "@dnb/eufemia/icons";
 
 const accounts = [
   { content: ["Alle kontoer"], value: "alle" },
@@ -177,7 +177,7 @@ export default function PaymentsOverview() {
   const currentMonthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
   const [paymentTypes, setPaymentTypes] = useState<string[]>([]);
-  const [showSaldo, setShowSaldo] = useState(true);
+  const [showSaldo, setShowSaldo] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
@@ -554,7 +554,8 @@ export default function PaymentsOverview() {
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
             <Button variant="primary" text="Overfør" icon={transfer} iconPosition="left" />
-            <Button variant="primary" text="Betal" icon={pay_from} iconPosition="left" />
+            <Button variant="secondary" text="Betal" icon={pay_from} iconPosition="left" />
+            <Button variant="secondary" text="Betal utland" icon={globe} iconPosition="left" />
           </div>
         </div>
 
