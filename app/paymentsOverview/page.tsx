@@ -63,7 +63,7 @@ function randomSyntheticSsn(): string {
 // så en endring av kant eller radius ikke må gjøres på fire steder.
 const groupOutlineStyle: React.CSSProperties = {
   outline: "1px solid var(--token-color-stroke-neutral-alternative)",
-  borderRadius: "var(--token-radius-md)",
+  borderRadius: "var(--token-radius-xl)",
   overflow: "hidden",
 };
 
@@ -139,7 +139,7 @@ function TransactionRow({ tx, overline, balanceAfter, warning, isConfirmed, onCo
   const [approving, setApproving] = useState(false);
   const negativeBalance = balanceAfter !== undefined && balanceAfter < 0;
   const balanceClass = balanceAfter !== undefined ? (negativeBalance ? "row-balance-negative" : "row-balance-positive") : "";
-  const itemStyle = { "--item-rounded-corner": "0" } as React.CSSProperties;
+  const itemStyle = { "--list-item-rounded-corner": "0" } as React.CSSProperties;
   const effectivelyUnconfirmed = tx.unconfirmed && !isConfirmed;
   const unconfirmedStyle = effectivelyUnconfirmed
     ? { ...itemStyle, backgroundImage: "repeating-linear-gradient(-45deg, var(--token-color-stroke-neutral-subtle) 1px 2px, transparent 0 6px)" }
@@ -245,15 +245,12 @@ export default function PaymentsOverview() {
   const [showWarnings, setShowWarnings] = useState(false);
   const [showUnconfirmed, setShowUnconfirmed] = useState(false);
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
-  const [accountOpen, setAccountOpen] = useState(false);
   const [startDate, setStartDate] = useState(fmt(today));
   const [endDate, setEndDate] = useState(fmt(in30Days));
   const [groupBy, setGroupBy] = useState("konto");
   const [efakturaGroupBy, setEfakturaGroupBy] = useState("fakturaeier");
   const [efakturaOwnerFilter, setEfakturaOwnerFilter] = useState<string | null>(null);
-  const [efakturaOwnerOpen, setEfakturaOwnerOpen] = useState(false);
   const [efakturaAccountFilter, setEfakturaAccountFilter] = useState<AccountKey | null>(null);
-  const [efakturaAccountOpen, setEfakturaAccountOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -365,13 +362,17 @@ export default function PaymentsOverview() {
   // krympe til det ene valget så snart man filtrerte. I tillegg listes personer
   // som ennå ikke er lastet inn — de ser like ut som de øvrige, og et valg der
   // henter inn fakturaen først og filtrerer deretter til personen.
+  // content som array gir navn på én linje og fødselsnummer på neste, samme
+  // oppbygning som Belastningskonto bruker for kontonummeret. Eiere uten nummer
+  // («Espen Langsrud (deg)») får bare navnet, altså én linje.
+  function ownerOption(owner: string) {
+    const ssn = ownerSsnMap[owner];
+    return { selectedKey: owner, content: ssn ? [owner, ssn] : owner };
+  }
+
   const efakturaOwnerOptions = [
-    ...[...new Set(unconfirmedEfakturas.map(t => t.invoiceOwner ?? "Uten eier"))]
-      .map(owner => ({ selectedKey: owner, content: ownerLabel(owner) })),
-    ...remainingOwnerNames.map(owner => ({
-      selectedKey: owner,
-      content: ownerLabel(owner),
-    })),
+    ...[...new Set(unconfirmedEfakturas.map(t => t.invoiceOwner ?? "Uten eier"))].map(ownerOption),
+    ...remainingOwnerNames.map(ownerOption),
   ];
 
   const efakturaAccountOptions = (Object.keys(accountDetails) as AccountKey[])
@@ -463,7 +464,7 @@ export default function PaymentsOverview() {
             <List.Item.Accordion
               open={open}
               chevronPosition="right"
-              style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-md)", borderTopRightRadius: "var(--token-radius-md)", ...(!showSum ? { borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } : {}) } as React.CSSProperties}
+              style={{ background: "var(--token-color-background-neutral-alternative)", "--list-item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-xl)", borderTopRightRadius: "var(--token-radius-xl)", ...(!showSum ? { borderBottomLeftRadius: "var(--token-radius-xl)", borderBottomRightRadius: "var(--token-radius-xl)" } : {}) } as React.CSSProperties}
             >
               <List.Item.Accordion.Header onClick={() => toggleGroup(groupKey)}>
                 <List.Cell.Title style={{ fontWeight: 500 }}>{acct.name} {acct.number}</List.Cell.Title>
@@ -477,7 +478,7 @@ export default function PaymentsOverview() {
                 </List.Container>
               </List.Item.Accordion.Content>
             </List.Item.Accordion>
-            {showSum && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
+            {showSum && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--list-item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-xl)", borderBottomRightRadius: "var(--token-radius-xl)" } as React.CSSProperties}>
               <List.Cell.Title>
                 {sumLabel}
                 <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>Penger til overs {lastPaymentDate.replace(/\s+\d{4}$/, '')}</List.Cell.Title.Subline>
@@ -512,7 +513,7 @@ export default function PaymentsOverview() {
             <List.Item.Accordion
               open={open}
               chevronPosition="right"
-              style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderRadius: "var(--token-radius-md)" } as React.CSSProperties}
+              style={{ background: "var(--token-color-background-neutral-alternative)", "--list-item-rounded-corner": "0", borderRadius: "var(--token-radius-xl)" } as React.CSSProperties}
             >
               <List.Item.Accordion.Header onClick={() => toggleGroup(groupKey)}>
                 <List.Cell.Title style={{ fontWeight: 500 }}>{ownerLabel(owner)}</List.Cell.Title>
@@ -556,7 +557,7 @@ export default function PaymentsOverview() {
             <List.Item.Accordion
               open={open}
               chevronPosition="right"
-              style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-md)", borderTopRightRadius: "var(--token-radius-md)", ...(!showSaldo ? { borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } : {}) } as React.CSSProperties}
+              style={{ background: "var(--token-color-background-neutral-alternative)", "--list-item-rounded-corner": "0", borderTopLeftRadius: "var(--token-radius-xl)", borderTopRightRadius: "var(--token-radius-xl)", ...(!showSaldo ? { borderBottomLeftRadius: "var(--token-radius-xl)", borderBottomRightRadius: "var(--token-radius-xl)" } : {}) } as React.CSSProperties}
             >
               <List.Item.Accordion.Header onClick={() => toggleGroup(dateValue)}>
                 <List.Cell.Title style={{ fontWeight: 500 }}>{dateLabel}</List.Cell.Title>
@@ -571,7 +572,7 @@ export default function PaymentsOverview() {
                 </List.Container>
               </List.Item.Accordion.Content>
             </List.Item.Accordion>
-            {showSaldo && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-md)", borderBottomRightRadius: "var(--token-radius-md)" } as React.CSSProperties}>
+            {showSaldo && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--list-item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-xl)", borderBottomRightRadius: "var(--token-radius-xl)" } as React.CSSProperties}>
               <List.Cell.Title>{sumLabel}</List.Cell.Title>
               <List.Cell.End>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", fontWeight: "400" }}>
@@ -611,7 +612,7 @@ export default function PaymentsOverview() {
         width: calc(100% + 192px);
       }
       /* Ikon inne i en Avatar skal ha samme farge som bokstavversjonen. Lists egen
-         regel .dnb-list__item__action .dnb-icon setter color til var(--item-icon-color).
+         regel .dnb-list__item__action .dnb-icon setter color til var(--list-item-icon-color).
          Den er ment for ikoner som ligger direkte i raden (transfer/loan), men slår
          også inn på ikonet inne i avataren og gjør det grønt på mørkegrønn bunn.
          inherit henter avatarens egen tekstfarge, så den følger variant automatisk
@@ -633,14 +634,22 @@ export default function PaymentsOverview() {
         row-gap: 1rem;
         background-color: var(--token-color-background-neutral);
       }
-      /* Avstanden label → knapper inne i ToggleButton.Group er margin-top: 16px
-         fra Eufemias .dnb-space__top--small på shell-wrapperen. Ingen prop styrer
-         den, så den settes ned til 8px her. Scopet til gruppen. */
-      .dnb-toggle-button-group__fieldset .dnb-space__top--small {
-        margin-top: 0.5rem;
+      /* Avstanden label → knapper inne i ToggleButton.Group. Ingen prop styrer
+         den, så den settes ned til 8px her. I 11.0.2 var det en margin
+         (.dnb-space__top--small) på shellen; fra 11.11.0 er det row-gap på en
+         flex-container rett inne i fieldsettet.
+         Vi setter --horizontal-gap, ikke row-gap: Eufemias egen regel
+         .dnb-flex-container--css-gap.dnb-flex-container.dnb-flex-container--direction-vertical
+         har 0,3,0 og ville slått en row-gap-override. Variabelen settes derimot av
+         .dnb-flex-container--spacing-small med bare 0,1,0, så vi vinner der — og
+         vi jobber med kaskaden i stedet for mot den.
+         Direkte barn-selektor er viktig: shellen har sin egen luft mellom
+         knappene når de brytes over flere linjer, og den skal ikke røres. */
+      .dnb-toggle-button-group__fieldset > .dnb-flex-container {
+        --horizontal-gap: 0.5rem;
       }
       .dnb-list__item__action .dnb-list__item__chevron .dnb-icon { transform: none !important; transition: none !important; }
-      .dnb-list__item__accordion__header { padding-bottom: calc(var(--item-padding)) !important; }
+      .dnb-list__item__accordion__header { padding-bottom: calc(var(--list-item-padding)) !important; }
       .dnb-list__item__accordion__header .dnb-list__item__chevron { place-self: center !important; }
       .dnb-list__item__accordion__header .dnb-list__item__title { align-self: center !important; justify-self: stretch !important; }
       .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__chevron,
@@ -653,11 +662,31 @@ export default function PaymentsOverview() {
         .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__end { place-self: end !important; }
         .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__end { align-self: center !important; }
       }
+      /* Hover-ringen på en åpen accordion skal dekke bare headeren, ikke hele
+         kortet. Da må nedre hjørner være rette: underkanten er en skillelinje midt
+         på kortet, og border-radius: inherit ga 24px hele veien rundt — ringen
+         buet innover og ble en pilleform. Topphjørnene arver kortets radius. */
       .dnb-list__item__accordion--open:has(.dnb-list__item__accordion__header:hover)::after,
       .dnb-list__item__accordion--open:has(.dnb-list__item__accordion__header:focus-visible)::after {
         bottom: auto;
-        height: var(--item-height);
-        border-radius: inherit;
+        height: var(--list-item-height);
+        border-top-left-radius: inherit;
+        border-top-right-radius: inherit;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+      /* Siste rad i en accordion ligger helt mot kortets underkant når det ikke
+         finnes noen sum-rad etter accordionen. Radene har radius 0, så hover-ringens
+         rette hjørne blir klippet bort av kortets 24px-kurve og hjørnet står
+         ustreket. Ringen får derfor kortets radius i bunnen — men bare i det
+         tilfellet: :last-child på accordionen er nettopp «ingen sum-rad følger»,
+         så Til forfall med saldo påslått beholder rette hjørner der raden ikke
+         møter kortkanten. */
+      .dnb-list__container > .dnb-list__item__accordion:last-child
+        .dnb-list__item__accordion__content
+        .dnb-list__container > .dnb-list__item:last-child::after {
+        border-bottom-left-radius: var(--token-radius-xl);
+        border-bottom-right-radius: var(--token-radius-xl);
       }
       .dnb-list__item__accordion:has(.dnb-list__item__action:hover) {
         z-index: 3;
@@ -789,9 +818,6 @@ export default function PaymentsOverview() {
                 stretch
                 showSubmitButton
                 submitButtonTitle=""
-                submitButtonIcon={<Icon icon={accountOpen ? chevron_up : chevron_down} />}
-                onOpen={() => setAccountOpen(true)}
-                onClose={() => setAccountOpen(false)}
                 onChange={(event) => {
                   const data = typeof event.data === 'object' ? event.data : null;
                   const name = Array.isArray(data?.content) ? String(data.content[0]) : null;
@@ -966,10 +992,7 @@ export default function PaymentsOverview() {
                             stretch
                             showSubmitButton
                             submitButtonTitle=""
-                            submitButtonIcon={<Icon icon={efakturaOwnerOpen ? chevron_up : chevron_down} />}
                             showClearButton
-                            onOpen={() => setEfakturaOwnerOpen(true)}
-                            onClose={() => setEfakturaOwnerOpen(false)}
                             onChange={({ data }) => {
                               const key = data && typeof data === "object" && "selectedKey" in data
                                 ? String(data.selectedKey)
@@ -988,10 +1011,7 @@ export default function PaymentsOverview() {
                             stretch
                             showSubmitButton
                             submitButtonTitle=""
-                            submitButtonIcon={<Icon icon={efakturaAccountOpen ? chevron_up : chevron_down} />}
                             showClearButton
-                            onOpen={() => setEfakturaAccountOpen(true)}
-                            onClose={() => setEfakturaAccountOpen(false)}
                             onChange={({ data }) => {
                               const key = data && typeof data === "object" && "selectedKey" in data
                                 ? (String(data.selectedKey) as AccountKey)
@@ -1019,7 +1039,7 @@ export default function PaymentsOverview() {
                             onChange={({ value }) => setEfakturaGroupBy(value)}
                           >
                             <Radio label="Fakturaeier" value="fakturaeier" />
-                            <Radio label="Konto (foreslått)" value="konto" />
+                            <Radio label="Kontoforslag" value="konto" />
                           </Radio.Group>
                           <Button
                             variant="tertiary"
@@ -1059,11 +1079,11 @@ export default function PaymentsOverview() {
                                 <List.Container>
                                   <List.Item.Basic
                                     skeleton
-                                    style={{ background: "var(--token-color-background-neutral-alternative)", "--item-rounded-corner": "0" } as React.CSSProperties}
+                                    style={{ background: "var(--token-color-background-neutral-alternative)", "--list-item-rounded-corner": "0" } as React.CSSProperties}
                                   >
                                     <List.Cell.Title style={{ fontWeight: 500 }}>Henter fakturaeier</List.Cell.Title>
                                   </List.Item.Basic>
-                                  <List.Item.Basic skeleton style={{ "--item-rounded-corner": "0" } as React.CSSProperties}>
+                                  <List.Item.Basic skeleton style={{ "--list-item-rounded-corner": "0" } as React.CSSProperties}>
                                     <List.Cell.Title>
                                       <List.Cell.Title.Overline>0. måned 0000</List.Cell.Title.Overline>
                                       Henter faktura
@@ -1076,16 +1096,13 @@ export default function PaymentsOverview() {
                           </Skeleton>
                         )}
 
-                        {/* «Hent flere» er en handling, ikke navigasjon, så det er en
-                            tertiær Button — den har lenkestilen i Eufemia, men
-                            riktig semantikk (button, ikke anchor uten mål).
-                            De 32px kommer fra gap på .po-efaktura-containeren:
+                        {/* De 32px kommer fra gap på .po-efaktura-containeren:
                             fragmentet lager ingen flex-item, så denne diven er
                             søsken til gruppene og får containerens gap. */}
                         {remainingOwnerNames.length > 0 && (
                           <div style={{ display: "flex", justifyContent: "center" }}>
                             <Button
-                              variant="tertiary"
+                              variant="secondary"
                               text="Hent flere"
                               icon={refresh}
                               iconPosition="left"
