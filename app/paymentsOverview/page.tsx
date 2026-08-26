@@ -751,8 +751,11 @@ export default function PaymentsOverview() {
           data={[
             { title: "Til forfall", key: "forfall" },
             {
+              // «+» så lenge det finnes flere eiere å hente — telleren viser da
+              // «minst så mange», ikke et endelig antall. Når poolen er tømt
+              // stemmer tallet eksakt, og plusstegnet faller bort.
               title: unconfirmedEfakturaCount > 0
-                ? `Ubekreftede eFakturaer (${unconfirmedEfakturaCount})`
+                ? `Ubekreftede eFakturaer (${unconfirmedEfakturaCount}${remainingOwnerNames.length > 0 ? "+" : ""})`
                 : "Ubekreftede eFakturaer",
               key: "efakturaer",
             },
