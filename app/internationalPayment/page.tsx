@@ -1231,12 +1231,17 @@ export default function InternationalPayment() {
     <div className="ip-recipient-cards" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
       <style>{recipientCardStyles}</style>
       {/* Meldingen gjelder hele visningen, ikke bare IBAN-raden den tidligere sto
-          i, så den ligger øverst rett under dialogtittelen. */}
-      <FormStatus
-        state="information"
-        stretch
-        text="Info om mottakers bank kan foreløpig ikke redigeres"
-      />
+          i, så den ligger øverst rett under dialogtittelen. Skjules for mottakeren
+          med adressefeil — der er «Mottakers bank» lukket av samme grunn, og en
+          melding om at bankinfo ikke kan redigeres trekker oppmerksomheten bort
+          fra adressefeltet som faktisk må rettes. */}
+      {!isErrorRecipient && (
+        <FormStatus
+          state="information"
+          stretch
+          text="Info om mottakers bank kan foreløpig ikke redigeres"
+        />
+      )}
       <List.Container>
         {/* Lukket for mottakeren med adressefeil, slik at oppmerksomheten
             går til adressefeltene som må rettes. */}
