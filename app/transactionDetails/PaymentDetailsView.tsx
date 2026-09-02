@@ -929,7 +929,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
       </div>
 
       {/* ── Konfigurasjons-knapp ───────────────────────────────────── */}
-      <div style={{ position: "fixed", bottom: "32px", right: "32px", zIndex: 100 }}>
+      <div style={{ position: "fixed", top: "32px", right: "32px", zIndex: 100 }}>
         <Button
           variant="secondary"
           icon={filter}
@@ -942,7 +942,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
       {/* ── Konfigurasjons-popover ─────────────────────────────────── */}
       {toolsOpen && (
         <div style={{
-          position: "fixed", bottom: "92px", right: "32px",
+          position: "fixed", top: "92px", right: "32px",
           maxHeight: "calc(100vh - 124px)",
           overflowY: "auto",
           background: "var(--token-color-background-neutral)",

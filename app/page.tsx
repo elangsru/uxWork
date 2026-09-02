@@ -16,14 +16,14 @@ const projects = [
     jiraUrl: "https://dnb-asa.atlassian.net/browse/RCP-5048",
   },
   {
-    label: "Payment confirmation (concept)",
-    href: "/paymentConfirmation",
-    jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-49516",
-  },
-  {
     label: "Transaction details",
     href: "/transactionDetails",
     jiraUrl: "https://dnb-asa.atlassian.net/browse/RCP-5150",
+  },
+  {
+    label: "Payment confirmation (concept)",
+    href: "/paymentConfirmation",
+    jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-49516",
   },
   {
     label: "growthHacking",
