@@ -561,17 +561,12 @@ const recipientCardStyles = `
 `;
 
 export default function InternationalPayment() {
-  const [fromOpen, setFromOpen] = useState(false);
-  const [toOpen, setToOpen] = useState(false);
-  const [currencyOpen, setCurrencyOpen] = useState(false);
-  const [bankCountryOpen, setBankCountryOpen] = useState(false);
   const [selectedBankCountry, setSelectedBankCountry] = useState<BankCountry | null>(null);
   const [accountNumber, setAccountNumber] = useState("");
   const [swiftBic, setSwiftBic] = useState("");
   const [bankName, setBankName] = useState("");
   const [bankAddress, setBankAddress] = useState("");
   const [recipientName, setRecipientName] = useState("");
-  const [recipientCountryOpen, setRecipientCountryOpen] = useState(false);
   const [recipientCountry, setRecipientCountry] = useState<BankCountry | null>(null);
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
@@ -894,11 +889,8 @@ export default function InternationalPayment() {
         stretch
         showSubmitButton
         submitButtonTitle=""
-        submitButtonIcon={<Icon icon={bankCountryOpen ? chevron_up : chevron_down} />}
         icon={selectedBankCountry ? <CountryFlag iso={selectedBankCountry.iso} size="small" /> : undefined}
         value={selectedBankCountry?.code ?? undefined}
-        onOpen={() => setBankCountryOpen(true)}
-        onClose={() => setBankCountryOpen(false)}
         onChange={({ selectedItem }) => {
           if (typeof selectedItem === "number" && bankCountries[selectedItem]) {
             const code = String(bankCountries[selectedItem].selectedKey);
@@ -1009,11 +1001,8 @@ export default function InternationalPayment() {
         stretch
         showSubmitButton
         submitButtonTitle=""
-        submitButtonIcon={<Icon icon={recipientCountryOpen ? chevron_up : chevron_down} />}
         icon={recipientCountry ? <CountryFlag iso={recipientCountry.iso} size="small" /> : undefined}
         value={recipientCountry?.code ?? undefined}
-        onOpen={() => setRecipientCountryOpen(true)}
-        onClose={() => setRecipientCountryOpen(false)}
         onChange={({ selectedItem }) => {
           if (typeof selectedItem === "number" && recipientCountries[selectedItem]) {
             const code = String(recipientCountries[selectedItem].selectedKey);
@@ -1241,6 +1230,13 @@ export default function InternationalPayment() {
   const editRecipientContent = selectedRecipient && (
     <div className="ip-recipient-cards" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
       <style>{recipientCardStyles}</style>
+      {/* Meldingen gjelder hele visningen, ikke bare IBAN-raden den tidligere sto
+          i, så den ligger øverst rett under dialogtittelen. */}
+      <FormStatus
+        state="information"
+        stretch
+        text="Info om mottakers bank kan foreløpig ikke redigeres"
+      />
       <List.Container>
         {/* Lukket for mottakeren med adressefeil, slik at oppmerksomheten
             går til adressefeltene som må rettes. */}
@@ -1253,11 +1249,6 @@ export default function InternationalPayment() {
             <List.Cell.Start innerSpace>
               <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
                 {readOnlyField("Kontonummer (IBAN)", [selectedRecipient.iban])}
-                <FormStatus
-                  state="information"
-                  stretch
-                  text="Info om mottakers bank kan foreløpig ikke redigeres"
-                />
                 {rowDivider}
                 {readOnlyField("SWIFT/BIC-kode", [selectedRecipient.swift])}
                 {rowDivider}
@@ -1431,10 +1422,7 @@ export default function InternationalPayment() {
                 stretch
                 showSubmitButton
                 submitButtonTitle=""
-                submitButtonIcon={<Icon icon={fromOpen ? chevron_up : chevron_down} />}
                 value={selectedFromKey ?? undefined}
-                onOpen={() => setFromOpen(true)}
-                onClose={() => setFromOpen(false)}
                 onChange={({ selectedItem }) => {
                   if (typeof selectedItem === "number") {
                     setSelectedFromKey(String(selectedItem));
@@ -1453,11 +1441,8 @@ export default function InternationalPayment() {
                     stretch
                     showSubmitButton
                     submitButtonTitle=""
-                    submitButtonIcon={<Icon icon={toOpen ? chevron_up : chevron_down} />}
                     status={recipientError}
                     value={selectedRecipient?.iban ?? undefined}
-                    onOpen={() => setToOpen(true)}
-                    onClose={() => setToOpen(false)}
                     onChange={({ selectedItem }) => {
                       if (typeof selectedItem === "number" && recipients[selectedItem]) {
                         setSelectedRecipient(recipients[selectedItem]);
@@ -1514,11 +1499,8 @@ export default function InternationalPayment() {
                 disabled={!selectedRecipient}
                 showSubmitButton
                 submitButtonTitle=""
-                submitButtonIcon={<Icon icon={currencyOpen ? chevron_up : chevron_down} />}
                 icon={selectedCurrency ? <CountryFlag iso={selectedCurrency.iso} size="small" /> : undefined}
                 value={selectedCurrency?.code ?? undefined}
-                onOpen={() => setCurrencyOpen(true)}
-                onClose={() => setCurrencyOpen(false)}
                 onChange={({ selectedItem }) => {
                   if (typeof selectedItem === "number" && filteredCurrencies[selectedItem]) {
                     const code = String(filteredCurrencies[selectedItem].selectedKey);
