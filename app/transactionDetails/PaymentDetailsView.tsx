@@ -6,7 +6,7 @@ import {
   Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip, Breadcrumb, Dialog, Autocomplete,
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { H1, H2, H3, P, Span } from "@dnb/eufemia/elements";
+import { H1, H2, H3, P, Span, Hr } from "@dnb/eufemia/elements";
 import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, pay_from_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
@@ -389,6 +389,21 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
            sidevirkning. Dobbel klasse gir 0,4,0 og vinner. Scopet til .td-chevron-row
            så vi ikke tvinger chevron på rader som ikke skal ha den. */
         .td-chevron-row.td-chevron-row .dnb-list__item__chevron.dnb-list__item__chevron { display: flex; }
+        /* FormStatus krymper men vokser aldri tilbake ved resize. Årsaken ligger
+           i updateWidth(): den er laget for skjemafelt og slår opp feltet
+           statusen tilhører via en selector avledet av id-en, måler bredden og
+           fryser den som inline max-width. Vår FormStatus er frittstående uten
+           felt, så oppslaget gir feil tall og verdien blir stående — 30rem
+           (480px) selv når containeren er 960px.
+
+           min-width tilfredsstiller vaktsetningen
+             hasCustomWidth = element.style.maxWidth ? false
+               : style.minWidth !== '' && style.minWidth !== 'auto' || ...
+             if (!hasCustomWidth) element.style.maxWidth = remWidth
+           så Eufemia slutter å skrive max-width i det hele tatt. max-width:none
+           med !important nøytraliserer en verdi som eventuelt rakk å bli satt
+           før stilarket lastet — inline stil slår klassespesifisitet. */
+        .td-status-fullwidth { min-width: 0; max-width: none !important; }
       `}</style>
 
       {/* ── Page header (netbank-shell) ─────────────────────────────
@@ -465,6 +480,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <H1 size="x-large" style={{ margin: 0 }}>{selectedType || "Transaksjonsdetaljer"}</H1>
             {selected && <P style={{ margin: 0 }}>{dateTimeDisplay}</P>}
+            {/* Skiller sidehodet fra innholdet. top="small" (16px) legger seg
+                til wrapperens 8px gap = 24px luft over streken. */}
+            <Hr top="small" bottom={0} />
           </div>
 
           {/* ── Innhold ────────────────────────────────────────── */}
@@ -488,10 +506,20 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                   )}
 
                   {showReserved && reservedMessage && (
+                    /* bottom="small" gir luft ned til det som følger. Flex-gap
+                       kollapser ikke med margin, så 16px legges til wrapperens
+                       8px = 24px under meldingen.
+
+                       stretch må stå: den er det som gjør at bakgrunnen fyller
+                       bredden i stedet for å hugge teksten. Bieffekten er en
+                       inline max-width som ikke vokser tilbake ved resize —
+                       den nøytraliseres av .td-status-fullwidth. */
                     <FormStatus
+                      className="td-status-fullwidth"
                       text={showFieldNames ? fd(/^res(erv|v)ert melding$/i) : reservedMessage}
                       state="information"
                       stretch
+                      bottom="small"
                     />
                   )}
 
