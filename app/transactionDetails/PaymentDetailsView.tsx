@@ -542,7 +542,11 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                               ? td("SAS Eurobonus")
                               : "Få Eurobonuspoeng når du bruker ditt Mastercard"}
                           </List.Cell.Title>
-                          <List.Cell.End>
+                          {/* fontWeight="regular" på lenkevarianten: Cell.End er
+                              medium som default, som er riktig for et beløp, men
+                              gjør lenken tyngre enn «Vis i kart» og de andre
+                              lenkene i lista. Poengsummen beholder medium. */}
+                          <List.Cell.End fontWeight={showSasBonus && sasPoints ? "medium" : "regular"}>
                             {showSasBonus && sasPoints
                               ? `${fd(/^(sas eurobonuspoeng|eurobonus poeng|sas bonus)$/i)} poeng`
                               : <Anchor href="https://www.dnb.no/kort/kredittkort/mastercard/upgrade" target="_blank" rel="noopener noreferrer">Les mer</Anchor>}
