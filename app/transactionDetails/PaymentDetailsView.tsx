@@ -6,8 +6,8 @@ import {
   Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip, Breadcrumb, Dialog, Autocomplete,
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { H2, H3, P, Hr } from "@dnb/eufemia/elements";
-import { filter, close, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, stopwatch_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
+import { H1, H2, H3, P, Hr } from "@dnb/eufemia/elements";
+import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, stopwatch_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
@@ -126,6 +126,10 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const [extraTags, setExtraTags] = useState<string[]>([]);
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [tagInput, setTagInput] = useState("");
+  /* Radene under Pengebruk er ekte knapper (role=button, tabIndex=0) og må
+     gjøre noe når de aktiveres — ellers lover de en handling de ikke har.
+     Holder handlingsnavnet, ikke en boolean, så dialogen kan gjenbrukes. */
+  const [notImplemented, setNotImplemented] = useState<string | null>(null);
 
   useEffect(() => {
     setDarkMode(sessionStorage.getItem("darkMode") === "true");
@@ -404,6 +408,16 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           width: "100%",
         }}>
 
+          {/* ── Sidetittel ─────────────────────────────────────────
+              Ligger utenfor {selected}-sjekken så siden alltid har en H1,
+              også i tom-tilstanden. Gir dokumentet en overskrift som sier
+              hva siden er — breadcrumben er en nav, ikke en tittel.
+
+              size="large" (26px) i stedet for H1s default xx-large (48px):
+              matcher Form.MainHeading, som er Eufemias egen sidetittel, og
+              lar beløpet under (x-large, 34px) være tyngdepunktet. */}
+          <H1 size="x-large" style={{ margin: 0 }}>Transaksjonsdetaljer</H1>
+
           {/* ── Innhold ────────────────────────────────────────── */}
           {payments.length === 0 ? (
             <P>Ingen betalinger funnet i regnearket.</P>
@@ -560,20 +574,31 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             {kid && (
                               <List.Item.Basic icon={kid_number_medium} title={td("KID")}>
                                 <List.Cell.End fontWeight="regular">
-                                  <Anchor
-                                    href="#"
-                                    icon={copy}
-                                    tooltip="Kopier KID-nummer"
+                                  {/* Button, ikke Anchor: kopiering er en handling, ikke
+                                      navigasjon. Anchor href="#" havnet i skjermleserens
+                                      lenkeliste og ga tom navigasjon på midtklikk. */}
+                                  <Button
+                                    variant="tertiary"
+                                    icon={kidCopied ? check : copy}
                                     iconPosition="right"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      navigator.clipboard.writeText(kid);
-                                      setKidCopied(true);
-                                      setTimeout(() => setKidCopied(false), 2000);
+                                    tooltip={kidCopied ? "KID-nummeret er kopiert" : "Kopier KID-nummer"}
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(kid).then(
+                                        () => {
+                                          setKidCopied(true);
+                                          setTimeout(() => setKidCopied(false), 2000);
+                                        },
+                                        () => setKidCopied(false),
+                                      );
                                     }}
                                   >
                                     {showFieldNames ? fd(/^kid$/i) : kid}
-                                  </Anchor>
+                                  </Button>
+                                  {/* Ikonbyttet er visuelt; skjermlesere trenger en
+                                      live region for å få med seg bekreftelsen. */}
+                                  <span className="dnb-sr-only" aria-live="polite">
+                                    {kidCopied ? "KID-nummer kopiert" : ""}
+                                  </span>
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
@@ -638,27 +663,43 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
-                            {/* Chevron i stedet for lenke til høyre: List.Item.Action
-                                gjør hele raden klikkbar og gir chevronen, så
-                                Anchor-en i List.Cell.End er overflødig. Trygt her
-                                fordi ingen av disse titlene har ordforklaring i
+                            {/* Avtalegiro: chevron i stedet for lenke til høyre.
+                                List.Item.Action gjør hele raden klikkbar og gir
+                                chevronen, så en Anchor i List.Cell.End er overflødig.
+                                Trygt her fordi «Avtalegiro» ikke har ordforklaring i
                                 regnearket — en TermDefinition er en knapp, og den
-                                ville blitt nøstet inne i radens lenke. */}
+                                ville blitt nøstet inne i radens lenke.
+
+                                target/rel må settes eksplisitt: med href rendrer
+                                Action en <Anchor noStyle>, som verken arver
+                                target="_blank" eller legger på launch-ikonet. */}
                             {isAvtalegiro && (
                               <List.Item.Action
                                 className="td-chevron-row"
                                 icon={ainvoice_medium}
                                 title={td("Avtalegiro")}
                                 href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/DirectDebit/70011960764123/details"
+                                target="_blank"
+                                rel="noopener noreferrer"
                               />
                             )}
+                            {/* eFakturahistorikk: lenke til høyre, ikke klikkbar rad.
+                                Anchor med target="_blank" gir launch-ikonet
+                                automatisk — det er nettopp dette ikonet som utløser
+                                Eufemias :has()-regel og skjuler chevronen på
+                                Avtalegiro-raden over, derfor .td-chevron-row der. */}
                             {isEfaktura && (
-                              <List.Item.Action
-                                className="td-chevron-row"
-                                icon={einvoice_medium}
-                                title={td("eFakturahistorikk")}
-                                href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/einvoice/mine/issuers/917245975"
-                              />
+                              <List.Item.Basic icon={einvoice_medium} title={td("eFakturahistorikk")}>
+                                <List.Cell.End fontWeight="regular">
+                                  <Anchor
+                                    href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/einvoice/mine/issuers/917245975"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    Vis historikk
+                                  </Anchor>
+                                </List.Cell.End>
+                              </List.Item.Basic>
                             )}
                             <List.Item.Basic icon={history_medium} title={td("Historikk", "Betalingshistorikk")}>
                               <List.Cell.End fontWeight="regular">
@@ -827,8 +868,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                         <List.Item.Accordion.Content>
                           <div className="dnb-card" style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)" }}>
                             <List.Container>
-                              <List.Item.Action title="Bytt kategori" />
-                              <List.Item.Action title="Splitt transaksjonen" />
+                              <List.Item.Action title="Bytt kategori" onClick={() => setNotImplemented("Bytt kategori")} />
+                              <List.Item.Action title="Splitt transaksjonen" onClick={() => setNotImplemented("Splitt transaksjonen")} />
                               <List.Item.Basic title={td("Skjul i pengebruk")}>
                                 <List.Cell.End>
                                   <Switch
@@ -1054,6 +1095,20 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
         <Button variant="primary" size="large" onClick={saveTag} top="medium">
           Lagre
         </Button>
+      </Dialog>
+
+      {/* ── «Ikke implementert»-dialog ──────────────────────────────
+          Gir Pengebruk-radene en reell handling, så knappene ikke er
+          blindveier for tastatur- og skjermleserbrukere. */}
+      <Dialog
+        omitTriggerButton
+        open={notImplemented !== null}
+        noAnimation
+        onClose={() => setNotImplemented(null)}
+        title={notImplemented ?? ""}
+        variant="information"
+      >
+        <P>Denne handlingen er ikke implementert i prototypen.</P>
       </Dialog>
     </Theme>
   );
