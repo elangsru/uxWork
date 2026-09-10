@@ -6,7 +6,7 @@ import {
   Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip, Breadcrumb, Dialog, Autocomplete,
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { H2, P, Hr } from "@dnb/eufemia/elements";
+import { H2, H3, P, Hr } from "@dnb/eufemia/elements";
 import { filter, close, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, stopwatch_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
@@ -337,6 +337,14 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
         .dnb-list__item.dnb-list__item .dnb-list__item__icon.dnb-list__item__icon { place-self: center; }
         .dnb-list__item.dnb-list__item .dnb-list__item__title.dnb-list__item__title { align-self: center; }
         .dnb-list__item.dnb-list__item .dnb-list__item__end.dnb-list__item__end { align-self: center; }
+        /* Eufemia skjuler chevronen med
+           .dnb-list__item:has(.dnb-anchor__launch-icon) .dnb-list__item__chevron { display: none }
+           (0,3,0). :has() treffer her accordionen, ikke raden — accordionen er også
+           en .dnb-list__item og inneholder søskenrader med eksterne lenker som har
+           launch-ikon. Chevronen på våre Action-rader blir derfor skjult som
+           sidevirkning. Dobbel klasse gir 0,4,0 og vinner. Scopet til .td-chevron-row
+           så vi ikke tvinger chevron på rader som ikke skal ha den. */
+        .td-chevron-row.td-chevron-row .dnb-list__item__chevron.dnb-list__item__chevron { display: flex; }
       `}</style>
 
       {/* ── Page header (netbank-shell) ─────────────────────────────
@@ -405,7 +413,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
               {/* ── Beløpsmodul ────────────────────────────────── */}
               {(nokAmount || hasLoanBreakdown) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <P style={{ margin: 0, fontWeight: 600 }}>{showFieldNames ? `${fd(showReserved && reservertDate ? /^(reservert dato|reservasjonsdato)$/i : /^transaksjonsdato$/i)}${klokkeslett ? ` - ${fd(/^klokkeslett$/i)}` : ""}` : sectionDateTime}</P>
+                  <H3 style={{ margin: 0 }}>{showFieldNames ? `${fd(showReserved && reservertDate ? /^(reservert dato|reservasjonsdato)$/i : /^transaksjonsdato$/i)}${klokkeslett ? ` - ${fd(/^klokkeslett$/i)}` : ""}` : sectionDateTime}</H3>
                   <div style={{
                     border: "1px solid var(--token-color-stroke-neutral-subtle)",
                     borderRadius: "24px",
@@ -503,7 +511,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
               {/* ── Beneficiary-kort ───────────────────────────── */}
               {hasBeneficiary && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <P style={{ margin: 0, fontWeight: 600 }}>{tilLabel}</P>
+                  <H3 style={{ margin: 0 }}>{tilLabel}</H3>
                   <List.Container>
                     <List.Item.Accordion>
                       <List.Item.Accordion.Header>
@@ -630,23 +638,27 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
+                            {/* Chevron i stedet for lenke til høyre: List.Item.Action
+                                gjør hele raden klikkbar og gir chevronen, så
+                                Anchor-en i List.Cell.End er overflødig. Trygt her
+                                fordi ingen av disse titlene har ordforklaring i
+                                regnearket — en TermDefinition er en knapp, og den
+                                ville blitt nøstet inne i radens lenke. */}
                             {isAvtalegiro && (
-                              <List.Item.Basic icon={ainvoice_medium} title={td("Avtalegiro")}>
-                                <List.Cell.End fontWeight="regular">
-                                  <Anchor href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/DirectDebit/70011960764123/details" target="_blank">
-                                    Vis avtale
-                                  </Anchor>
-                                </List.Cell.End>
-                              </List.Item.Basic>
+                              <List.Item.Action
+                                className="td-chevron-row"
+                                icon={ainvoice_medium}
+                                title={td("Avtalegiro")}
+                                href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/DirectDebit/70011960764123/details"
+                              />
                             )}
                             {isEfaktura && (
-                              <List.Item.Basic icon={einvoice_medium} title={td("eFakturahistorikk")}>
-                                <List.Cell.End fontWeight="regular">
-                                  <Anchor href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/einvoice/mine/issuers/917245975" target="_blank">
-                                    Vis eFakturaer
-                                  </Anchor>
-                                </List.Cell.End>
-                              </List.Item.Basic>
+                              <List.Item.Action
+                                className="td-chevron-row"
+                                icon={einvoice_medium}
+                                title={td("eFakturahistorikk")}
+                                href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/einvoice/mine/issuers/917245975"
+                              />
                             )}
                             <List.Item.Basic icon={history_medium} title={td("Historikk", "Betalingshistorikk")}>
                               <List.Cell.End fontWeight="regular">
@@ -675,7 +687,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
               {/* ── Betalt fra ─────────────────────────────────── */}
               {(hasFromAccount || hasCard || hasDigitalWallet) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <P style={{ margin: 0, fontWeight: 600 }}>{fraLabel}</P>
+                  <H3 style={{ margin: 0 }}>{fraLabel}</H3>
                   <List.Container>
                     {hasFromAccount && (
                       isOverforing ? (
@@ -792,7 +804,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
               {/* ── Pengebruk ──────────────────────────────────── */}
               {hasPengebruk && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <P style={{ margin: 0, fontWeight: 600 }}>Pengebruk</P>
+                  <H3 style={{ margin: 0 }}>Pengebruk</H3>
                   <List.Container>
                     {showReserved ? (
                       <List.Item.Basic icon={coins_1_medium} title={td("Pengebruk reservert", "Foreløpig kategori")}>
