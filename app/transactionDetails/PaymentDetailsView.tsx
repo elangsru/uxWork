@@ -2,12 +2,12 @@
 
 import { useState, useEffect, type ReactNode } from "react";
 import {
-  Button, Icon, Switch, Dropdown, List, TermDefinition, Tag,
+  Button, Icon, Switch, Dropdown, List, TermDefinition, Tag, Flex,
   Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip, Breadcrumb, Dialog, Autocomplete,
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { H1, H2, H3, P, Hr } from "@dnb/eufemia/elements";
-import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, stopwatch_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
+import { H1, H2, H3, P, Span } from "@dnb/eufemia/elements";
+import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, pay_from_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
@@ -68,6 +68,24 @@ function formatDateNo(raw: string): string {
   const month = parseInt(m[2], 10) - 1;
   const year = m[3];
   return `${day}. ${months[month]} ${year}`;
+}
+
+/** Høyrestilt innhold for List.Cell.End, slik den nye listeraden i Figma viser
+ *  beløp: hovedverdien i basis/medium (arves fra Cell.End) og en underlinje i
+ *  small/regular under. Cell.End har ingen innebygd subline i 11.11.0 — den har
+ *  bare fontSize/fontWeight — så stablingen gjøres her med Flex.Vertical.
+ *
+ *  Returnerer bare innmaten, ikke Cell.End selv: Flex.Container pakker ukjente
+ *  barn i sine egne Flex.Item, så en wrapper-komponent rundt Cell.End ville
+ *  kunne gi et ekstra ledd i radens flex-layout. */
+function endStack(value: ReactNode, subline?: ReactNode): ReactNode {
+  if (!subline) return value;
+  return (
+    <Flex.Vertical align="flex-end" gap={false}>
+      <span>{value}</span>
+      <Span size="small" weight="regular">{subline}</Span>
+    </Flex.Vertical>
+  );
 }
 
 function accountIcon(type: string) {
@@ -186,7 +204,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const avdrag           = fieldValue(selected, /^lån avdrag$/i);
   const renter           = fieldValue(selected, /^lån renter$/i);
   const hasLoanBreakdown = Boolean(avdrag || renter);
-  const betalingsproduktIcon = /straksbetaling/i.test(betalingsprodukt) ? stopwatch_medium : globe_medium;
+  /* Figma bruker actions/pay_from for straksbetaling og essentials/globe ellers. */
+  const betalingsproduktIcon = /straksbetaling/i.test(betalingsprodukt) ? pay_from_medium : globe_medium;
   const reservedMessage  = fieldValue(selected, /^res(erv|v)ert melding$/i);
   const transaksjonsDato = fieldValue(selected, /^transaksjonsdato$/i);
   const reservertDate    = fieldValue(selected, /^(reservert dato|reservasjonsdato)$/i);
@@ -237,6 +256,12 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const hasCard       = Boolean(cardName || cardPan || cardNetwork);
   const cardSubline   = [cardPan, fraMiljo && `(${fraMiljo})`].filter(Boolean).join(" ");
   const isMastercard  = /mastercard/i.test(cardNetwork) || /mastercard/i.test(fromAccountType);
+  /* Styrer om List.Container under beløpet skal rendres i det hele tatt —
+     en tom Container ville gitt en ramme uten innhold. Må stå etter
+     isMastercard, som SAS-raden avhenger av. */
+  const hasAmountRows = Boolean(
+    currencyAmount || exchangeRate || isMastercard || betalingsprodukt || prisGebyr || hasLoanBreakdown
+  );
 
   const digitalWallet     = fieldValue(selected, /^digital wallet$/i);
   const digitalWalletLogo = fieldValue(selected, /^digital wallet logo$/i);
@@ -424,101 +449,120 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           ) : selected && (
             <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
 
-              {/* ── Beløpsmodul ────────────────────────────────── */}
+              {/* ── Beløpsmodul ──────────────────────────────────
+                  Bygget som Betalt fra: H3 over, deretter en List.Container.
+                  Beløpet står fritt mellom dem — List.Cell.Title tilbyr bare
+                  basis/small som fontSize, så en H2 på 34px hører ikke hjemme
+                  i en rad. Ikoner går gjennom List sine egne slots: ekte
+                  Eufemia-ikoner via icon-propen (ItemIcon wrapper dem i
+                  <Icon size="medium">), flagg og logoer via List.Cell.Start.
+                  Fargen på ikonene kommer fra .dnb-list__item__icon-regelen
+                  øverst, så ingen inline color her. */}
               {(nokAmount || hasLoanBreakdown) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                   <H3 style={{ margin: 0 }}>{showFieldNames ? `${fd(showReserved && reservertDate ? /^(reservert dato|reservasjonsdato)$/i : /^transaksjonsdato$/i)}${klokkeslett ? ` - ${fd(/^klokkeslett$/i)}` : ""}` : sectionDateTime}</H3>
-                  <div style={{
-                    border: "1px solid var(--token-color-stroke-neutral-subtle)",
-                    borderRadius: "24px",
-                    backgroundColor: "var(--token-color-background-neutral)",
-                    backgroundImage: showReserved
-                      ? "repeating-linear-gradient(-45deg, var(--token-color-stroke-neutral-subtle) 1px 2px, transparent 0 6px)"
-                      : undefined,
-                    overflow: "hidden",
-                  }}>
-                    {/* NOK-beløp */}
-                    {nokAmount && (
-                    <div style={{ padding: "16px" }}>
-                      <H2 size="x-large" style={{ margin: 0, ...(showReserved && { color: "var(--token-color-text-neutral-alternative)" }) }}>NOK {fd(/^(beløp|beløp nok|nok beløp)$/i)}</H2>
-                    </div>
-                    )}
 
-                    {/* Reservert-melding (FormStatus) */}
-                    {showReserved && reservedMessage && (
-                      <div style={{ padding: "0 16px 12px" }}>
-                        <FormStatus
-                          text={showFieldNames ? fd(/^res(erv|v)ert melding$/i) : reservedMessage}
-                          state="information"
-                          stretch
-                        />
-                      </div>
-                    )}
+                  {nokAmount && (
+                    <H2 size="x-large" style={{ margin: 0, ...(showReserved && { color: "var(--token-color-text-neutral-alternative)" }) }}>NOK {fd(/^(beløp|beløp nok|nok beløp)$/i)}</H2>
+                  )}
 
-                    {/* Valuta + vekslingskurs — én rad */}
-                    {(currencyAmount || exchangeRate) && (
-                      <>
-                        <div style={{ padding: "0 16px" }}><Hr space={0} /></div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px 16px" }}>
-                          {currencyFlagIso && <CountryFlag iso={currencyFlagIso} size="medium" />}
-                          <P style={{ margin: 0 }}>
-                            {currencyCode && `${fd(/^valutasort$/i)} `}{fd(/^(beløp valuta|valuta beløp|valutabeløp)$/i)}{exchangeRate && ` (vekslingskurs ${fd(/^vekslingskurs$/i)})`}
-                          </P>
-                        </div>
-                      </>
-                    )}
+                  {showReserved && reservedMessage && (
+                    <FormStatus
+                      text={showFieldNames ? fd(/^res(erv|v)ert melding$/i) : reservedMessage}
+                      state="information"
+                      stretch
+                    />
+                  )}
 
-                    {/* SAS Eurobonus */}
-                    {isMastercard && (
-                      <>
-                        <div style={{ padding: "0 16px" }}><Hr space={0} /></div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px 16px" }}>
-                          <img src="/merchants/SAS.svg" alt="SAS" width={24} height={24} style={{ flexShrink: 0 }} />
-                          <P style={{ margin: 0 }}>
+                  {hasAmountRows && (
+                    <List.Container>
+                      {/* Valutakjøp. Flagget må ligge i Cell.Start, ikke
+                          icon-propen: ItemBasic rendrer icon → title →
+                          children, så en Cell.Start som child havner etter
+                          tittelen. Derfor children-formen på radene med
+                          flagg og avatar. */}
+                      {(currencyAmount || exchangeRate) && (
+                        <List.Item.Basic>
+                          {currencyFlagIso && (
+                            <List.Cell.Start>
+                              <CountryFlag iso={currencyFlagIso} size="large" />
+                            </List.Cell.Start>
+                          )}
+                          <List.Cell.Title>{td("Valutakjøp")}</List.Cell.Title>
+                          <List.Cell.End>
+                            {endStack(
+                              `${currencyCode ? `${fd(/^valutasort$/i)} ` : ""}${fd(/^(beløp valuta|valuta beløp|valutabeløp)$/i)}`,
+                              exchangeRate ? `Vekslingskurs ${fd(/^vekslingskurs$/i)}` : undefined,
+                            )}
+                          </List.Cell.End>
+                        </List.Item.Basic>
+                      )}
+
+                      {/* Transaksjonskostnad. Betalingsproduktet er underlinje
+                          under prisen, ikke egen rad — slik Figma viser det.
+                          Mangler prisen, står produktet som hovedverdi i stedet
+                          for å etterlate en tom høyreside. */}
+                      {(betalingsprodukt || prisGebyr) && (
+                        <List.Item.Basic
+                          icon={betalingsproduktIcon}
+                          title={td("Transaksjonskostnad")}
+                        >
+                          <List.Cell.End>
+                            {endStack(
+                              prisGebyr
+                                ? `NOK ${fd(/^(pris|gebyr|pris\/gebyr)$/i)}`
+                                : fd(/^betalingsprodukt$/i),
+                              prisGebyr && betalingsprodukt ? fd(/^betalingsprodukt$/i) : undefined,
+                            )}
+                          </List.Cell.End>
+                        </List.Item.Basic>
+                      )}
+
+                      {/* SAS Eurobonus. Avatar med src i stedet for en rå <img>:
+                          Figma peker på Eufemias Avatar, og hasLabel demper
+                          «Avatar group required»-advarselen siden raden selv
+                          gir konteksten. */}
+                      {isMastercard && (
+                        <List.Item.Basic>
+                          <List.Cell.Start>
+                            {/* backgroundColor må settes: Avatar er primary som
+                                default, og SAS-merket er #0002BE — blått på
+                                DNB-grønt forsvinner. Figma viser logoen på
+                                nøytral flate. */}
+                            <Avatar
+                              size="small"
+                              src="/merchants/SAS-wordmark.svg"
+                              alt="SAS"
+                              hasLabel
+                              backgroundColor="var(--token-color-background-neutral)"
+                            />
+                          </List.Cell.Start>
+                          <List.Cell.Title>
                             {showSasBonus && sasPoints
-                              ? `SAS Eurobonuspoeng ${fd(/^(sas eurobonuspoeng|eurobonus poeng|sas bonus)$/i)}`
+                              ? td("SAS Eurobonus")
                               : "Få Eurobonuspoeng når du bruker ditt Mastercard"}
-                          </P>
-                          {showSasBonus && sasPoints && (
-                            <Anchor href="https://www.sas.no" target="_blank" style={{ marginLeft: "auto", whiteSpace: "nowrap" }}>Full saldo på sas.no</Anchor>
-                          )}
-                          {!showSasBonus && (
-                            <Anchor href="https://www.dnb.no/kort/kredittkort/mastercard/upgrade" target="_blank" style={{ marginLeft: "auto", whiteSpace: "nowrap" }}>Les mer</Anchor>
-                          )}
-                        </div>
-                      </>
-                    )}
+                          </List.Cell.Title>
+                          <List.Cell.End>
+                            {showSasBonus && sasPoints
+                              ? `${fd(/^(sas eurobonuspoeng|eurobonus poeng|sas bonus)$/i)} poeng`
+                              : <Anchor href="https://www.dnb.no/kort/kredittkort/mastercard/upgrade" target="_blank" rel="noopener noreferrer">Les mer</Anchor>}
+                          </List.Cell.End>
+                        </List.Item.Basic>
+                      )}
 
-                    {/* Betalingsprodukt + Pris/gebyr */}
-                    {(betalingsprodukt || prisGebyr) && (
-                      <>
-                        <div style={{ padding: "0 16px" }}><Hr space={0} /></div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px 16px" }}>
-                          {betalingsproduktIcon && <Icon icon={betalingsproduktIcon} size="medium" style={{ flexShrink: 0, color: "var(--token-color-icon-action)" }} />}
-                          <P style={{ margin: 0 }}>
-                            {td("Betalingsprodukt", fd(/^betalingsprodukt$/i))}
-                            {prisGebyr && ` NOK ${fd(/^(pris|gebyr|pris\/gebyr)$/i)}`}
-                          </P>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Avdrag + Renter (boliglån) */}
-                    {hasLoanBreakdown && (
-                      <>
-                        <div style={{ padding: "0 16px" }}><Hr space={0} /></div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "16px", padding: "12px 16px" }}>
-                          <Icon icon={loan_medium} size="medium" style={{ flexShrink: 0, color: "var(--token-color-icon-action)" }} />
-                          <P style={{ margin: 0 }}>
-                            {showFieldNames
-                              ? `${fd(/^lån avdrag$/i)} og ${fd(/^lån renter$/i)}`
-                              : [avdrag && `Avdrag: NOK ${avdrag}`, renter && `Renter: NOK ${renter}`].filter(Boolean).join(" og ")
-                            }
-                          </P>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                      {/* Avdrag + renter (boliglån). Ikke med i Figma-designet,
+                          så den beholder formen sin. */}
+                      {hasLoanBreakdown && (
+                        <List.Item.Basic
+                          icon={loan_medium}
+                          title={showFieldNames
+                            ? `${fd(/^lån avdrag$/i)} og ${fd(/^lån renter$/i)}`
+                            : [avdrag && `Avdrag: NOK ${avdrag}`, renter && `Renter: NOK ${renter}`].filter(Boolean).join(" og ")
+                          }
+                        />
+                      )}
+                    </List.Container>
+                  )}
                 </div>
               )}
 
