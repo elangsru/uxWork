@@ -75,6 +75,10 @@ function formatDateNo(raw: string): string {
  *  small/regular under. Cell.End har ingen innebygd subline i 11.11.0 — den har
  *  bare fontSize/fontWeight — så stablingen gjøres her med Flex.Vertical.
  *
+ *  Underlinja er alltid dempet, med samme farge som Subline
+ *  variant="description" gir på venstresiden (rgb(115,115,115)). Den er en
+ *  detalj under hovedverdien, ikke en likeverdig verdi.
+ *
  *  Returnerer bare innmaten, ikke Cell.End selv: Flex.Container pakker ukjente
  *  barn i sine egne Flex.Item, så en wrapper-komponent rundt Cell.End ville
  *  kunne gi et ekstra ledd i radens flex-layout. */
@@ -83,7 +87,9 @@ function endStack(value: ReactNode, subline?: ReactNode): ReactNode {
   return (
     <Flex.Vertical align="flex-end" gap={false}>
       <span>{value}</span>
-      <Span size="small" weight="regular">{subline}</Span>
+      <Span size="small" weight="regular" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+        {subline}
+      </Span>
     </Flex.Vertical>
   );
 }
@@ -185,6 +191,11 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const isEfaktura       = /efaktura/i.test(selectedType);
   const isOverforing     = /overf[øo]ring|boliglån/i.test(selectedType);
   const isGebyrRenter    = /gebyr og renter/i.test(selectedType);
+  /* Egen sjekk, ikke isOverforing — den matcher «Overføring» og «Boliglån»,
+     ikke «Utenlandsbetaling». Valutaraden vises på fire typer (Varekjøp Visa
+     Utland, Utenlandsbetaling, ATM Visa, ATM Mastercard); bare denne kaller
+     den «Overføringsvaluta». */
+  const isUtenlandsbetaling = /utenlandsbetaling/i.test(selectedType);
   const tilLabel         = isGebyrRenter ? "Innbetalt" : isOverforing ? "Overført til" : "Betalt til";
   const fraLabel         = isOverforing ? "Overført fra" : "Betalt fra";
   const logoUrl          = fieldValue(selected, /^logourl$/i);
@@ -214,7 +225,11 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const sectionDate      = formatDateNo(showReserved && reservertDate ? reservertDate : transaksjonsDato);
   const klokkeslett      = fieldValue(selected, /^klokkeslett$/i);
   const sectionDateTime  = klokkeslett ? `${sectionDate} - ${klokkeslett}` : sectionDate;
-
+  /* Datolinja under H1. I «vis feltnavn»-modus vises feltnavnene i stedet for
+     de formaterte verdiene, derfor to varianter. */
+  const dateTimeDisplay  = showFieldNames
+    ? `${fd(showReserved && reservertDate ? /^(reservert dato|reservasjonsdato)$/i : /^transaksjonsdato$/i)}${klokkeslett ? ` - ${fd(/^klokkeslett$/i)}` : ""}`
+    : sectionDateTime;
 
   const melding          = fieldValue(selected, /^melding$/i);
   const kid              = fieldValue(selected, /^kid$/i);
@@ -434,14 +449,23 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
         }}>
 
           {/* ── Sidetittel ─────────────────────────────────────────
-              Ligger utenfor {selected}-sjekken så siden alltid har en H1,
-              også i tom-tilstanden. Gir dokumentet en overskrift som sier
-              hva siden er — breadcrumben er en nav, ikke en tittel.
+              Viser betalingstypen fra rad 1 i regnearket — headerraden der
+              hver kolonne er en betalingstype, som transpose() gjør om til
+              record.type. Faller tilbake til en generisk tittel i tom-
+              tilstanden, så siden aldri står uten H1.
 
-              size="large" (26px) i stedet for H1s default xx-large (48px):
-              matcher Form.MainHeading, som er Eufemias egen sidetittel, og
-              lar beløpet under (x-large, 34px) være tyngdepunktet. */}
-          <H1 size="x-large" style={{ margin: 0 }}>Transaksjonsdetaljer</H1>
+              size="x-large" (34px) i stedet for H1s default xx-large (48px),
+              som ville ropt høyere enn beløpet under.
+
+              Datoen ligger i samme stack med 8px gap, ikke som eget barn av
+              kortet — kortets egen gap er 48px, som ville skilt tittel og dato
+              fra hverandre. Den er en <P>, ikke en overskrift: den navngir
+              ingen seksjon, og som H3 over beløpets H2 brøt den dessuten
+              rekkefølgen på overskriftsnivåene. */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <H1 size="x-large" style={{ margin: 0 }}>{selectedType || "Transaksjonsdetaljer"}</H1>
+            {selected && <P style={{ margin: 0 }}>{dateTimeDisplay}</P>}
+          </div>
 
           {/* ── Innhold ────────────────────────────────────────── */}
           {payments.length === 0 ? (
@@ -450,18 +474,15 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
             <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
 
               {/* ── Beløpsmodul ──────────────────────────────────
-                  Bygget som Betalt fra: H3 over, deretter en List.Container.
-                  Beløpet står fritt mellom dem — List.Cell.Title tilbyr bare
-                  basis/small som fontSize, så en H2 på 34px hører ikke hjemme
-                  i en rad. Ikoner går gjennom List sine egne slots: ekte
-                  Eufemia-ikoner via icon-propen (ItemIcon wrapper dem i
-                  <Icon size="medium">), flagg og logoer via List.Cell.Start.
-                  Fargen på ikonene kommer fra .dnb-list__item__icon-regelen
-                  øverst, så ingen inline color her. */}
+                  Bygget som Betalt fra: beløpet fritt over en List.Container.
+                  List.Cell.Title tilbyr bare basis/small som fontSize, så en
+                  H2 på 34px hører ikke hjemme i en rad. Ikoner går gjennom
+                  List sine egne slots: ekte Eufemia-ikoner via icon-propen
+                  (ItemIcon wrapper dem i <Icon size="medium">), flagg og
+                  logoer via List.Cell.Start. Fargen på ikonene kommer fra
+                  .dnb-list__item__icon-regelen øverst, så ingen inline color. */}
               {(nokAmount || hasLoanBreakdown) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <H3 style={{ margin: 0 }}>{showFieldNames ? `${fd(showReserved && reservertDate ? /^(reservert dato|reservasjonsdato)$/i : /^transaksjonsdato$/i)}${klokkeslett ? ` - ${fd(/^klokkeslett$/i)}` : ""}` : sectionDateTime}</H3>
-
                   {nokAmount && (
                     <H2 size="x-large" style={{ margin: 0, ...(showReserved && { color: "var(--token-color-text-neutral-alternative)" }) }}>NOK {fd(/^(beløp|beløp nok|nok beløp)$/i)}</H2>
                   )}
@@ -485,10 +506,10 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                         <List.Item.Basic>
                           {currencyFlagIso && (
                             <List.Cell.Start>
-                              <CountryFlag iso={currencyFlagIso} size="large" />
+                              <CountryFlag iso={currencyFlagIso} size="medium" />
                             </List.Cell.Start>
                           )}
-                          <List.Cell.Title>{td("Valutakjøp")}</List.Cell.Title>
+                          <List.Cell.Title>{td(isUtenlandsbetaling ? "Overføringsvaluta" : "Valutakjøp")}</List.Cell.Title>
                           <List.Cell.End>
                             {endStack(
                               `${currencyCode ? `${fd(/^valutasort$/i)} ` : ""}${fd(/^(beløp valuta|valuta beløp|valutabeløp)$/i)}`,
@@ -554,16 +575,28 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                         </List.Item.Basic>
                       )}
 
-                      {/* Avdrag + renter (boliglån). Ikke med i Figma-designet,
-                          så den beholder formen sin. */}
+                      {/* Avdrag + renter (boliglån). Én rad med underlinje på
+                          begge sider: labelene til venstre, beløpene til høyre.
+                          Renter-linja er dempet (variant="description", samme
+                          grå som kontonumrene) siden den er en detalj under
+                          avdraget, ikke en likeverdig verdi. I 11.11.0 endrer
+                          varianten bare fargen — fontSize er small uansett.
+                          Degraderer til én linje når bare ett av feltene finnes. */}
                       {hasLoanBreakdown && (
-                        <List.Item.Basic
-                          icon={loan_medium}
-                          title={showFieldNames
-                            ? `${fd(/^lån avdrag$/i)} og ${fd(/^lån renter$/i)}`
-                            : [avdrag && `Avdrag: NOK ${avdrag}`, renter && `Renter: NOK ${renter}`].filter(Boolean).join(" og ")
-                          }
-                        />
+                        <List.Item.Basic icon={loan_medium}>
+                          <List.Cell.Title>
+                            {avdrag ? td("Avdrag lån") : td("Renter lån")}
+                            {avdrag && renter && (
+                              <List.Cell.Title.Subline variant="description">Renter lån</List.Cell.Title.Subline>
+                            )}
+                          </List.Cell.Title>
+                          <List.Cell.End>
+                            {endStack(
+                              avdrag ? `NOK ${fd(/^lån avdrag$/i)}` : `NOK ${fd(/^lån renter$/i)}`,
+                              avdrag && renter ? `NOK ${fd(/^lån renter$/i)}` : undefined,
+                            )}
+                          </List.Cell.End>
+                        </List.Item.Basic>
                       )}
                     </List.Container>
                   )}
