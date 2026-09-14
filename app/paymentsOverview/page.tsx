@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import SubmitIndicator from "@dnb/eufemia/extensions/forms/Form/SubmitIndicator/SubmitIndicator";
+import { useState, useEffect, useRef, useSyncExternalStore } from "react";
+import { SubmitIndicator } from "@dnb/eufemia/extensions/forms/Form";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, Autocomplete, DatePicker, Switch, ToggleButton, Grid, Radio, List, Avatar, Badge, Icon, CountryFlag, FormStatus, Tabs, TermDefinition, Skeleton } from "@dnb/eufemia/components";
 import { H1, Lead, P, Span } from "@dnb/eufemia/elements";
-import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan, loan_medium, trash, edit, filter, close, globe, office_buildings, refresh } from "@dnb/eufemia/icons";
+import { transfer, transfer_medium, pay_from, chevron_down, chevron_up, loan_medium, edit, filter, close, globe, office_buildings, refresh } from "@dnb/eufemia/icons";
 
 const accounts = [
   { content: ["Alle kontoer"], value: "alle" },
@@ -59,6 +59,17 @@ function randomSyntheticSsn(): string {
   return `${dag}${maaned}${aar} ${rest}`;
 }
 
+// «Er komponenten hydrert?» uten setState i en effect — det siste gir
+// kaskaderender og er en lintfeil (react-hooks/set-state-in-effect).
+// useSyncExternalStore returnerer getServerSnapshot (false) på serveren og
+// gjennom hydreringen, og getSnapshot (true) etterpå; React håndterer
+// overgangen selv. Kilden endrer seg aldri, så subscribe er en no-op.
+// De tre må ligge på modulnivå: nye funksjoner per render ville fått React til
+// å abonnere på nytt hver gang.
+const subscribeNever = () => () => {};
+const getHydrated = () => true;
+const getHydratedOnServer = () => false;
+
 // Rammen rundt en gruppe. Delt av begge grupperingene og av skeleton-varianten,
 // så en endring av kant eller radius ikke må gjøres på fire steder.
 const groupOutlineStyle: React.CSSProperties = {
@@ -83,7 +94,10 @@ interface Transaction {
   dateValue: string;
   recipient: string;
   amountNok: number;
-  amountDisplay: string;
+  /** Settes bare når beløpet ikke kan utledes av amountNok — altså når
+      betalingen er i en annen valuta. Ellers formateres amountNok med fmtNok,
+      så tallet og teksten ikke kan drive fra hverandre. */
+  amountDisplay?: string;
   accountKey: AccountKey;
   type: "overforing" | "betaling" | "avtalegiro" | "efaktura";
   unconfirmed?: boolean;
@@ -93,7 +107,6 @@ interface Transaction {
       Bokstaven utledes av Avatar selv fra `recipient` — ikke lagre den her. */
   avatarKind?: "person" | "company";
   flagIso?: string;
-  foreignAmount?: string;
   nokEquivalent?: string;
   /** Personen fakturaen er adressert til. Brukes til gruppering på
       «Ubekreftede eFakturaer»-tabben, og går på tvers av konto. */
@@ -111,24 +124,35 @@ type GroupOptions = {
   warnings: boolean;
 };
 
+// toISOString() ville gitt UTC-datoen. Mellom midnatt og 02:00 norsk tid ligger
+// den ett døgn bak datoen som vises i overline og i DatePickeren — velger man da
+// datoen man ser, filtrerer datofilteret bort raden. Strengen bygges derfor av de
+// lokale feltene, så dateValue og den viste datoen alltid er samme døgn.
+function isoLocalDate(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 function relativeDate(daysFromToday: number): { date: string; dateValue: string } {
   const d = new Date();
   d.setDate(d.getDate() + daysFromToday);
-  const dateValue = d.toISOString().slice(0, 10);
+  const dateValue = isoLocalDate(d);
   const date = d.toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" });
   return { date, dateValue };
 }
 
 const transactions: Transaction[] = [
-  { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, amountDisplay: "500,00 NOK", accountKey: "felleskonto", type: "betaling", avatarKind: "person" },
-  { id: "intro-aksel", ...relativeDate(9), recipient: "Intro Aksel", amountNok: 300, amountDisplay: "300,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "transfer" },
-  { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, amountDisplay: "299,00 NOK", accountKey: "lonnskonto", type: "avtalegiro", avatarKind: "company", badge: "AvtaleGiro" },
-  { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, amountDisplay: "312,00 NOK", accountKey: "felleskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
-  { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, amountDisplay: "1 545,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
-  { id: "fremtind", ...relativeDate(16), recipient: "Fremtind Forsikring AS", amountNok: 1129, amountDisplay: "1 129,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Kari Nordmann" },
-  { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, amountDisplay: "12 345,00 NOK", accountKey: "felleskonto", type: "overforing", icon: "loan" },
-  { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES", foreignAmount: "500,00 EUR", nokEquivalent: "ca 5234,98 NOK" },
-  { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, amountDisplay: "2 445,00 NOK", accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura" },
+  { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, accountKey: "felleskonto", type: "betaling", avatarKind: "person" },
+  { id: "intro-aksel", ...relativeDate(9), recipient: "Intro Aksel", amountNok: 300, accountKey: "felleskonto", type: "overforing", icon: "transfer" },
+  { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, accountKey: "lonnskonto", type: "avtalegiro", avatarKind: "company", badge: "AvtaleGiro" },
+  { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, accountKey: "felleskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
+  { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
+  { id: "fremtind", ...relativeDate(16), recipient: "Fremtind Forsikring AS", amountNok: 1129, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Kari Nordmann" },
+  { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, accountKey: "felleskonto", type: "overforing", icon: "loan" },
+  { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES", nokEquivalent: "ca 5234,98 NOK" },
+  { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura" },
 ];
 
 function fmtNok(value: number): string {
@@ -137,6 +161,13 @@ function fmtNok(value: number): string {
 
 function TransactionRow({ tx, overline, balanceAfter, warning, isConfirmed, onConfirm }: { tx: Transaction; overline: string; balanceAfter?: number; warning?: string; isConfirmed?: boolean; onConfirm?: () => void }) {
   const [approving, setApproving] = useState(false);
+  // Raden kan forsvinne mens godkjenningen pågår — tabbytte, endret filter, eller
+  // at den forrige godkjenningen fjernet den fra listen. Uten opprydding kjører
+  // timeren videre og kaller setApproving/onConfirm på en avmontert rad.
+  const approveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (approveTimer.current !== null) clearTimeout(approveTimer.current);
+  }, []);
   const negativeBalance = balanceAfter !== undefined && balanceAfter < 0;
   const balanceClass = balanceAfter !== undefined ? (negativeBalance ? "row-balance-negative" : "row-balance-positive") : "";
   const itemStyle = { "--list-item-rounded-corner": "0" } as React.CSSProperties;
@@ -174,12 +205,17 @@ function TransactionRow({ tx, overline, balanceAfter, warning, isConfirmed, onCo
     startNode = <Icon icon={tx.icon === "transfer" ? transfer_medium : loan_medium} />;
   }
 
+  // Beløpsteksten utledes av amountNok, slik at tallet som regnes med og teksten
+  // som vises alltid er samme kilde. amountDisplay overstyrer bare når raden er i
+  // en annen valuta.
+  const amountText = tx.amountDisplay ?? fmtNok(tx.amountNok);
+
   const endNode = tx.nokEquivalent ? (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
       <Span size="x-small" weight="medium">{tx.nokEquivalent}</Span>
-      <span>{tx.amountDisplay}</span>
+      <span>{amountText}</span>
     </div>
-  ) : tx.amountDisplay;
+  ) : amountText;
 
   return (
     <List.Item.Action
@@ -207,7 +243,8 @@ function TransactionRow({ tx, overline, balanceAfter, warning, isConfirmed, onCo
                 disabled={approving}
                 onClick={() => {
                   setApproving(true);
-                  setTimeout(() => {
+                  approveTimer.current = setTimeout(() => {
+                    approveTimer.current = null;
                     setApproving(false);
                     onConfirm?.();
                   }, 5000);
@@ -234,7 +271,7 @@ export default function PaymentsOverview() {
   in30Days.setDate(today.getDate() + 30);
   const inOneYear = new Date(today);
   inOneYear.setFullYear(today.getFullYear() + 1);
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  const fmt = isoLocalDate;
   const monthName = today.toLocaleDateString("nb-NO", { month: "long" });
   const currentMonthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
@@ -253,21 +290,30 @@ export default function PaymentsOverview() {
   const [efakturaAccountFilter, setEfakturaAccountFilter] = useState<AccountKey | null>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
-  const [mounted, setMounted] = useState(false);
-  // Hele poolen får sitt syntetiske fødselsnummer én gang etter mount, ikke ved
-  // innlasting. Da viser nedtrekket og gruppeoverskriften samme identitet for en
-  // person som ennå ikke er lastet inn.
-  const [poolSsn, setPoolSsn] = useState<Record<string, string>>({});
-  useEffect(() => {
-    setMounted(true);
-    setPoolSsn(Object.fromEntries(MORE_OWNER_NAMES.map(n => [n, randomSyntheticSsn()])));
-  }, []);
+  const mounted = useSyncExternalStore(subscribeNever, getHydrated, getHydratedOnServer);
+  // Hele poolen får sitt syntetiske fødselsnummer én gang, ikke ved innlasting.
+  // Da viser nedtrekket og gruppeoverskriften samme identitet for en person som
+  // ennå ikke er lastet inn.
+  // Verdien lages i state-initialisereren, ikke i en effect: den settes én gang og
+  // står stabilt resten av komponentens liv. Serveren regner også ut et sett, men
+  // det rendres aldri — første render viser «Laster …» — så Math.random() her kan
+  // ikke gi hydration mismatch.
+  const [poolSsn] = useState<Record<string, string>>(() =>
+    Object.fromEntries(MORE_OWNER_NAMES.map(n => [n, randomSyntheticSsn()]))
+  );
 
   // Innlastede eiere legges til i stedet for å mutere basislisten, så startdataen
   // blir stående som én kilde og tilleggene er lette å nullstille.
   const [extraTransactions, setExtraTransactions] = useState<Transaction[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
-  const allTransactions = [...transactions, ...extraTransactions];
+  // Sortert kronologisk, ikke i innsettingsrekkefølge: «Hent flere» legger
+  // fakturaene bakerst, men de forfaller midt inne i basislisten. Både
+  // radrekkefølgen og runningBalanceMap leser denne rekkefølgen, så uten
+  // sorteringen fikk en godkjent slik faktura laveste saldo mens radene over den
+  // viste en saldo som ikke hadde trukket den fra.
+  const allTransactions = [...transactions, ...extraTransactions].sort(
+    (a, b) => a.dateValue.localeCompare(b.dateValue)
+  );
 
   const ownerSsnMap = { ...invoiceOwnerSsn, ...poolSsn };
   function ownerLabel(owner: string): string {
@@ -294,7 +340,6 @@ export default function PaymentsOverview() {
           ...relativeDate(17 + nr),
           recipient: MORE_RECIPIENTS[nr % MORE_RECIPIENTS.length],
           amountNok: belop,
-          amountDisplay: fmtNok(belop),
           accountKey: nr % 2 === 0 ? "lonnskonto" : "felleskonto",
           type: "efaktura",
           avatarKind: "company",
@@ -318,12 +363,19 @@ export default function PaymentsOverview() {
   // 2 sekunders skeleton før fakturaene kommer inn. Docs: animasjonen starter
   // først etter 5 sekunder, så her vises den statiske plassholderen.
   const SKELETON_COUNT = 3;
+  // Samme grunn som i TransactionRow: forlater man siden midt i hentingen, skal
+  // ikke timeren kalle setState etterpå.
+  const loadMoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (loadMoreTimer.current !== null) clearTimeout(loadMoreTimer.current);
+  }, []);
   function loadMoreOwners() {
     if (loadingMore) return;
     const picked = remainingOwnerNames.slice(0, SKELETON_COUNT);
     if (picked.length === 0) return;
     setLoadingMore(true);
-    setTimeout(() => {
+    loadMoreTimer.current = setTimeout(() => {
+      loadMoreTimer.current = null;
       loadOwners(picked);
       setLoadingMore(false);
     }, 2000);
@@ -481,12 +533,12 @@ export default function PaymentsOverview() {
             {showSum && <List.Item.Basic style={{ background: "var(--token-color-background-neutral-alternative)", "--list-item-rounded-corner": "0", borderBottomLeftRadius: "var(--token-radius-xl)", borderBottomRightRadius: "var(--token-radius-xl)" } as React.CSSProperties}>
               <List.Cell.Title>
                 {sumLabel}
-                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>Penger til overs {lastPaymentDate.replace(/\s+\d{4}$/, '')}</List.Cell.Title.Subline>
+                <List.Cell.Title.Subline fontSize="basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-error)" } : undefined}>Penger til overs {lastPaymentDate.replace(/\s+\d{4}$/, '')}</List.Cell.Title.Subline>
               </List.Cell.Title>
               <List.Cell.End>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", fontWeight: "400" }}>
                   <span className="dnb-t__size--basis">{fmtNok(totalNok)}</span>
-                  <span className="dnb-t__size--basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-destructive)" } : undefined}>{fmtNok(fremtidigSaldo)}</span>
+                  <span className="dnb-t__size--basis" style={fremtidigSaldo < 0 ? { color: "var(--token-color-text-error)" } : undefined}>{fmtNok(fremtidigSaldo)}</span>
                 </div>
               </List.Cell.End>
             </List.Item.Basic>}

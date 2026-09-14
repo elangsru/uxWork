@@ -15,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="nb-NO" suppressHydrationWarning>
       <body suppressHydrationWarning>
         {children}
         {/* Agentation er devDependency og skal aldri med i produksjon. Sjekken

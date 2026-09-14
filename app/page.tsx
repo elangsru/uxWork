@@ -34,6 +34,7 @@ const projects = [
 export default function Home() {
   return (
     <main
+      lang="en"
       style={{
         background: "white",
         minHeight: "100vh",
