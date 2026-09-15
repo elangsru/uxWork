@@ -1,0 +1,489 @@
+/* Betalingsoversikt — sidespesifikk CSS.
+ *
+ * Lå tidligere som en <style>-streng inne i page.tsx. Flyttet hit for å få
+ * syntaksfremheving og formatering; innholdet er uendret bortsett fra de nye
+ * .po-*-klassene nederst, som erstatter inline-stiler som var duplisert i JSX.
+ *
+ * Om spesifisitet: klassene under er scopet med Eufemias egen klasse
+ * (f.eks. `.dnb-list__item__accordion.po-group-head`) der de erstatter en
+ * inline-stil. Inline-stiler vinner over Eufemias enkeltklasse-regler; en naken
+ * .po-klasse ville tapt. To klasser gir (0,2,0) og vinner uansett rekkefølge.
+ *
+ * Verdier: avstander bruker Eufemias spatial system (--spacing-*), i tråd med
+ * konvensjon 4 og 8 i quick reference. Farger og radius bruker design tokens.
+ */
+
+/* ==========================================================================
+   Eufemia-overstyringer
+   ========================================================================== */
+
+/* Divider-linjen er ::before på .dnb-tabs__tabs. Eufemia strekker den
+   to veier: --breakout gir left/width 100vw mot venstre, og
+   :not(.dnb-section) gir box-shadow 100vw mot høyre. breakout={false}
+   fjerner bare den første, så box-shadowen må nulles eksplisitt.
+   Deretter strekkes linjen ut til kortets kanter — kortet har
+   --po-card-padding-x horisontal padding, som linjen ellers ville
+   stoppet innenfor. Variabelen er definert på .po-card, så de to
+   holder seg i takt av seg selv. */
+.po-tabs .dnb-tabs__tabs::before {
+  box-shadow: none;
+  left: calc(-1 * var(--po-card-padding-x));
+  width: calc(100% + 2 * var(--po-card-padding-x));
+}
+
+/* Ikon inne i en Avatar skal ha samme farge som bokstavversjonen. Lists egen
+   regel .dnb-list__item__action .dnb-icon setter color til var(--list-item-icon-color).
+   Den er ment for ikoner som ligger direkte i raden (transfer/loan), men slår
+   også inn på ikonet inne i avataren og gjør det grønt på mørkegrønn bunn.
+   inherit henter avatarens egen tekstfarge, så den følger variant automatisk
+   i stedet for å hardkodes. Selektoren er ett nivå mer spesifikk enn Lists,
+   så den vinner uavhengig av rekkefølgen på stilark. */
+.dnb-list__item__action .dnb-avatar .dnb-icon {
+  color: inherit;
+}
+
+/* 16px luft mellom flere ubekreftede fakturaer i samme accordion. Radene er
+   ikke søsken — hver ligger i sin egen div.dnb-space — så :not(:last-child)
+   på raden treffer ingenting. Løsningen settes derfor på UL.dnb-list__container,
+   som allerede er en flex-kolonne med row-gap: 0. Wrapperne har
+   space__top/bottom--zero, så gapet blir nøyaktig 16px uten margin i tillegg.
+   Scopet til .po-efaktura fordi gruppekortet deles med «Til forfall».
+   Bakgrunnen: UL er transparent, så accordionens grå (#f2f2f5) lyste gjennom
+   i gapet. Radene har allerede egen hvit backgroundColor med skravuren malt
+   over, så en hvit UL endrer bare gapet — ikke radenes utseende. */
+.po-efaktura .dnb-list__item__accordion__content .dnb-list__container {
+  row-gap: var(--spacing-small);
+  background-color: var(--token-color-background-neutral);
+}
+
+/* Avstanden label → knapper inne i ToggleButton.Group. Ingen prop styrer
+   den, så den settes ned til 8px her. I 11.0.2 var det en margin
+   (.dnb-space__top--small) på shellen; fra 11.11.0 er det row-gap på en
+   flex-container rett inne i fieldsettet.
+   Vi setter --horizontal-gap, ikke row-gap: Eufemias egen regel
+   .dnb-flex-container--css-gap.dnb-flex-container.dnb-flex-container--direction-vertical
+   har 0,3,0 og ville slått en row-gap-override. Variabelen settes derimot av
+   .dnb-flex-container--spacing-small med bare 0,1,0, så vi vinner der — og
+   vi jobber med kaskaden i stedet for mot den.
+   Direkte barn-selektor er viktig: shellen har sin egen luft mellom
+   knappene når de brytes over flere linjer, og den skal ikke røres. */
+.dnb-toggle-button-group__fieldset > .dnb-flex-container {
+  --horizontal-gap: var(--spacing-x-small);
+}
+
+.dnb-list__item__action .dnb-list__item__chevron .dnb-icon {
+  transform: none !important;
+  transition: none !important;
+}
+
+.dnb-list__item__accordion__header {
+  padding-bottom: calc(var(--list-item-padding)) !important;
+}
+
+.dnb-list__item__accordion__header .dnb-list__item__chevron {
+  place-self: center !important;
+}
+
+.dnb-list__item__accordion__header .dnb-list__item__title {
+  align-self: center !important;
+  justify-self: stretch !important;
+}
+
+.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__chevron,
+.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__icon {
+  place-self: end !important;
+}
+
+.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline):not(:has(> .dnb-list__item__action__button .dnb-list__item__subline)) .dnb-list__item__start {
+  align-self: end !important;
+  justify-self: center !important;
+}
+
+.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__chevron,
+.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__icon {
+  place-self: center !important;
+}
+
+.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__title {
+  align-self: start !important;
+}
+
+@media screen and (min-width: 40.00625em) {
+  .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__end {
+    place-self: end !important;
+  }
+
+  .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__end {
+    align-self: center !important;
+  }
+}
+
+/* Hover-ringen på en åpen accordion skal dekke bare headeren, ikke hele
+   kortet. Da må nedre hjørner være rette: underkanten er en skillelinje midt
+   på kortet, og border-radius: inherit ga 24px hele veien rundt — ringen
+   buet innover og ble en pilleform. Topphjørnene arver kortets radius. */
+.dnb-list__item__accordion--open:has(.dnb-list__item__accordion__header:hover)::after,
+.dnb-list__item__accordion--open:has(.dnb-list__item__accordion__header:focus-visible)::after {
+  bottom: auto;
+  height: var(--list-item-height);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Siste rad i en accordion ligger helt mot kortets underkant når det ikke
+   finnes noen sum-rad etter accordionen. Radene har radius 0, så hover-ringens
+   rette hjørne blir klippet bort av kortets 24px-kurve og hjørnet står
+   ustreket. Ringen får derfor kortets radius i bunnen — men bare i det
+   tilfellet: :last-child på accordionen er nettopp «ingen sum-rad følger»,
+   så Til forfall med saldo påslått beholder rette hjørner der raden ikke
+   møter kortkanten. */
+.dnb-list__container > .dnb-list__item__accordion:last-child
+  .dnb-list__item__accordion__content
+  .dnb-list__container > .dnb-list__item:last-child::after {
+  border-bottom-left-radius: var(--token-radius-xl);
+  border-bottom-right-radius: var(--token-radius-xl);
+}
+
+.dnb-list__item__accordion:has(.dnb-list__item__action:hover) {
+  z-index: 3;
+}
+
+.dnb-list__item__footer-separator:has(+ .dnb-list__item__footer.warning-footer) {
+  display: none;
+}
+
+/* Saldomarkøren langs radens venstrekant. */
+.row-balance-positive::before,
+.row-balance-negative::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.row-balance-positive::before {
+  background-color: var(--token-color-stroke-positive);
+}
+
+.row-balance-negative::before {
+  background-color: var(--token-color-stroke-error);
+}
+
+/* ==========================================================================
+   DatePicker i dark mode
+   ========================================================================== */
+
+.eufemia-theme__color-scheme--dark .dnb-date-picker__container {
+  background-color: var(--token-color-background-neutral);
+}
+
+.eufemia-theme__color-scheme--dark .dnb-date-picker__portal .dnb-popover {
+  --popover-background-color: var(--token-color-background-neutral);
+}
+
+.eufemia-theme__color-scheme--dark .dnb-date-picker__header::after,
+.eufemia-theme__color-scheme--dark .dnb-date-picker__addon::after,
+.eufemia-theme__color-scheme--dark .dnb-date-picker__calendar::after {
+  background-color: var(--token-color-stroke-neutral-subtle);
+}
+
+.eufemia-theme__color-scheme--dark .dnb-date-picker__header__title,
+.eufemia-theme__color-scheme--dark .dnb-date-picker__labels__day {
+  color: var(--token-color-text-neutral);
+}
+
+.eufemia-theme__color-scheme--dark .dnb-date-picker__day--inactive .dnb-button {
+  color: var(--token-color-text-neutral-subtle);
+}
+
+.eufemia-theme__color-scheme--dark .dnb-date-picker__day--end-date:not(.dnb-date-picker__day--inactive)::after,
+.eufemia-theme__color-scheme--dark .dnb-date-picker__day--preview:not(.dnb-date-picker__day--inactive):not(.dnb-date-picker__day--start-date):not(.dnb-date-picker__day--end-date),
+.eufemia-theme__color-scheme--dark .dnb-date-picker__day--start-date:not(.dnb-date-picker__day--inactive)::after,
+.eufemia-theme__color-scheme--dark .dnb-date-picker__day--within-selection:not(.dnb-date-picker__day--inactive):not(.dnb-date-picker__day--start-date):not(.dnb-date-picker__day--end-date) {
+  background-color: var(--token-color-background-selected-subtle);
+}
+
+.eufemia-theme__color-scheme--dark .dnb-date-picker__day--end-date:not(.dnb-date-picker__day--inactive) .dnb-button,
+.eufemia-theme__color-scheme--dark .dnb-date-picker__day--start-date:not(.dnb-date-picker__day--inactive) .dnb-button {
+  background-color: var(--token-color-background-selected);
+  color: var(--token-color-text-neutral-inverse);
+}
+
+/* ==========================================================================
+   Sidens eget oppsett — erstatter inline-stiler
+   ========================================================================== */
+
+.po-page {
+  background: var(--token-color-background-neutral-subtle);
+  min-height: 100vh;
+  padding: var(--spacing-x-large);
+  box-sizing: border-box;
+}
+
+.po-card {
+  /* Brukes også av .po-tabs::before for å strekke divideren ut til kortkanten. */
+  --po-card-padding-x: calc(2 * var(--spacing-x-large));
+
+  background: var(--token-color-background-neutral);
+  box-shadow: 0 8px 16px 0 rgba(51, 51, 51, 0.08);
+  padding: var(--spacing-x-large) var(--po-card-padding-x);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-x-large);
+  min-height: calc(100vh - 2 * var(--spacing-x-large));
+  box-sizing: border-box;
+  max-width: 72rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.po-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-large);
+}
+
+.po-hero__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-small);
+}
+
+.po-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-small);
+}
+
+/* Innholdet i én tab. Begge tabbene stabler seksjonene med samme luft. */
+.po-tabpanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-large);
+}
+
+/* Filterboksen. Var duplisert ordrett i begge tabbene. */
+.po-filterbox {
+  background: var(--token-color-background-neutral-subtle);
+  border: 1px solid var(--token-color-stroke-neutral-alternative);
+  border-radius: var(--token-radius-md);
+  padding: var(--spacing-small);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-small);
+}
+
+/* Labelen ligger på ToggleButton.Group, ikke som en løs <P> ved siden av,
+   slik at gruppen får et programmatisk navn (role="group" + aria-labelledby).
+   Gruppen er da høyere enn switchen (label + knapper), så align-items: center
+   ville løftet switchen 16px over knappene. Løsning: flex-end justerer
+   bunnene, og switch-wrapperen får knapperadens høyde (2.5rem) med sentrert
+   innhold — da havner switchen på knappenes senterlinje.
+   Merk: .dnb-toggle-button-group har flex-grow: 1 fra Eufemia, så på smale
+   skjermer bryter switchen til egen linje under knappene. */
+.po-typefilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-small);
+  align-items: flex-end;
+}
+
+/* TermDefinition ligger som søsken til Switch, ikke inne i labelen.
+   Grunnen: HTML-spesifikasjonen lar hover over en <label> slå inn på
+   kontrollen den hører til, så en ordforklaring inne i labelen ville
+   trigget switchens hover. Nå har de hver sin: switchen reagerer på
+   sin egen grafikk, teksten på sin Anchor-hover. Switchen beholder
+   labelen som skjult tekst så den fortsatt har tilgjengelig navn.
+   gap gjenskaper labelens tidligere padding-left på 8px. */
+.po-saldoswitch {
+  flex-shrink: 0;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-x-small);
+}
+
+/* «Gruppering:» + «Åpne alle». Var duplisert i begge tabbene.
+   Den negative margin-bottom spiser opp .po-tabpanel-gapet ned til
+   gruppekortene, som har sin egen luft. */
+.po-grouping {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: calc(-1 * var(--spacing-medium));
+}
+
+/* Rammen rundt ett gruppekort. Delt av alle tre grupperingene og av
+   skeleton-varianten, så kant og radius endres på ett sted. */
+.po-group {
+  outline: 1px solid var(--token-color-stroke-neutral-alternative);
+  border-radius: var(--token-radius-xl);
+  overflow: hidden;
+}
+
+/* Kortets hjørner.
+   Eufemia runder selv av første og siste .dnb-list__item i en container:
+     .dnb-list__item:first-of-type:not([hidden]) { border-top-*-radius: var(--list-item-rounded-corner) }
+     .dnb-list__item:last-of-type:not([hidden])  { border-bottom-*-radius: var(--list-item-rounded-corner) }
+   Begge er (0,3,0). Å sette border-radius direkte fra en .po-klasse (0,2,0)
+   taper mot dem — det var nettopp derfor originalen måtte bruke inline style,
+   som slår all specificity. I stedet setter vi variabelen de leser, på
+   containeren, og lar Eufemias egne regler påføre hjørnene.
+   Konsekvens: headeren får rund topp fordi den er first-of-type, sum-raden rund
+   bunn fordi den er last-of-type — og når det ikke finnes sum-rad er headeren
+   begge og får alle fire. Ingen egen «alene»-variant trengs. */
+.po-group > .dnb-list__container {
+  --list-item-rounded-corner: var(--token-radius-xl);
+}
+
+/* Gruppens header og sum-rad deler bakgrunn. Hjørnene kommer fra regelen over. */
+.dnb-list__item__accordion.po-group__head,
+.dnb-list__item.po-group__sum {
+  background: var(--token-color-background-neutral-alternative);
+}
+
+.dnb-list__item__title.po-group__title {
+  font-weight: var(--font-weight-medium);
+}
+
+.po-group__balance,
+.po-group__sum-amounts {
+  font-weight: var(--font-weight-regular);
+}
+
+.po-group__sum-amounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Radene i en gruppe har rette hjørner — kortet eier radiusen. Brukes også av
+   skeleton-plassholderens radlinje. */
+.dnb-list__item.po-row {
+  --list-item-rounded-corner: 0;
+}
+
+/* Skeleton-plassholderens header. Kan ikke bruke .po-group__head: den er scopet
+   til .dnb-list__item__accordion, og plassholderen er en List.Item.Basic. */
+.dnb-list__item.po-group__skeleton-head {
+  --list-item-rounded-corner: 0;
+
+  background: var(--token-color-background-neutral-alternative);
+}
+
+/* Skravur på ubekreftede rader. */
+.dnb-list__item.po-row--unconfirmed {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--token-color-stroke-neutral-subtle) 1px 2px,
+    transparent 0 6px
+  );
+}
+
+/* Rediger / Godkjenn i footeren på en ubekreftet rad. */
+.po-row__actions {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Valutarad: NOK-ekvivalent over originalbeløpet. */
+.po-row__amount {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Tom-tilstandene på eFaktura-tabben: ingen ubekreftede i det hele tatt, og
+   ingen som matcher filteret. */
+.po-empty {
+  background: var(--token-color-background-neutral-subtle);
+  border: 1px solid var(--token-color-stroke-neutral-alternative);
+  border-radius: var(--token-radius-md);
+  padding: var(--spacing-large);
+  text-align: center;
+}
+
+.po-loadmore {
+  display: flex;
+  justify-content: center;
+}
+
+/* ==========================================================================
+   Verktøypanel (kun for utprøving)
+   ==========================================================================
+   Dette overlegget er ikke en del av DNB-designet — det finnes for å skru på
+   varsler, ubekreftede og dark mode under demoing. Målene under står med
+   vilje i px og utenfor det spatiale systemet: de er knyttet til overleggets
+   egen knappegeometri (48px sirkel), ikke til sidens layoutrytme.
+   ========================================================================== */
+
+.po-tools__button {
+  position: fixed;
+  top: 32px;
+  right: 32px;
+  z-index: 100;
+}
+
+.po-tools__button .dnb-button {
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+}
+
+.po-tools__panel {
+  position: fixed;
+  top: 92px;
+  right: 32px;
+  max-height: calc(100vh - 124px);
+  overflow-y: auto;
+  background: var(--token-color-background-neutral);
+  border: 1px solid var(--token-color-stroke-neutral-subtle);
+  filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.08));
+  border-radius: var(--token-radius-md);
+  min-width: 440px;
+  max-width: 560px;
+  padding: var(--spacing-medium);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-small);
+  z-index: 99;
+}
+
+.po-tools__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xx-small);
+}
+
+.po-tools__header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Én rad per bryter. Var duplisert tre ganger inline. */
+.po-tools__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--token-color-background-neutral-subtle);
+  border-radius: var(--token-radius-md);
+  padding: var(--spacing-small);
+}
+
+.po-tools__row p,
+.po-tools__title {
+  margin: 0;
+}
+
+.po-tools__title {
+  font-weight: var(--font-weight-medium);
+}
