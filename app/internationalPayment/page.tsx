@@ -3,6 +3,9 @@
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Skeleton, Tabs } from "@dnb/eufemia/components";
+// HelpButtonInline eksporteres ikke fra pakkeroten i 11.13.0 — kun HelpButton
+// (som åpner en dialog). Den inline ekspanderbare varianten må dyp-importeres.
+import HelpButtonInline, { HelpButtonInlineContent } from "@dnb/eufemia/components/help-button/HelpButtonInline";
 import { H1, H3, P, Hr } from "@dnb/eufemia/elements";
 import { chevron_down, chevron_up, chevron_right, chevron_left, add, globe_medium, filter, close, bank_medium, location_medium } from "@dnb/eufemia/icons";
 
@@ -580,6 +583,28 @@ export default function InternationalPayment() {
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const messageMaxLength = 140;
+  const messageFieldId = "international-payment-message";
+  const messageHelpId = `${messageFieldId}-help`;
+  const messageHelp = {
+    title: "Melding på engelsk",
+    content:
+      "Meldingen bør skrives på engelsk, da dette er standardspråket for utenlandsbetalinger.",
+  };
+  const currencyFieldId = "international-payment-currency";
+  const currencyHelpId = `${currencyFieldId}-help`;
+  const currencyHelp = {
+    title: "Andre valutaer",
+    content: (
+      <>
+        Dersom du har behov for en annen valuta enn de som vises i listen kan du gå til gammel
+        løsning som er tilgjengelig{" "}
+        <Anchor href="#" target="_blank" rel="noopener noreferrer" noLaunchIcon>
+          her
+        </Anchor>
+        .
+      </>
+    ),
+  };
   const today = new Date().toISOString().slice(0, 10);
   const [paymentDate, setPaymentDate] = useState(today);
   const [currentStep, setCurrentStep] = useState(0);
@@ -1495,27 +1520,36 @@ export default function InternationalPayment() {
                   {editRecipientContent}
                 </Dialog>
               )}
-              <Autocomplete
-                label="Valuta som sendes"
-                size="medium"
-                data={filteredCurrencies}
-                placeholder="Velg valuta"
-                stretch
-                disabled={!selectedRecipient}
-                showSubmitButton
-                submitButtonTitle=""
-                icon={selectedCurrency ? <CountryFlag iso={selectedCurrency.iso} size="small" /> : undefined}
-                value={selectedCurrency?.code ?? undefined}
-                onChange={({ selectedItem }) => {
-                  if (typeof selectedItem === "number" && filteredCurrencies[selectedItem]) {
-                    const code = String(filteredCurrencies[selectedItem].selectedKey);
-                    const c = currencyList.find((x) => x.code === code);
-                    setSelectedCurrency(c ?? null);
-                  } else {
-                    setSelectedCurrency(null);
-                  }
-                }}
-              />
+              <div>
+                <FormLabel forId={currencyFieldId} style={{ marginBottom: "0.5rem" }}>
+                  Valuta som sendes
+                  <span style={{ marginLeft: "0.45em", whiteSpace: "nowrap" }}>
+                    <HelpButtonInline contentId={currencyHelpId} help={currencyHelp} />
+                  </span>
+                </FormLabel>
+                <HelpButtonInlineContent contentId={currencyHelpId} help={currencyHelp} bottom="x-small" />
+                <Autocomplete
+                  id={currencyFieldId}
+                  size="medium"
+                  data={filteredCurrencies}
+                  placeholder="Velg valuta"
+                  stretch
+                  disabled={!selectedRecipient}
+                  showSubmitButton
+                  submitButtonTitle=""
+                  icon={selectedCurrency ? <CountryFlag iso={selectedCurrency.iso} size="small" /> : undefined}
+                  value={selectedCurrency?.code ?? undefined}
+                  onChange={({ selectedItem }) => {
+                    if (typeof selectedItem === "number" && filteredCurrencies[selectedItem]) {
+                      const code = String(filteredCurrencies[selectedItem].selectedKey);
+                      const c = currencyList.find((x) => x.code === code);
+                      setSelectedCurrency(c ?? null);
+                    } else {
+                      setSelectedCurrency(null);
+                    }
+                  }}
+                />
+              </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 <div style={{ display: "flex", alignItems: "flex-end", gap: "16px" }}>
                   <div style={{ flex: 1 }}>
@@ -1562,16 +1596,34 @@ export default function InternationalPayment() {
                 </P>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <Input
-                  label="Melding (på engelsk)"
-                  size="medium"
-                  stretch
-                  placeholder="Melding til mottaker"
-                  value={message}
-                  maxLength={messageMaxLength}
-                  status={messageError}
-                  onChange={({ value }) => setMessage(value)}
-                />
+                {/* Speiler Eufemias FieldBlock-struktur: hjelpeknappen ligger inne i
+                    labelen, og den ekspanderbare boksen mellom label og felt. De to
+                    koples sammen via samme contentId. Egen FormLabel istedenfor
+                    Input sin label, ellers får vi ikke boksen imellom. */}
+                <div>
+                  <FormLabel forId={messageFieldId} style={{ marginBottom: "0.5rem" }}>
+                    Melding
+                    {/* word-joiner-CSS-en fra Eufemia er scopet til .dnb-forms-field-block__label,
+                        så avstanden settes manuelt her. */}
+                    <span style={{ marginLeft: "0.45em", whiteSpace: "nowrap" }}>
+                      <HelpButtonInline contentId={messageHelpId} help={messageHelp} />
+                    </span>
+                  </FormLabel>
+                  {/* bottom gir luft ned til feltet. Trygt fordi HeightAnimation
+                      unmounter hele elementet når boksen er lukket — ingen
+                      etterlatt margin da. 8px speiler labelens avstand ned. */}
+                  <HelpButtonInlineContent contentId={messageHelpId} help={messageHelp} bottom="x-small" />
+                  <Input
+                    id={messageFieldId}
+                    size="medium"
+                    stretch
+                    placeholder="Melding til mottaker"
+                    value={message}
+                    maxLength={messageMaxLength}
+                    status={messageError}
+                    onChange={({ value }) => setMessage(value)}
+                  />
+                </div>
                 <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
                   {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
                 </P>
