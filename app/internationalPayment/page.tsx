@@ -1613,10 +1613,16 @@ export default function InternationalPayment() {
                       unmounter hele elementet når boksen er lukket — ingen
                       etterlatt margin da. 8px speiler labelens avstand ned. */}
                   <HelpButtonInlineContent contentId={messageHelpId} help={messageHelp} bottom="x-small" />
-                  <Input
+                  {/* Textarea med rows=1 + size="medium" starter på samme høyde som
+                      en Input (2.5rem) og vokser når teksten bryter. Merk at propene
+                      heter autoResize/autoResizeMaxRows (camelCase) i 11.13.0. */}
+                  <Textarea
                     id={messageFieldId}
                     size="medium"
                     stretch
+                    rows={1}
+                    autoResize
+                    autoResizeMaxRows={6}
                     placeholder="Melding til mottaker"
                     value={message}
                     maxLength={messageMaxLength}
