@@ -716,10 +716,21 @@ export default function InternationalPayment() {
   const cityError = editOpen && !city.trim() ? "Dette feltet må fylles ut." : undefined;
 
   // Vises via Autocompletens status-prop, altså mellom feltet og navnet.
+  // Statusen kan være ReactNode (FormStatusText), så navnet gjøres til en lenke
+  // som åpner «Rediger mottaker»-dialogen. element="button" gir riktig semantikk
+  // siden den åpner en dialog framfor å navigere.
   const recipientError = submitted && !selectedRecipient
     ? "Dette feltet må fylles ut."
     : isErrorRecipient
-    ? "Manglende info om mottaker, vennligst oppdater før du fortsetter betalingen."
+    ? (
+        <>
+          Manglende info om{" "}
+          <Anchor element="button" type="button" onClick={openEditRecipient}>
+            {selectedRecipient?.name}
+          </Anchor>{" "}
+          sin adresse. Vennligst oppdater før du fortsetter betalingen.
+        </>
+      )
     : undefined;
 
   useEffect(() => {
