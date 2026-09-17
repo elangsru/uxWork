@@ -82,18 +82,22 @@ const recipients: Recipient[] = [
     city: "Barcelona",
   },
   {
-    name: "Medel Svedsson",
-    iban: "SE72 8000 0810 3400 0978 3242",
-    iso: "SE",
-    currencies: ["EUR", "SEK"],
-    defaultCurrency: "SEK",
-    bankName: "SVENSKA HANDELSBANKEN AB",
-    bankAddress: ["Kungsträdgårdsgatan 2", "Stockholm", "Sweden"],
-    swift: "HANDSESS",
-    address: ["Drottninggatan 15", "111 51 Stockholm", "Sweden"],
-    addressLine1: "Drottninggatan 15",
-    postalCode: "111 51",
-    city: "Stockholm",
+    // Argentina bruker ikke IBAN. Kontonummeret er et CBU-lignende BBAN på 30
+    // siffer (matcher accountNumberLengths.AR), og banken identifiseres av
+    // SWIFT/BIC framfor et landprefiks. Bankdataene er de samme som
+    // bankByCountry.AR, slik at rediger- og «Ny mottaker»-flyten stemmer.
+    name: "Mateo Fernández",
+    iban: "2850 5909 4009 0418 1352 0199 8877 21",
+    iso: "AR",
+    currencies: ["USD", "EUR"],
+    defaultCurrency: "USD",
+    bankName: "Banco de la Nación Argentina",
+    bankAddress: ["Bartolomé Mitre 326", "C1036AAF Buenos Aires", "Argentina"],
+    swift: "NACNARBAXXX",
+    address: ["Avenida Corrientes 1234", "C1043AAZ Buenos Aires", "Argentina"],
+    addressLine1: "Avenida Corrientes 1234",
+    postalCode: "C1043AAZ",
+    city: "Buenos Aires",
   },
 ];
 
@@ -617,6 +621,17 @@ export default function InternationalPayment() {
   const [hydrated, setHydrated] = useState(false);
   const [paymentType, setPaymentType] = useState("sepa");
   const [recipientLayout, setRecipientLayout] = useState<"current" | "tabs" | "accordion">("accordion");
+  // Styrer hvordan bankinfoen i «Rediger mottaker» presenteres: av = read-only
+  // tekstlinjer med skeleton (som før), på = disabled inputfelt med samme data.
+  // Persisteres ikke, likt recipientLayout som den hører sammen med.
+  const [editableFields, setEditableFields] = useState(false);
+  // Egen state for IBAN i rediger-dialogen. Kan ikke gjenbruke `accountNumber`,
+  // som deles med «Ny mottaker» — da ville verdien lekket mellom flytene.
+  // Fylles i openEditRecipient.
+  const [editIban, setEditIban] = useState("");
+  // SWIFT/BIC i rediger-dialogen. Egen state av samme grunn som editIban.
+  // Redigerbar kun for ikke-IBAN-land, der brukeren må oppgi den selv.
+  const [editSwift, setEditSwift] = useState("");
   const [costOption, setCostOption] = useState("delt");
   const [agreedRate, setAgreedRate] = useState("");
   const [reference, setReference] = useState("");
@@ -711,26 +726,22 @@ export default function InternationalPayment() {
   // konto», tomt Sted/by og lukket bankkort i redigeringsdialogen.
   const isErrorRecipient = selectedRecipient?.name === errorRecipientName;
 
+  // Om mottakerens bank bruker IBAN. Ikke-IBAN-land (Argentina) krever at
+  // brukeren oppgir både kontonummer (BBAN) og SWIFT/BIC selv — samme prinsipp
+  // som «Ny mottaker». Slås opp på mottakerens land; i demodataene er mottakerens
+  // og bankens land det samme.
+  const recipientUsesIban =
+    countryList.find((c) => c.code === selectedRecipient?.iso)?.usesIban ?? true;
+
   // Sted/by er påkrevd i «Rediger mottaker». editOpen-gaten hindrer at et
   // tomt felt gir feil i «Ny mottaker», der brukeren ikke har rukket noe ennå.
   const cityError = editOpen && !city.trim() ? "Dette feltet må fylles ut." : undefined;
 
   // Vises via Autocompletens status-prop, altså mellom feltet og navnet.
-  // Statusen kan være ReactNode (FormStatusText), så navnet gjøres til en lenke
-  // som åpner «Rediger mottaker»-dialogen. element="button" gir riktig semantikk
-  // siden den åpner en dialog framfor å navigere.
   const recipientError = submitted && !selectedRecipient
     ? "Dette feltet må fylles ut."
     : isErrorRecipient
-    ? (
-        <>
-          Manglende info om{" "}
-          <Anchor element="button" type="button" onClick={openEditRecipient}>
-            {selectedRecipient?.name}
-          </Anchor>{" "}
-          sin adresse. Vennligst oppdater før du fortsetter betalingen.
-        </>
-      )
+    ? "Info om mottaker krever oppdatering før du kan fullføre betalingen."
     : undefined;
 
   useEffect(() => {
@@ -841,6 +852,8 @@ export default function InternationalPayment() {
   function openEditRecipient() {
     if (!selectedRecipient) return;
     setRecipientName(selectedRecipient.name);
+    setEditIban(selectedRecipient.iban);
+    setEditSwift(selectedRecipient.swift);
     setRecipientCountry(countryList.find((c) => c.code === selectedRecipient.iso) ?? null);
     setAddressLine1(selectedRecipient.addressLine1);
     setAddressLine2("");
@@ -1266,18 +1279,6 @@ export default function InternationalPayment() {
   const editRecipientContent = selectedRecipient && (
     <div className="ip-recipient-cards" style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
       <style>{recipientCardStyles}</style>
-      {/* Meldingen gjelder hele visningen, ikke bare IBAN-raden den tidligere sto
-          i, så den ligger øverst rett under dialogtittelen. Skjules for mottakeren
-          med adressefeil — der er «Mottakers bank» lukket av samme grunn, og en
-          melding om at bankinfo ikke kan redigeres trekker oppmerksomheten bort
-          fra adressefeltet som faktisk må rettes. */}
-      {!isErrorRecipient && (
-        <FormStatus
-          state="information"
-          stretch
-          text="Info om mottakers bank kan foreløpig ikke redigeres"
-        />
-      )}
       <List.Container>
         {/* Lukket for mottakeren med adressefeil, slik at oppmerksomheten
             går til adressefeltene som må rettes. */}
@@ -1288,13 +1289,62 @@ export default function InternationalPayment() {
         >
           <List.Item.Accordion.Content>
             <List.Cell.Start innerSpace>
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
-                {readOnlyField("Kontonummer (IBAN)", [selectedRecipient.iban])}
-                {rowDivider}
-                {readOnlyField("SWIFT/BIC-kode", [selectedRecipient.swift])}
-                {rowDivider}
-                {readOnlyField("Bankens adresse", selectedRecipient.bankAddress)}
-              </div>
+              {/* Styres av «Edit bank info» i konfigmenyen. Kontonummer-labelen
+                  følger om banken bruker IBAN, likt bankFields i «Ny mottaker».
+                  For ikke-IBAN-land (Argentina) må brukeren oppgi både kontonummer
+                  og SWIFT/BIC selv, så begge er redigerbare der. */}
+              {editableFields ? (
+                // Redigerbare felt for det brukeren må oppgi selv — resten forblir
+                // read-only tekstlinjer. Samme 16px + skillelinjer som av-varianten,
+                // så kortet leses som én helhet der radene bare bytter form.
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+                  <Input
+                    label={recipientUsesIban ? "Kontonummer (IBAN)" : "Kontonummer"}
+                    size="medium"
+                    stretch
+                    value={editIban}
+                    onChange={({ value }) => setEditIban(value)}
+                  />
+                  {rowDivider}
+                  {recipientUsesIban ? (
+                    readOnlyField("SWIFT/BIC-kode", [editSwift])
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <Input
+                        label="SWIFT/BIC"
+                        size="medium"
+                        stretch
+                        maxLength={swiftBicLength}
+                        value={editSwift}
+                        onChange={({ value }) => setEditSwift(value)}
+                      />
+                      <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                        {Math.max(swiftBicLength - editSwift.replace(/\s/g, "").length, 0)} av{" "}
+                        {swiftBicLength} tegn gjenstår.
+                      </P>
+                    </div>
+                  )}
+                  {rowDivider}
+                  {readOnlyField("Bankens navn", [selectedRecipient.bankName])}
+                  {rowDivider}
+                  {readOnlyField("Bankens adresse", selectedRecipient.bankAddress)}
+                </div>
+              ) : (
+                // Read-only tekstlinjer med skeleton og skillelinjer kant til kant,
+                // slik løsningen var før inputfeltene kom.
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+                  {readOnlyField(
+                    recipientUsesIban ? "Kontonummer (IBAN)" : "Kontonummer",
+                    [editIban]
+                  )}
+                  {rowDivider}
+                  {readOnlyField("SWIFT/BIC-kode", [editSwift])}
+                  {rowDivider}
+                  {readOnlyField("Bankens navn", [selectedRecipient.bankName])}
+                  {rowDivider}
+                  {readOnlyField("Bankens adresse", selectedRecipient.bankAddress)}
+                </div>
+              )}
             </List.Cell.Start>
           </List.Item.Accordion.Content>
         </List.Item.Accordion>
@@ -1814,13 +1864,13 @@ export default function InternationalPayment() {
 
           {currentStep === 0 && (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-              <P size="basis" style={{ margin: 0 }}>New/edit recipient</P>
+              <P size="basis" style={{ margin: 0 }}>Grouping alternatives</P>
               <div className="narrow-dropdown">
                 <style>{`
                   .narrow-dropdown .dnb-dropdown { --dropdown-width: 10rem; }
                 `}</style>
                 <Dropdown
-                  label="New/edit recipient"
+                  label="Grouping alternatives"
                   labelSrOnly
                   size="small"
                   value={recipientLayout}
@@ -1838,6 +1888,18 @@ export default function InternationalPayment() {
                   }
                 />
               </div>
+            </div>
+          )}
+
+          {currentStep === 0 && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+              <P size="basis" style={{ margin: 0 }}>Edit bank info</P>
+              <Switch
+                label="Edit bank info"
+                labelSrOnly
+                checked={editableFields}
+                onChange={({ checked }) => setEditableFields(checked)}
+              />
             </div>
           )}
 
