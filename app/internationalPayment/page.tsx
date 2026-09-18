@@ -101,10 +101,6 @@ const recipients: Recipient[] = [
   },
 ];
 
-// Midlertidig: én bestemt mottaker gir en feilmelding på «Til konto» mens
-// flyten prototypes. Matcher på navnet som vises i lista.
-const errorRecipientName = "Jose Martinez";
-
 const toAccounts = recipients.map((r) => ({
   selectedKey: r.iban,
   selectedValue: r.iban,
@@ -632,6 +628,9 @@ export default function InternationalPayment() {
   // SWIFT/BIC i rediger-dialogen. Egen state av samme grunn som editIban.
   // Redigerbar kun for ikke-IBAN-land, der brukeren må oppgi den selv.
   const [editSwift, setEditSwift] = useState("");
+  // Viser adressefeilen på «Til konto» for den valgte mottakeren, uansett hvem.
+  // Tidligere var den bundet til én bestemt mottaker i lista.
+  const [addressWarning, setAddressWarning] = useState(false);
   const [costOption, setCostOption] = useState("delt");
   const [agreedRate, setAgreedRate] = useState("");
   const [reference, setReference] = useState("");
@@ -724,7 +723,9 @@ export default function InternationalPayment() {
 
   // Denne mottakeren driver adressefeil-scenarioet: feilmelding på «Til
   // konto», tomt Sted/by og lukket bankkort i redigeringsdialogen.
-  const isErrorRecipient = selectedRecipient?.name === errorRecipientName;
+  // Adressefeilen styres av «Address warning» i konfigmenyen og gjelder da
+  // uansett hvilken mottaker som er valgt — ikke lenger bundet til én bestemt.
+  const isErrorRecipient = addressWarning && !!selectedRecipient;
 
   // Om mottakerens bank bruker IBAN. Ikke-IBAN-land (Argentina) krever at
   // brukeren oppgir både kontonummer (BBAN) og SWIFT/BIC selv — samme prinsipp
@@ -858,9 +859,9 @@ export default function InternationalPayment() {
     setAddressLine1(selectedRecipient.addressLine1);
     setAddressLine2("");
     setPostalCode(selectedRecipient.postalCode);
-    // Sted/by lates stå tom for mottakeren som skal vise adressefeil, slik at
+    // Sted/by lates stå tom når adressefeilen er slått på, slik at
     // påkrevd-valideringen slår inn med en gang dialogen åpnes.
-    setCity(selectedRecipient.name === errorRecipientName ? "" : selectedRecipient.city);
+    setCity(addressWarning ? "" : selectedRecipient.city);
     setEditOpen(true);
     showBankSkeleton();
   }
@@ -1888,6 +1889,18 @@ export default function InternationalPayment() {
                   }
                 />
               </div>
+            </div>
+          )}
+
+          {currentStep === 0 && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
+              <P size="basis" style={{ margin: 0 }}>Address warning</P>
+              <Switch
+                label="Address warning"
+                labelSrOnly
+                checked={addressWarning}
+                onChange={({ checked }) => setAddressWarning(checked)}
+              />
             </div>
           )}
 
