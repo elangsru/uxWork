@@ -773,7 +773,7 @@ export default function InternationalPayment() {
     : undefined;
 
   const addressWarningText =
-    "Info om mottaker krever oppdatering før du kan fullføre betalingen.";
+    "Vennligst se over og bekreft informasjon om mottaker før du fortsetter betalingen.";
 
   useEffect(() => {
     if (selectedRecipient?.name === "John Jones") {
