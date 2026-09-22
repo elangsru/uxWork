@@ -515,7 +515,7 @@ export default function PaymentsOverview() {
               checked={showSaldo}
               onChange={({ checked }) => setShowSaldo(checked)}
             />
-            <TermDefinition content="Når aktiv vises forventet fremtidig saldo etter at betalinger til forfall er trukket fra.">
+            <TermDefinition content="Når aktiv vises forventet fremtidig saldo etter at betalinger til forfall er trukket fra. Betalinger merket med rødt indikerer saldo kan gå i minus.">
               Penger til overs
             </TermDefinition>
           </div>

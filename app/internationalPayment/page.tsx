@@ -464,13 +464,26 @@ const accountNumberExamples: Record<string, string> = {
 // er dette IBAN-lengden (iban.com/structure), og den brukes da også som
 // kriterium for bankoppslaget. Argentina bruker CBU, ikke IBAN.
 const accountNumberLengths: Record<string, number> = {
+  AT: 20,
   DK: 18,
   ES: 24,
   SE: 24,
   DE: 22,
   FR: 27,
+  GB: 22,
   AR: 30,
 };
+
+// Hard grense på kontonummerfeltene: anbefalt lengde for landet, pluss
+// mellomrommene som alt står i verdien, siden maxLength teller dem — da blir
+// taket riktig antall sifre selv om verdien vises gruppert.
+// Å avvise i onChange virker IKKE: Eufemias Input har intern state, så uten at
+// verdien faktisk endrer seg kommer det ingen re-render som ruller tilbake det
+// brukeren skrev. undefined når landet mangler en anbefalt lengde.
+function accountNumberMaxLength(countryCode: string | undefined, value: string) {
+  const max = accountNumberLengths[countryCode ?? ""];
+  return max ? max + (value.match(/\s/g)?.length ?? 0) : undefined;
+}
 
 const bankByCountry: Record<string, BankDetails> = {
   DK: {
@@ -525,6 +538,20 @@ function resolveBank(accountNumber: string, country: BankCountry | null): BankDe
 }
 
 // Delt av «Ny mottaker» og «Rediger mottaker», som bruker samme kortoppsett.
+// Mottakerraden under «Til konto». Eufemias ItemFooter rendrer alltid en Hr som
+// skillelinje, uten prop for å slå den av, så den skjules her. Footerens
+// margin-top nulles samtidig: den var ment å ligge under separatoren, og uten
+// den ble navn→varsel 32px (margin 16 + padding 16). Nå blir det 16px, altså
+// ett --list-item-padding, likt avstanden inn fra kortets øvrige kanter.
+const recipientRowStyles = `
+  .ip-recipient-row .dnb-list__item__footer-separator {
+    display: none;
+  }
+  .ip-recipient-row .dnb-list__item__footer {
+    margin-top: 0;
+  }
+`;
+
 const recipientCardStyles = `
   .ip-recipient-cards .dnb-list__container {
     padding-right: 0;
@@ -739,11 +766,14 @@ export default function InternationalPayment() {
   const cityError = editOpen && !city.trim() ? "Dette feltet må fylles ut." : undefined;
 
   // Vises via Autocompletens status-prop, altså mellom feltet og navnet.
+  // Kun påkrevd-valideringen ligger på feltet. Adressevarselet vises i
+  // mottakerraden under, via List.Cell.Footer — se addressWarningText.
   const recipientError = submitted && !selectedRecipient
     ? "Dette feltet må fylles ut."
-    : isErrorRecipient
-    ? "Info om mottaker krever oppdatering før du kan fullføre betalingen."
     : undefined;
+
+  const addressWarningText =
+    "Info om mottaker krever oppdatering før du kan fullføre betalingen.";
 
   useEffect(() => {
     if (selectedRecipient?.name === "John Jones") {
@@ -961,6 +991,7 @@ export default function InternationalPayment() {
                 ? `e.g. ${accountNumberExamples[selectedBankCountry.code]}`
                 : undefined
             }
+            maxLength={accountNumberMaxLength(selectedBankCountry.code, accountNumber)}
             value={accountNumber}
             status={
               prefixValidatedCountries.has(selectedBankCountry.code) &&
@@ -1146,6 +1177,7 @@ export default function InternationalPayment() {
                 ? `e.g. ${accountNumberExamples[selectedBankCountry.code]}`
                 : undefined
             }
+            maxLength={accountNumberMaxLength(selectedBankCountry.code, accountNumber)}
             value={accountNumber}
             status={
               prefixValidatedCountries.has(selectedBankCountry.code) &&
@@ -1303,6 +1335,7 @@ export default function InternationalPayment() {
                     label={recipientUsesIban ? "Kontonummer (IBAN)" : "Kontonummer"}
                     size="medium"
                     stretch
+                    maxLength={accountNumberMaxLength(selectedRecipient.iso, editIban)}
                     value={editIban}
                     onChange={({ value }) => setEditIban(value)}
                   />
@@ -1556,14 +1589,40 @@ export default function InternationalPayment() {
                 </div>
               </div>
               {selectedRecipient && (
-                <div style={{ marginTop: "-16px" }}>
-                  <Button
-                    variant="tertiary"
-                    text={selectedRecipient.name}
-                    icon={chevron_right}
-                    iconPosition="right"
-                    onClick={openEditRecipient}
-                  />
+                <div className="ip-recipient-row" style={{ marginTop: "-8px" }}>
+                  <style>{recipientRowStyles}</style>
+                  {/* List.Item.Action uten href rendrer raden med role="button" og
+                      kaller onClick — samme handling som lenken hadde. Chevron
+                      legges på automatisk til høyre. Avatar size="medium" = 2rem
+                      = 32px, og flagget følger Eufemias skala (medium → x-small).
+                      hasLabel demper Avatar.Group-advarselen: navnet står i raden. */}
+                  <List.Container>
+                    <List.Item.Action
+                      title={selectedRecipient.name}
+                      onClick={openEditRecipient}
+                    >
+                      <List.Cell.Start>
+                        <Badge
+                          content={<CountryFlag iso={selectedRecipient.iso} size="x-small" />}
+                          vertical="bottom"
+                          horizontal="right"
+                          variant="content"
+                        >
+                          <Avatar size="medium" variant="primary" hasLabel>
+                            {selectedRecipient.name}
+                          </Avatar>
+                        </Badge>
+                      </List.Cell.Start>
+                      {/* Adressevarselet ligger i raden, ikke på feltet. Docs
+                          advarer bare mot interaktive elementer i en footer på
+                          List.Item.Action — FormStatus er ikke interaktiv. */}
+                      {isErrorRecipient && (
+                        <List.Cell.Footer>
+                          <FormStatus state="warning" stretch text={addressWarningText} />
+                        </List.Cell.Footer>
+                      )}
+                    </List.Item.Action>
+                  </List.Container>
                 </div>
               )}
               {/* Monteres først når den skal åpnes: Eufemias Modal åpner ikke
