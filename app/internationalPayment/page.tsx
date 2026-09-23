@@ -156,14 +156,22 @@ function fmtDate(iso: string): string {
   return d.toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" });
 }
 
+// Rammen rundt kortene på oppsummeringssteget. Brukes av flere seksjoner, så den
+// ligger her framfor å gjentas inline.
+const summaryCardStyle: CSSProperties = {
+  outline: "1px solid var(--token-color-stroke-neutral-alternative)",
+  borderRadius: "var(--token-radius-lg)",
+  overflow: "hidden",
+};
+
 function SummaryStep({
   paymentDate,
   recipient,
+  fromAccount,
   currency,
   amount,
   amountInNok,
   showPurpose,
-  customInfoStyle,
   paymentType,
   fullWidth,
   costOption,
@@ -176,11 +184,12 @@ function SummaryStep({
 }: {
   paymentDate: string;
   recipient: Recipient | null;
+  /** Kontoen valgt på steg 1, vist som detalj under «Du sender». */
+  fromAccount: { name: string; number: string } | null;
   currency: Currency | null;
   amount: string;
   amountInNok: boolean;
   showPurpose: boolean;
-  customInfoStyle: boolean;
   paymentType: string;
   fullWidth: boolean;
   costOption: string;
@@ -245,49 +254,51 @@ function SummaryStep({
       {/* Oppsummering */}
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <H3>Oppsummering</H3>
-        <div
-          className="summary-container"
-          style={{
-            outline: "1px solid var(--token-color-stroke-neutral-alternative)",
-            borderRadius: "var(--token-radius-lg)",
-            overflow: "hidden",
-          }}
-        >
+        <div className="summary-container" style={summaryCardStyle}>
           <List.Container>
             <List.Item.Basic>
               <List.Cell.Title>Betalingsdato</List.Cell.Title>
               <List.Cell.End>{fmtDate(paymentDate)}</List.Cell.End>
             </List.Item.Basic>
             <List.Item.Basic>
-              <List.Cell.Title>Du sender{amountInNok ? "" : " (ca)"}</List.Cell.Title>
-              <List.Cell.End>NOK {fmtAmount(nokAmount)}</List.Cell.End>
+              <List.Cell.Title>
+                Du sender fra
+                {fromAccount && (
+                  <List.Cell.Title.Subline variant="description">
+                    {/* Norsk kontonummer skrives med punktum (4.2.5), mens
+                        kildedataene har mellomrom. IBAN-en på mottakerraden
+                        beholder mellomrom, som er konvensjonen der. */}
+                    {fromAccount.name} {fromAccount.number.replace(/\s/g, ".")}
+                  </List.Cell.Title.Subline>
+                )}
+              </List.Cell.Title>
+              {/* «Ca.» står foran beløpet, ikke i tittelen. Gjelder når beløpet er
+                  utledet: NOK-siden er omregnet når brukeren tastet i valuta. */}
+              <List.Cell.End>{amountInNok ? "" : "Ca. "}NOK {fmtAmount(nokAmount)}</List.Cell.End>
             </List.Item.Basic>
             <List.Item.Basic>
-              <List.Cell.Title>{recipient ? `${recipient.name} mottar` : "Mottaker mottar"}{amountInNok ? " (ca)" : ""}</List.Cell.Title>
-              <List.Cell.End>{currencyCode} {fmtAmount(foreignAmount)}</List.Cell.End>
+              <List.Cell.Title>
+                {recipient ? `${recipient.name} mottar på` : "Mottaker mottar på"}
+                {recipient && (
+                  <List.Cell.Title.Subline variant="description">
+                    {recipient.iban}
+                  </List.Cell.Title.Subline>
+                )}
+              </List.Cell.Title>
+              <List.Cell.End>{amountInNok ? "Ca. " : ""}{currencyCode} {fmtAmount(foreignAmount)}</List.Cell.End>
             </List.Item.Basic>
             <List.Item.Basic>
               <List.Cell.Title>Valutakurs ({currencyCode} 1)</List.Cell.Title>
               <List.Cell.End>NOK {fmtAmount(rate)}</List.Cell.End>
-              {!customInfoStyle && (
-                <List.Cell.Footer>
-                  <FormStatus
-                    state="information"
-                    stretch
-                    text="Valutakurs er kun foreløpig. Endelig kurs settes når betalingen gjennomføres."
-                  />
-                </List.Cell.Footer>
-              )}
+              <List.Cell.Footer>
+                <FormStatus
+                  state="information"
+                  stretch
+                  text="Valutakurs er kun foreløpig. Endelig kurs settes når betalingen gjennomføres."
+                />
+              </List.Cell.Footer>
             </List.Item.Basic>
           </List.Container>
-          {customInfoStyle && (
-            <FormStatus
-              state="information"
-              stretch
-              text="Valutakurs er kun foreløpig. Endelig kurs settes når betalingen gjennomføres."
-              style={{ "--form-status-radius": "0" } as CSSProperties}
-            />
-          )}
         </div>
       </div>
 
@@ -308,14 +319,7 @@ function SummaryStep({
             </Radio.Group>
           </div>
         )}
-        <div
-          className="summary-container"
-          style={{
-            outline: "1px solid var(--token-color-stroke-neutral-alternative)",
-            borderRadius: "var(--token-radius-lg)",
-            overflow: "hidden",
-          }}
-        >
+        <div className="summary-container" style={summaryCardStyle}>
           <List.Container>
             <List.Item.Basic>
               <List.Cell.Start>
@@ -323,24 +327,13 @@ function SummaryStep({
               </List.Cell.Start>
               <List.Cell.Title>{costLabel}</List.Cell.Title>
               <List.Cell.End>{costDisplay}</List.Cell.End>
-              {!customInfoStyle && costMessage && (
+              {costMessage && (
                 <List.Cell.Footer>
                   <FormStatus state="information" stretch text={costMessage} />
                 </List.Cell.Footer>
               )}
             </List.Item.Basic>
           </List.Container>
-          {customInfoStyle && (
-            <FormStatus
-              state="information"
-              stretch
-              text={costMessage ?? ""}
-              style={{
-                "--form-status-radius": "0",
-                display: costMessage ? undefined : "none",
-              } as CSSProperties}
-            />
-          )}
         </div>
       </div>
 
@@ -638,7 +631,6 @@ export default function InternationalPayment() {
   const [submitted, setSubmitted] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [showPurpose, setShowPurpose] = useState(false);
-  const [customInfoStyle, setCustomInfoStyle] = useState(false);
   const [fullWidth, setFullWidth] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -1625,22 +1617,6 @@ export default function InternationalPayment() {
                   </List.Container>
                 </div>
               )}
-              {/* Monteres først når den skal åpnes: Eufemias Modal åpner ikke
-                  på en false→true-overgang med mindre props-identiteten også
-                  endres, men åpner korrekt når den monteres med open={true}. */}
-              {editOpen && (
-                <Dialog
-                  title="Rediger mottaker"
-                  open
-                  omitTriggerButton
-                  onClose={() => {
-                    setEditOpen(false);
-                    resetRecipientForm();
-                  }}
-                >
-                  {editRecipientContent}
-                </Dialog>
-              )}
               <div>
                 <FormLabel forId={currencyFieldId} style={{ marginBottom: "0.5rem" }}>
                   Valuta som sendes
@@ -1824,11 +1800,17 @@ export default function InternationalPayment() {
             <SummaryStep
               paymentDate={paymentDate}
               recipient={selectedRecipient}
+              fromAccount={(() => {
+                if (selectedFromKey === null) return null;
+                const acc = fromAccountList[parseInt(selectedFromKey, 10)];
+                return acc
+                  ? { name: String(acc.content[0]), number: String(acc.content[1]) }
+                  : null;
+              })()}
               currency={selectedCurrency}
               amount={amount}
               amountInNok={amountInNok}
               showPurpose={showPurpose}
-              customInfoStyle={customInfoStyle}
               paymentType={paymentType}
               fullWidth={fullWidth}
               costOption={costOption}
@@ -1842,6 +1824,23 @@ export default function InternationalPayment() {
           )}
         </div>
       </div>
+
+      {/* Monteres først når den skal åpnes: Eufemias Modal åpner ikke på en
+          false→true-overgang med mindre props-identiteten også endres, men
+          åpner korrekt når den monteres med open={true}. */}
+      {editOpen && (
+        <Dialog
+          title="Rediger mottaker"
+          open
+          omitTriggerButton
+          onClose={() => {
+            setEditOpen(false);
+            resetRecipientForm();
+          }}
+        >
+          {editRecipientContent}
+        </Dialog>
+      )}
 
       {/* Tools button */}
       <div style={{ position: "fixed", top: "32px", right: "32px", zIndex: 100 }}>
@@ -1984,13 +1983,6 @@ export default function InternationalPayment() {
             <P size="basis" style={{ margin: 0 }}>Dark mode</P>
             <Switch label="Dark mode" labelSrOnly checked={darkMode} onChange={({ checked }) => setDarkMode(checked)} />
           </div>
-
-          {currentStep === 1 && (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle, #f8f8f8)", borderRadius: "var(--token-radius-md, 8px)", padding: "16px" }}>
-              <P size="basis" style={{ margin: 0 }}>Info message filled</P>
-              <Switch label="Info message filled" labelSrOnly checked={customInfoStyle} onChange={({ checked }) => setCustomInfoStyle(checked)} />
-            </div>
-          )}
         </div>
       )}
     </Theme>
