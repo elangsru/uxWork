@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Skeleton, Tabs } from "@dnb/eufemia/components";
+import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Skeleton, Tabs, Tooltip } from "@dnb/eufemia/components";
 // HelpButtonInline eksporteres ikke fra pakkeroten i 11.13.0 — kun HelpButton
 // (som åpner en dialog). Den inline ekspanderbare varianten må dyp-importeres.
 import HelpButtonInline, { HelpButtonInlineContent } from "@dnb/eufemia/components/help-button/HelpButtonInline";
@@ -602,11 +602,17 @@ export default function InternationalPayment() {
   const [amountInNok, setAmountInNok] = useState(false);
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
+  const [saveMessage, setSaveMessage] = useState(false);
+  const amountFieldId = "international-payment-amount";
+  const amountHelpId = `${amountFieldId}-help`;
+  const amountHelp = {
+    content:
+      "Du kan alternativt taste beløp i norske kroner. Velg NOK under. Overføringsvalutaen forblir den samme.",
+  };
   const messageMaxLength = 140;
   const messageFieldId = "international-payment-message";
   const messageHelpId = `${messageFieldId}-help`;
   const messageHelp = {
-    title: "Melding på engelsk",
     content:
       "Meldingen bør skrives på engelsk, da dette er standardspråket for utenlandsbetalinger.",
   };
@@ -1648,32 +1654,58 @@ export default function InternationalPayment() {
                 />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                <div style={{ display: "flex", alignItems: "flex-end", gap: "16px" }}>
-                  <div style={{ flex: 1 }}>
-                    <InputMasked
-                      label="Beløp"
-                      size="medium"
-                      stretch
-                      numberMask={{
-                        prefix: `${amountInNok ? "NOK" : selectedCurrency?.code ?? "NOK"} `,
-                        suffix: "",
-                        allowDecimal: true,
-                        decimalLimit: 2,
-                        thousandsSeparatorSymbol: " ",
-                        decimalSymbol: ",",
-                      }}
-                      placeholder={amountInNok ? "NOK" : selectedCurrency?.code ?? ""}
-                      value={amount}
-                      onChange={({ numberValue }) => setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")}
-                    />
-                  </div>
-                  <div style={{ height: "2.5rem", display: "flex", alignItems: "center" }}>
-                    <Switch
-                      label="Tast beløp i NOK"
-                      labelPosition="right"
-                      checked={amountInNok}
-                      onChange={({ checked }) => setAmountInNok(checked)}
-                    />
+                {/* Samme FieldBlock-etterligning som «Melding» og «Valuta som
+                    sendes»: label med hjelpeknapp, den ekspanderbare boksen
+                    under, og selve raden nederst. Labelen er løftet ut av
+                    InputMasked, ellers havner boksen over labelen. Boksen ligger
+                    utenfor flex-raden så teksten får full bredde, ikke bare
+                    inputens. */}
+                <div>
+                  <FormLabel forId={amountFieldId} style={{ marginBottom: "0.5rem" }}>
+                    Beløp
+                    <span style={{ marginLeft: "0.45em", whiteSpace: "nowrap" }}>
+                      <HelpButtonInline contentId={amountHelpId} help={amountHelp} />
+                    </span>
+                  </FormLabel>
+                  <HelpButtonInlineContent contentId={amountHelpId} help={amountHelp} bottom="x-small" />
+                  <div style={{ display: "flex", alignItems: "flex-end", gap: "16px" }}>
+                    <div style={{ flex: 1 }}>
+                      <InputMasked
+                        id={amountFieldId}
+                        size="medium"
+                        stretch
+                        numberMask={{
+                          prefix: `${amountInNok ? "NOK" : selectedCurrency?.code ?? "NOK"} `,
+                          suffix: "",
+                          allowDecimal: true,
+                          decimalLimit: 2,
+                          thousandsSeparatorSymbol: " ",
+                          decimalSymbol: ",",
+                        }}
+                        placeholder={amountInNok ? "NOK" : selectedCurrency?.code ?? ""}
+                        value={amount}
+                        onChange={({ numberValue }) => setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")}
+                      />
+                    </div>
+                    <div style={{ height: "2.5rem", display: "flex", alignItems: "center" }}>
+                      {/* Switch har ingen tooltip-prop (bare `title`, som blir et
+                          nativt title-attributt). Eufemias Tooltip wrappes derfor
+                          rundt målet via targetElement. Den setter aria-describedby
+                          på målet, så teksten leses også opp av skjermleser — labelen
+                          «NOK» alene sier ikke hva svitsjen gjør. */}
+                      <Tooltip
+                        targetElement={
+                          <Switch
+                            label="NOK"
+                            labelPosition="right"
+                            checked={amountInNok}
+                            onChange={({ checked }) => setAmountInNok(checked)}
+                          />
+                        }
+                      >
+                        Tast beløp i norske kroner
+                      </Tooltip>
+                    </div>
                   </div>
                 </div>
                 <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
@@ -1713,19 +1745,41 @@ export default function InternationalPayment() {
                   {/* Textarea med rows=1 + size="medium" starter på samme høyde som
                       en Input (2.5rem) og vokser når teksten bryter. Merk at propene
                       heter autoResize/autoResizeMaxRows (camelCase) i 11.13.0. */}
-                  <Textarea
-                    id={messageFieldId}
-                    size="medium"
-                    stretch
-                    rows={1}
-                    autoResize
-                    autoResizeMaxRows={6}
-                    placeholder="Melding til mottaker"
-                    value={message}
-                    maxLength={messageMaxLength}
-                    status={messageError}
-                    onChange={({ value }) => setMessage(value)}
-                  />
+                  {/* Samme rad-oppsett som Beløp + NOK-svitsjen over. Her er det
+                      flex-start, ikke flex-end: Textarea vokser nedover, og med
+                      flex-end ville svitsjen vandret nedover med den. Ved 1 rad
+                      står den likt som NOK-svitsjen uansett. */}
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
+                    <div style={{ flex: 1 }}>
+                      <Textarea
+                        id={messageFieldId}
+                        size="medium"
+                        stretch
+                        rows={1}
+                        autoResize
+                        autoResizeMaxRows={6}
+                        placeholder="Melding til mottaker"
+                        value={message}
+                        maxLength={messageMaxLength}
+                        status={messageError}
+                        onChange={({ value }) => setMessage(value)}
+                      />
+                    </div>
+                    <div style={{ height: "2.5rem", display: "flex", alignItems: "center" }}>
+                      <Tooltip
+                        targetElement={
+                          <Switch
+                            label="Lagre"
+                            labelPosition="right"
+                            checked={saveMessage}
+                            onChange={({ checked }) => setSaveMessage(checked)}
+                          />
+                        }
+                      >
+                        Gjenbruk melding på fremtidige betalinger
+                      </Tooltip>
+                    </div>
+                  </div>
                 </div>
                 <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
                   {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
