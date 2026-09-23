@@ -613,8 +613,21 @@ export default function InternationalPayment() {
   const messageFieldId = "international-payment-message";
   const messageHelpId = `${messageFieldId}-help`;
   const messageHelp = {
-    content:
-      "Meldingen bør skrives på engelsk, da dette er standardspråket for utenlandsbetalinger.",
+    // To avsnitt, ikke én lang blokk: første handler om språk, andre om
+    // lagre-svitsjen ved siden av feltet. HelpButtonInlineContent pakker
+    // `content` i en <P>, og Eufemias P degraderer til <span> når den
+    // nøstes i en annen P — da faller avsnittsluften bort og teksten
+    // limes sammen. element="div" tvinger blokk, så bottom virker.
+    content: (
+      <>
+        <P element="div" bottom="small">
+          Meldingen bør skrives på engelsk, da dette er standardspråket for utenlandsbetalinger.
+        </P>
+        <P element="div">
+          Lagre melding dersom du ønsker å gjenbruke på fremtidige betalinger til denne mottakeren.
+        </P>
+      </>
+    ),
   };
   const currencyFieldId = "international-payment-currency";
   const currencyHelpId = `${currencyFieldId}-help`;
