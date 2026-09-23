@@ -262,7 +262,7 @@ function SummaryStep({
             </List.Item.Basic>
             <List.Item.Basic>
               <List.Cell.Title>
-                Du sender fra
+                Du sender
                 {fromAccount && (
                   <List.Cell.Title.Subline variant="description">
                     {/* Norsk kontonummer skrives med punktum (4.2.5), mens
@@ -278,7 +278,7 @@ function SummaryStep({
             </List.Item.Basic>
             <List.Item.Basic>
               <List.Cell.Title>
-                {recipient ? `${recipient.name} mottar på` : "Mottaker mottar på"}
+                {recipient ? `${recipient.name} mottar` : "Mottaker mottar"}
                 {recipient && (
                   <List.Cell.Title.Subline variant="description">
                     {recipient.iban}
