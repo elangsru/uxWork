@@ -1121,7 +1121,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                           {/* Ukjent transaksjon. Flyttet hit fra beneficiary-accordionen;
                               ikonet droppet fordi ingen av radene i Detaljer har ikon. */}
                           {(/^ja$/i.test(kortreklamasjoner) || showFieldNames) && (
-                            <List.Item.Basic title={td("Kortreklamasjon", "Ukjent transaksjon")}>
+                            <List.Item.Basic title={td("Kortreklamasjon", "Ukjent transaksjon?")}>
                               <List.Cell.End fontWeight="regular">
                                 {showFieldNames
                                   ? fd(/^kortreklamasjon(er)?$/i)
