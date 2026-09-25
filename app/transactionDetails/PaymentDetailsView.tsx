@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode, type CSSProperties } from "react";
 import {
   Button, Icon, Switch, Dropdown, List, TermDefinition, Tag, Flex,
   Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip, Breadcrumb, Dialog, Autocomplete,
@@ -10,6 +10,40 @@ import { H1, H2, H3, P, Span, Hr } from "@dnb/eufemia/elements";
 import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, pay_from_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
+
+/* ── Avatar-størrelser fra Eufemia ───────────────────────────────── */
+/* Eufemia støtter nøyaktig disse fire på Avatar. Boksmålene er avatarens
+   egne tokens (--avatar-width--*), som logo- og ikonvariantene må matche for
+   at radene skal ligge på samme venstrekant uansett valgt størrelse. */
+type AvatarSize = "small" | "medium" | "large" | "x-large";
+const AVATAR_BOX: Record<AvatarSize, string> = {
+  small: "1.5rem",
+  medium: "2rem",
+  large: "4rem",
+  "x-large": "5rem",
+};
+/* Ikoner utenfor Avatar (gebyr/renter) har ingen auto-size å arve, så de
+   følger avatarens ikon-tokens (--avatar-icon-size--*) manuelt. Eufemias
+   Icon har ingen 1.25rem-variant, så medium/small bruker nærmeste steg. */
+const AVATAR_ICON_SIZE: Record<AvatarSize, "small" | "medium" | "large" | "x-large"> = {
+  small: "small",
+  medium: "medium",
+  large: "x-large",
+  "x-large": "x-large",
+};
+/* Flagget i Badge-en har ingen kobling til avataren i Eufemia – Badge har
+   ingen size-prop, og variant="content" styles av oss. Flagget må derfor
+   få størrelse eksplisitt. CountryFlag-tokens (--size) er 0.5 / 0.75 / 1 /
+   1.5 / 2 / 2.5rem. Regelen er ett steg ned fra avatarens eget navn:
+   medium-avatar → small-flagg, large → medium, x-large → large. Gir 50 %
+   av avatarbredden på de to små og ~38 % på de to store, der et flagg på
+   halve avataren ble for dominerende. */
+const AVATAR_FLAG_SIZE: Record<AvatarSize, "x-small" | "small" | "medium" | "large"> = {
+  small: "x-small",
+  medium: "small",
+  large: "medium",
+  "x-large": "large",
+};
 
 /* ── Land → ISO-kode for CountryFlag ─────────────────────────────── */
 const COUNTRY_ISO: Record<string, string> = {
@@ -42,13 +76,20 @@ function fieldDisplay(record: PaymentRecord | undefined, re: RegExp, showNames: 
   return showNames ? `{${field.label}}` : field.value;
 }
 
+/** Sant når verdien i arket er en lenke (http://, https:// eller //) og ikke
+ *  et filnavn under /public. Brukes både av logoSrc og av visningen, som
+ *  rammer lenkelogoer rundt slik som avataren. */
+function isLogoLink(value: string): boolean {
+  return /^(https?:)?\/\//i.test(value.trim());
+}
+
 /** Løser en logoverdi fra regnearket til en sti under /public.
  *  Godtar filnavn ("visa", "visa.svg", "Apple Pay", "Rema"), ferdig sti
  *  ("/wallet/vipps.svg") eller full URL – URL-er og absolutte stier brukes som de er. */
 function logoSrc(value: string, folder: "kortnettverk" | "wallet" | "merchants"): string {
   const raw = value.trim();
   if (!raw) return "";
-  if (/^(https?:)?\/\//i.test(raw)) return raw;
+  if (isLogoLink(raw)) return raw;
   if (raw.startsWith("/")) return raw;
   // merchants-filene har stor forbokstav ("Rema.svg"), i motsetning til
   // kortnettverk/wallet som er små. Railway kjører Linux med case-sensitivt
@@ -145,6 +186,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const [showSasBonus, setShowSasBonus]         = useState(true);
   const [showFieldNames, setShowFieldNames]     = useState(false);
   const [showLogo, setShowLogo]                 = useState(false);
+  const [avatarSize, setAvatarSize]             = useState<AvatarSize>("medium");
   const [hydrated, setHydrated]         = useState(false);
   const [kidCopied, setKidCopied] = useState(false);
   const [extraTags, setExtraTags] = useState<string[]>([]);
@@ -199,9 +241,10 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const tilLabel         = isGebyrRenter ? "Innbetalt" : isOverforing ? "Overført til" : "Betalt til";
   const fraLabel         = isOverforing ? "Overført fra" : "Betalt fra";
   const logoUrl          = fieldValue(selected, /^logourl$/i);
-  /* Logoen vises alltid til venstre for firmanavnet – både innlimte URL-er og
-     filnavn ("Netflix", hentet fra /merchants). logoSrc slipper URL-er gjennom
-     uendret, så begge formene håndteres av samme variabel. */
+  /* Logoen vises alltid til venstre for firmanavnet. Tre tilstander:
+     navn ("Netflix") → filen under /merchants i kvadratisk boks, lenke →
+     samme bilde i rundt avatarformat med subtil strek, tomt → placeholder
+     (ikon eller bokstavavatar) lenger ned. */
   const merchantLogo     = showLogo ? logoSrc(logoUrl, "merchants") : "";
   /* Feltet Logo/Avatar i arket velger hvilket merke raden får. "Avtar" er en
      skrivefeil i arket, så regexen godtar den også. Andre verdier ("Icon",
@@ -328,37 +371,58 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
     : [];
 
   /* Logo erstatter Avatar når "Vis logo" er slått på og typen har en logo.
-     Boksen er 2rem for å matche Avatar size="medium", så listejusteringen
-     holder seg lik på tvers av radene. */
+     Boksen følger avatarens eget breddetoken for valgt størrelse, så
+     listejusteringen holder seg lik på tvers av radene. */
+  const avatarBox = AVATAR_BOX[avatarSize];
+  const logoMarkBox: CSSProperties = {
+    width: avatarBox,
+    height: avatarBox,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  };
+  /* Navn fra arket ("Rema") → kvadratisk boks som før. Lenke → samme runde
+     format som avataren, med 1 px subtil grå strek rundt. boxSizing holder
+     ytre mål lik avatarens tross streken. Bildet fyller hele sirkelen
+     (cover), så brede ordmerker beskjæres i stedet for å krympe. */
+  const logoIsLink = isLogoLink(logoUrl);
   const merchantLogoMark: ReactNode = (
     <span
-      style={{
-        width: "2rem",
-        height: "2rem",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}
+      style={
+        logoIsLink
+          ? {
+              ...logoMarkBox,
+              boxSizing: "border-box",
+              borderRadius: "50%",
+              overflow: "hidden",
+              border: "1px solid var(--token-color-stroke-neutral-subtle)",
+            }
+          : logoMarkBox
+      }
     >
       <img
         src={merchantLogo}
         alt={name}
-        style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }}
+        style={
+          logoIsLink
+            ? { width: "100%", height: "100%", objectFit: "cover", display: "block" }
+            : { maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }
+        }
       />
     </span>
   );
   /* hasLabel: avataren er dekorativ — radens tittel er mottakernavnet, så
      Eufemia trenger ingen Avatar.Group her. Samme mønster som SAS-avataren
      lenger ned. Uten den logger Eufemia «Avatar group required». */
-  const letterAvatar = <Avatar size="medium" variant="primary" hasLabel>{initial}</Avatar>;
+  const letterAvatar = <Avatar size={avatarSize} variant="primary" hasLabel>{initial}</Avatar>;
 
   const beneficiaryMark: ReactNode = wantsLogo && merchantLogo ? (
     merchantLogoMark
   ) : wantsLogo ? (
     /* Logo-type uten logo: bygningsikon i samme grønne sirkel som bokstaven,
        slik at raden aldri viser en initial for en forhandler. */
-    <Avatar size="medium" variant="primary" hasLabel icon={office_buildings_medium} />
+    <Avatar size={avatarSize} variant="primary" hasLabel icon={office_buildings_medium} />
   ) : wantsAvatar ? (
     letterAvatar
   ) : merchantLogo ? (
@@ -366,18 +430,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
     merchantLogoMark
   ) : isGebyrRenter ? (
     /* Gebyr og renter har ingen mottaker — ikon i stedet for initial-avatar.
-       Samme 2rem-boks som logoen, så radjusteringen holder seg. */
-    <span
-      style={{
-        width: "2rem",
-        height: "2rem",
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}
-    >
-      <Icon icon={hand_money_medium} size="medium" style={{ color: "var(--token-color-icon-action)" }} />
+       Samme boks som logoen, så radjusteringen holder seg. */
+    <span style={logoMarkBox}>
+      <Icon icon={hand_money_medium} size={AVATAR_ICON_SIZE[avatarSize]} style={{ color: "var(--token-color-icon-action)" }} />
     </span>
   ) : (
     letterAvatar
@@ -673,7 +728,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                           {isOverforing ? (
                             <Icon icon={mottakerKontoIcon} size="medium" style={{ color: "var(--token-color-icon-action)" }} />
                           ) : showFlag ? (
-                            <Badge content={<CountryFlag iso={flagIso} size="small" />} vertical="bottom" horizontal="right" variant="content">
+                            <Badge content={<CountryFlag iso={flagIso} size={AVATAR_FLAG_SIZE[avatarSize]} />} vertical="bottom" horizontal="right" variant="content">
                               {beneficiaryMark}
                             </Badge>
                           ) : (
@@ -1054,8 +1109,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             <List.Item.Basic
                               title={td(
                                 "Mottaker beskrivelse",
-                                "Orginal beskrivelse",
-                                "Viser orginal beskrivelse fra forhandleren.",
+                                "Original beskrivelse",
+                                "Viser original beskrivelse fra forhandleren.",
                               )}
                             >
                               <List.Cell.End fontWeight="regular">
@@ -1209,6 +1264,31 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>Vis logo</P>
             <Switch label="Vis logo" labelSrOnly checked={showLogo} onChange={({ checked }) => setShowLogo(checked)} />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Logo/avatar size</P>
+            {/* independentWidth er Eufemias egen «bredde etter innhold» —
+                gir .dnb-dropdown--independent-width → __shell { width: auto }.
+                Derfor ingen .narrow-dropdown-wrapper her (den låser 16rem). */}
+            <div>
+              <Dropdown
+                label="Logo/avatar size"
+                labelSrOnly
+                size="small"
+                independentWidth
+                value={avatarSize}
+                data={(Object.keys(AVATAR_BOX) as AvatarSize[]).map((size) => ({
+                  selectedKey: size,
+                  content: `${size} (${AVATAR_BOX[size]})`,
+                }))}
+                onChange={({ data }) =>
+                  setAvatarSize(
+                    typeof data?.selectedKey === "string" ? (data.selectedKey as AvatarSize) : avatarSize,
+                  )
+                }
+              />
+            </div>
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
