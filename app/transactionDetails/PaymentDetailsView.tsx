@@ -7,7 +7,7 @@ import {
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { H1, H2, H3, P, Span, Hr } from "@dnb/eufemia/elements";
-import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, question_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, pay_from_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
+import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, pay_from_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
@@ -20,7 +20,7 @@ const COUNTRY_ISO: Record<string, string> = {
 
 /* Felt som rendres i kortet og derfor ikke i detaljlisten */
 const BENEFICIARY_LABELS =
-  /^(logo\/avatar|logourl|mottaker navn|mottaker navn reservert|mottaker konto|mottaker konto ?type|mottaker land|mottaker adresse 1|mottaker adresse 2|mottaker postnr|mottaker sted\/by|mottaker web|mottaker orgnr|mottaker telefon|telefon|orgnr|org\.?nr\.?|organisasjonsnummer|melding|kid|pengebruk tag|dato|transaksjonsdato|reservert dato|reservasjonsdato|bokf[øo]rt dato|bokf[øo]ringsdato|rentedato|beløp|beløp nok|nok beløp|beløp valuta|valuta beløp|valutabeløp|vekslingskurs|valutasort|res(?:erv|v)ert melding|kontonavn|fra kontonavn|kontotype|konto type|fra konto type|kontonummer|fra kontonummer|fra konto|kortnavn|fra kortnavn|kortnummer|kortnummer pan|kortnummer\/pan|fra kortnummer\/pan|fra kortnummer pan|pan|kortnettverk|fra kortnettverk|kortnettverk logo|fra kortnettverk logo|digital wallet|digital wallet logo|klokkeslett|pengebruk sub|pengebruk main|pengebruk reservert|sas eurobonuspoeng|eurobonus poeng|sas bonus|betalingsprodukt|kvittering|efaktura|efaktura-vedlegg|betalingsbekreftelse|pris|gebyr|pris\/gebyr|lån avdrag|lån renter|kortreklamasjon(er)?|transaksjonsid|fra milj[øo]|pengebruk icon)$/i;
+  /^(logo\/avatar|logourl|mottaker navn|mottaker navn reservert|mottaker konto|mottaker konto ?type|mottaker land|mottaker adresse 1|mottaker adresse 2|mottaker postnr|mottaker sted\/by|mottaker web|mottaker orgnr|mottaker beskrivelse|mottaker telefon|telefon|orgnr|org\.?nr\.?|organisasjonsnummer|melding|kid|pengebruk tag|dato|transaksjonsdato|reservert dato|reservasjonsdato|bokf[øo]rt dato|bokf[øo]ringsdato|rentedato|beløp|beløp nok|nok beløp|beløp valuta|valuta beløp|valutabeløp|vekslingskurs|valutasort|res(?:erv|v)ert melding|kontonavn|fra kontonavn|kontotype|konto type|fra konto type|kontonummer|fra kontonummer|fra konto|kortnavn|fra kortnavn|kortnummer|kortnummer pan|kortnummer\/pan|fra kortnummer\/pan|fra kortnummer pan|pan|kortnettverk|fra kortnettverk|kortnettverk logo|fra kortnettverk logo|digital wallet|digital wallet logo|klokkeslett|pengebruk sub|pengebruk main|pengebruk reservert|sas eurobonuspoeng|eurobonus poeng|sas bonus|betalingsprodukt|kvittering|efaktura|efaktura-vedlegg|betalingsbekreftelse|pris|gebyr|pris\/gebyr|lån avdrag|lån renter|kortreklamasjon(er)?|transaksjonsid|fra milj[øo]|pengebruk icon)$/i;
 
 /* Valutakode → ISO-landkode for CountryFlag */
 const CURRENCY_FLAG: Record<string, string> = {
@@ -243,9 +243,13 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const phone            = fieldValue(selected, /^(mottaker telefon|telefon)$/i);
   const kortreklamasjoner = fieldValue(selected, /^kortreklamasjon(er)?$/i);
   const transactionId     = fieldValue(selected, /^transaksjonsid$/i);
+  const mottakerBeskrivelse = fieldValue(selected, /^mottaker beskrivelse$/i);
   const termDefRecord = payments.find((p) => /^termdefinition$/i.test(p.type));
-  const td = (label: string, children: ReactNode = label): ReactNode => {
-    const def = termDefRecord?.fields.find((f) => f.label === label)?.value;
+  /* Ordforklaringen hentes fra TermDefinition-kolonnen i arket. `fallbackDef`
+     brukes når cellen er tom, så en forklaring kan defineres i koden – fyller
+     du inn cellen i arket, vinner arket. */
+  const td = (label: string, children: ReactNode = label, fallbackDef?: string): ReactNode => {
+    const def = termDefRecord?.fields.find((f) => f.label === label)?.value || fallbackDef;
     return def ? <TermDefinition content={def}>{children}</TermDefinition> : children;
   };
   const kvittering       = fieldValue(selected, /^kvittering$/i);
@@ -817,15 +821,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                 </Anchor>
                               </List.Cell.End>
                             </List.Item.Basic>
-                            {(/^ja$/i.test(kortreklamasjoner) || showFieldNames) && (
-                              <List.Item.Basic icon={question_medium} title={td("Kortreklamasjon", "Ukjent transaksjon")}>
-                                <List.Cell.End fontWeight="regular">
-                                  {showFieldNames
-                                    ? fd(/^kortreklamasjon(er)?$/i)
-                                    : <Anchor href="https://www.dnb.no/segp/apps/besok/card_complaints/dashboard?segment=segp" target="_blank">Rapporter</Anchor>}
-                                </List.Cell.End>
-                              </List.Item.Basic>
-                            )}
                           </List.Container>
                         </div>
                       </List.Item.Accordion.Content>
@@ -1019,8 +1014,11 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                 </div>
               )}
 
-              {/* ── Detaljer ──────────────────────────────────────── */}
-              {(transaksjonsDato || reservertDate || bokfortDato || rentedato) && (
+              {/* ── Detaljer ────────────────────────────────────────
+                  Kortreklamasjon og beskrivelse står i betingelsen: radene
+                  ligger i denne seksjonen, så en type med bare ett av de
+                  feltene og uten datofelt ville ellers mistet raden helt. */}
+              {(transaksjonsDato || reservertDate || bokfortDato || rentedato || mottakerBeskrivelse || transactionId || /^ja$/i.test(kortreklamasjoner) || showFieldNames) && (
                 <div>
                 <List.Container>
                   <List.Item.Accordion icon={information_circled_medium}>
@@ -1030,6 +1028,30 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                     <List.Item.Accordion.Content>
                       <div className="dnb-card" style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)" }}>
                         <List.Container>
+                          {(mottakerBeskrivelse || showFieldNames) && (
+                            <List.Item.Basic
+                              title={td(
+                                "Mottaker beskrivelse",
+                                "Orginal beskrivelse",
+                                "Viser orginal beskrivelse fra forhandleren.",
+                              )}
+                            >
+                              <List.Cell.End fontWeight="regular">
+                                {fd(/^mottaker beskrivelse$/i)}
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
+                          {/* Ukjent transaksjon. Flyttet hit fra beneficiary-accordionen;
+                              ikonet droppet fordi ingen av radene i Detaljer har ikon. */}
+                          {(/^ja$/i.test(kortreklamasjoner) || showFieldNames) && (
+                            <List.Item.Basic title={td("Kortreklamasjon", "Ukjent transaksjon")}>
+                              <List.Cell.End fontWeight="regular">
+                                {showFieldNames
+                                  ? fd(/^kortreklamasjon(er)?$/i)
+                                  : <Anchor href="https://www.dnb.no/segp/apps/besok/card_complaints/dashboard?segment=segp" target="_blank">Rapporter</Anchor>}
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
                           {transaksjonsDato && (
                             <List.Item.Basic title={td("Transaksjonsdato")}>
                               <List.Cell.End fontWeight="regular">
@@ -1058,6 +1080,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                               </List.Cell.End>
                             </List.Item.Basic>
                           )}
+                          {/* TransaksjonsID ligger sist i seksjonen. */}
                           {(transactionId || showFieldNames) && (
                           <List.Item.Basic title={td("TransaksjonsID")}>
                             <List.Cell.End fontWeight="regular">
