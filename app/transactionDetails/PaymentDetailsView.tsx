@@ -199,11 +199,16 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const tilLabel         = isGebyrRenter ? "Innbetalt" : isOverforing ? "Overført til" : "Betalt til";
   const fraLabel         = isOverforing ? "Overført fra" : "Betalt fra";
   const logoUrl          = fieldValue(selected, /^logourl$/i);
-  // Innlimt URL → gammel oppførsel: avataren beholdes, logoen vises til høyre.
-  // Filnavn ("Netflix") → logoen erstatter avataren, hentet fra /merchants.
-  const logoIsUrl        = /^(https?:)?\/\//i.test(logoUrl.trim());
-  const externalLogo     = showLogo && logoIsUrl ? logoUrl.trim() : "";
-  const merchantLogo     = showLogo && !logoIsUrl ? logoSrc(logoUrl, "merchants") : "";
+  /* Logoen vises alltid til venstre for firmanavnet – både innlimte URL-er og
+     filnavn ("Netflix", hentet fra /merchants). logoSrc slipper URL-er gjennom
+     uendret, så begge formene håndteres av samme variabel. */
+  const merchantLogo     = showLogo ? logoSrc(logoUrl, "merchants") : "";
+  /* Feltet Logo/Avatar i arket velger hvilket merke raden får. "Avtar" er en
+     skrivefeil i arket, så regexen godtar den også. Andre verdier ("Icon",
+     tomt) faller til dagens logikk lenger ned. */
+  const logoAvatarMode   = fieldValue(selected, /^logo\/avatar$/i).trim();
+  const wantsLogo        = /^logo$/i.test(logoAvatarMode);
+  const wantsAvatar      = /^av(a)?tar$/i.test(logoAvatarMode);
 
   const nokAmount        = fieldValue(selected, /^(beløp|beløp nok|nok beløp)$/i);
   const currencyAmount   = fieldValue(selected, /^(beløp valuta|valuta beløp|valutabeløp)$/i);
@@ -325,7 +330,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   /* Logo erstatter Avatar når "Vis logo" er slått på og typen har en logo.
      Boksen er 2rem for å matche Avatar size="medium", så listejusteringen
      holder seg lik på tvers av radene. */
-  const beneficiaryMark: ReactNode = merchantLogo ? (
+  const merchantLogoMark: ReactNode = (
     <span
       style={{
         width: "2rem",
@@ -342,6 +347,23 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
         style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }}
       />
     </span>
+  );
+  /* hasLabel: avataren er dekorativ — radens tittel er mottakernavnet, så
+     Eufemia trenger ingen Avatar.Group her. Samme mønster som SAS-avataren
+     lenger ned. Uten den logger Eufemia «Avatar group required». */
+  const letterAvatar = <Avatar size="medium" variant="primary" hasLabel>{initial}</Avatar>;
+
+  const beneficiaryMark: ReactNode = wantsLogo && merchantLogo ? (
+    merchantLogoMark
+  ) : wantsLogo ? (
+    /* Logo-type uten logo: bygningsikon i samme grønne sirkel som bokstaven,
+       slik at raden aldri viser en initial for en forhandler. */
+    <Avatar size="medium" variant="primary" hasLabel icon={office_buildings_medium} />
+  ) : wantsAvatar ? (
+    letterAvatar
+  ) : merchantLogo ? (
+    /* Typer uten verdi i Logo/Avatar-feltet beholder dagens oppførsel. */
+    merchantLogoMark
   ) : isGebyrRenter ? (
     /* Gebyr og renter har ingen mottaker — ikon i stedet for initial-avatar.
        Samme 2rem-boks som logoen, så radjusteringen holder seg. */
@@ -358,7 +380,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
       <Icon icon={hand_money_medium} size="medium" style={{ color: "var(--token-color-icon-action)" }} />
     </span>
   ) : (
-    <Avatar size="medium" variant="primary">{initial}</Avatar>
+    letterAvatar
   );
 
   /* ── SSR-hydration guard ───────────────────────────────────────── */
@@ -377,6 +399,11 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
         .dnb-icon svg { display: inline-block; vertical-align: top; }
         .dnb-list__item .dnb-list__item__icon .dnb-icon { color: var(--token-color-icon-action); }
         .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-icon { color: var(--token-color-icon-action); }
+        /* Ikon inne i en Avatar skal ha samme farge som bokstavversjonen. Regelen
+           over er ment for ikoner som ligger direkte i raden, men slår også inn på
+           bygningsikonet inne i avataren og gjør det grønt på mørkegrønn bunn.
+           inherit henter avatarens egen tekstfarge, så den følger variant. */
+        .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-avatar .dnb-icon { color: inherit; }
         .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__chevron.dnb-list__item__chevron { place-self: center; display: flex; }
         .dnb-list__item__accordion--open { --item-background-color: var(--token-color-background-neutral-subtle); }
         .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__icon.dnb-list__item__icon { place-self: center; }
@@ -661,11 +688,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             </List.Cell.Title.Subline>
                           )}
                         </List.Cell.Title>
-                        {externalLogo && (
-                          <List.Cell.End fontWeight="regular">
-                            <img src={externalLogo} alt={name} style={{ height: "24px", width: "auto", display: "block" }} />
-                          </List.Cell.End>
-                        )}
                       </List.Item.Accordion.Header>
                       <List.Item.Accordion.Content>
                         <div className="dnb-card" style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)" }}>
