@@ -888,7 +888,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
-                            <List.Item.Basic icon={history_medium} title={td("Historikk", "Betalingshistorikk")}>
+                            <List.Item.Basic icon={history_medium} title={td("Historikk")}>
                               <List.Cell.End fontWeight="regular">
                                 <Anchor href="#" target="_blank">
                                   Vis transaksjoner
