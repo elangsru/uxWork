@@ -853,33 +853,30 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
-                            {/* Avtalegiro: chevron i stedet for lenke til høyre.
-                                List.Item.Action gjør hele raden klikkbar og gir
-                                chevronen, så en Anchor i List.Cell.End er overflødig.
-                                Trygt her fordi «Avtalegiro» ikke har ordforklaring i
-                                regnearket — en TermDefinition er en knapp, og den
-                                ville blitt nøstet inne i radens lenke.
-
-                                target/rel må settes eksplisitt: med href rendrer
-                                Action en <Anchor noStyle>, som verken arver
-                                target="_blank" eller legger på launch-ikonet. */}
+                            {/* Avtalegiro: lenke til høyre, samme mønster som
+                                eFakturahistorikk under. Var tidligere en
+                                List.Item.Action (klikkbar rad med chevron), men
+                                raden skal ha en synlig «Vis avtale»-lenke — og
+                                Action rendrer <Anchor noStyle> uten lenketekst.
+                                Anchor med target="_blank" gir launch-ikonet. */}
                             {isAvtalegiro && (
-                              <List.Item.Action
-                                className="td-chevron-row"
-                                icon={ainvoice_medium}
-                                title={td("Avtalegiro")}
-                                href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/DirectDebit/70011960764123/details"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              />
+                              <List.Item.Basic icon={ainvoice_medium} title={td("Avtalegiro")}>
+                                <List.Cell.End fontWeight="regular">
+                                  <Anchor
+                                    href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/DirectDebit/70011960764123/details"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    Vis avtale
+                                  </Anchor>
+                                </List.Cell.End>
+                              </List.Item.Basic>
                             )}
                             {/* eFakturahistorikk: lenke til høyre, ikke klikkbar rad.
                                 Anchor med target="_blank" gir launch-ikonet
-                                automatisk — det er nettopp dette ikonet som utløser
-                                Eufemias :has()-regel og skjuler chevronen på
-                                Avtalegiro-raden over, derfor .td-chevron-row der. */}
+                                automatisk. */}
                             {isEfaktura && (
-                              <List.Item.Basic icon={einvoice_medium} title={td("eFakturahistorikk")}>
+                              <List.Item.Basic icon={einvoice_medium} title={td("eFakturahistorikk", "eFaktura")}>
                                 <List.Cell.End fontWeight="regular">
                                   <Anchor
                                     href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/einvoice/mine/issuers/917245975"
