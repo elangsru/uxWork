@@ -644,6 +644,19 @@ export default function InternationalPayment() {
       </>
     ),
   };
+  const fromAccountFieldId = "international-payment-from-account";
+  const fromAccountHelpId = `${fromAccountFieldId}-help`;
+  const fromAccountHelp = {
+    content: (
+      <>
+        Betaling fra valutakonto må gjøres i{" "}
+        <Anchor href="#" target="_blank" rel="noopener noreferrer" noLaunchIcon>
+          gammel løsning
+        </Anchor>
+        .
+      </>
+    ),
+  };
   const today = new Date().toISOString().slice(0, 10);
   const [paymentDate, setPaymentDate] = useState(today);
   const [currentStep, setCurrentStep] = useState(0);
@@ -1550,23 +1563,32 @@ export default function InternationalPayment() {
           {/* Step content */}
           {currentStep === 0 ? (
             <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: fullWidth ? "100%" : "488px", width: "100%" }}>
-              <Autocomplete
-                label="Fra konto"
-                size="medium"
-                data={fromAccounts}
-                placeholder="Velg konto"
-                stretch
-                showSubmitButton
-                submitButtonTitle=""
-                value={selectedFromKey ?? undefined}
-                onChange={({ selectedItem }) => {
-                  if (typeof selectedItem === "number") {
-                    setSelectedFromKey(String(selectedItem));
-                  } else {
-                    setSelectedFromKey(null);
-                  }
-                }}
-              />
+              <div>
+                <FormLabel forId={fromAccountFieldId} style={{ marginBottom: "0.5rem" }}>
+                  Fra konto
+                  <span style={{ marginLeft: "0.45em", whiteSpace: "nowrap" }}>
+                    <HelpButtonInline contentId={fromAccountHelpId} help={fromAccountHelp} />
+                  </span>
+                </FormLabel>
+                <HelpButtonInlineContent contentId={fromAccountHelpId} help={fromAccountHelp} bottom="x-small" />
+                <Autocomplete
+                  id={fromAccountFieldId}
+                  size="medium"
+                  data={fromAccounts}
+                  placeholder="Velg konto"
+                  stretch
+                  showSubmitButton
+                  submitButtonTitle=""
+                  value={selectedFromKey ?? undefined}
+                  onChange={({ selectedItem }) => {
+                    if (typeof selectedItem === "number") {
+                      setSelectedFromKey(String(selectedItem));
+                    } else {
+                      setSelectedFromKey(null);
+                    }
+                  }}
+                />
+              </div>
               <div style={{ display: "flex", alignItems: "flex-start", gap: "16px" }}>
                 <div style={{ flex: 1 }}>
                   <Autocomplete
