@@ -206,6 +206,26 @@ function SummaryStep({
   const nokAmount = amountInNok ? amountNum : amountNum * rate;
   const currencyCode = currency?.code ?? "—";
 
+  // Teksten sto tidligere som ingress under H1. Flyttet hit fordi den handler
+  // om pris, og da hører den under Pris-overskriften — ikke øverst på siden.
+  const priceHelpId = "international-payment-price-help";
+  const priceHelp = {
+    content: (
+      <>
+        Du finner mer info om priser og oppgjørstider{" "}
+        <Anchor
+          href="https://www.dnb.no/dagligbank/betaling/til-utland"
+          target="_blank"
+          rel="noopener noreferrer"
+          noLaunchIcon
+        >
+          her
+        </Anchor>
+        .
+      </>
+    ),
+  };
+
   const isEuropa = paymentType === "europa";
   const isSepa = paymentType === "sepa";
   const isCrossBorder = !isEuropa && !isSepa;
@@ -304,7 +324,13 @@ function SummaryStep({
 
       {/* Pris */}
       <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-        <H3>Pris</H3>
+        <H3>
+          Pris
+          <span style={{ marginLeft: "0.45em", whiteSpace: "nowrap" }}>
+            <HelpButtonInline contentId={priceHelpId} help={priceHelp} />
+          </span>
+        </H3>
+        <HelpButtonInlineContent contentId={priceHelpId} help={priceHelp} />
         {isCrossBorder && (
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <P>Hvem dekker omkostninger?</P>
@@ -1534,14 +1560,13 @@ export default function InternationalPayment() {
           <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               <H1 size="x-large">Betale til utlandet</H1>
-              <P>
-                Du finner mer info om priser og oppgjørstider{" "}
-                <Anchor
-                  href="https://www.dnb.no/dagligbank/betaling/til-utland"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  noLaunchIcon
-                >
+              {/* Samme maxWidth som stegindikator og skjema under, så ingressen
+                  brytes i takt med innholdet i stedet for å strekke seg over
+                  hele 72rem-bredden. */}
+              <P style={{ maxWidth: fullWidth ? "100%" : "488px" }}>
+                Bli med å test ny betalingsløsning, og gi oss tilbakemelding hva du
+                synes. Du har fortsatt tilgang til den gamle{" "}
+                <Anchor href="#" target="_blank" rel="noopener noreferrer" noLaunchIcon>
                   her
                 </Anchor>
                 .
