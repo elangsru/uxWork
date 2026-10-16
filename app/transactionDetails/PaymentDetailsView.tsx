@@ -1297,11 +1297,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
-            <P size="basis" style={{ margin: 0 }}>Vis feltnavn</P>
-            <Switch label="Vis feltnavn" labelSrOnly checked={showFieldNames} onChange={({ checked }) => setShowFieldNames(checked)} />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>Full width</P>
             <Switch label="Full width" labelSrOnly checked={fullWidth} onChange={({ checked }) => setFullWidth(checked)} />
           </div>
@@ -1309,6 +1304,11 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>Dark mode</P>
             <Switch label="Dark mode" labelSrOnly checked={darkMode} onChange={({ checked }) => setDarkMode(checked)} />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Vis feltnavn</P>
+            <Switch label="Vis feltnavn" labelSrOnly checked={showFieldNames} onChange={({ checked }) => setShowFieldNames(checked)} />
           </div>
         </div>
       )}
