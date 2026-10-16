@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Skeleton, Tabs, Tooltip } from "@dnb/eufemia/components";
+import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, Checkbox, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Skeleton, Tabs, Tooltip } from "@dnb/eufemia/components";
 // HelpButtonInline eksporteres ikke fra pakkeroten i 11.13.0 — kun HelpButton
 // (som åpner en dialog). Den inline ekspanderbare varianten må dyp-importeres.
 import HelpButtonInline, { HelpButtonInlineContent } from "@dnb/eufemia/components/help-button/HelpButtonInline";
@@ -708,6 +708,9 @@ export default function InternationalPayment() {
   // Viser adressefeilen på «Til konto» for den valgte mottakeren, uansett hvem.
   // Tidligere var den bundet til én bestemt mottaker i lista.
   const [addressWarning, setAddressWarning] = useState(false);
+  // Brukerens egen bekreftelse av mottakerinfoen i rediger-dialogen. Egen state,
+  // ikke gjenbruk av addressWarning — den er konfigurasjonsstyrt, ikke en handling.
+  const [recipientConfirmed, setRecipientConfirmed] = useState(false);
   const [costOption, setCostOption] = useState("delt");
   const [agreedRate, setAgreedRate] = useState("");
   const [reference, setReference] = useState("");
@@ -860,7 +863,9 @@ export default function InternationalPayment() {
 
   function handleNext() {
     setSubmitted(true);
-    if (selectedRecipient && message.trim()) {
+    // isErrorRecipient blokkerer også, slik at den røde feiltilstanden faktisk
+    // blir stående og synlig i stedet for å forsvinne i steg-byttet.
+    if (selectedRecipient && message.trim() && !isErrorRecipient) {
       setCurrentStep(1);
     }
   }
@@ -1440,6 +1445,36 @@ export default function InternationalPayment() {
           </List.Item.Accordion.Content>
         </List.Item.Accordion>
       </List.Container>
+      <List.Container>
+        {/* Forklaringen står som egen brødtekst over, så checkboxen bare har
+            selve bekreftelsessetningen som label. Alternativet — hele teksten
+            som label med bunnjustert boks — ville gitt en boks som står ved
+            siden av en setning som starter midt på forrige linje. */}
+        <List.Item.Basic>
+          {/* List.Cell.Start setter bare innerSpace left som default, og
+              recipientCardStyles nuller containerens padding-right — uten
+              right her ville teksten gått helt ut til kortkanten. */}
+          <List.Cell.Start innerSpace={{ left: "small", right: "small" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--spacing-small)",
+              }}
+            >
+              <P>
+                For at betalinger til utlandet ikke skal bli avvist i andre
+                banker må informasjon om mottaker jevnlig oppdateres.
+              </P>
+              <Checkbox
+                label="Jeg bekrefter at informasjonen er korrekt."
+                checked={recipientConfirmed}
+                onChange={({ checked }) => setRecipientConfirmed(checked)}
+              />
+            </div>
+          </List.Cell.Start>
+        </List.Item.Basic>
+      </List.Container>
       {saveButton}
     </div>
   );
@@ -1676,7 +1711,15 @@ export default function InternationalPayment() {
                           List.Item.Action — FormStatus er ikke interaktiv. */}
                       {isErrorRecipient && (
                         <List.Cell.Footer>
-                          <FormStatus state="warning" stretch text={addressWarningText} />
+                          {/* Gult varsel så lenge brukeren ikke har forsøkt å gå
+                              videre; rød feil først når «Neste» er trykket.
+                              handleNext blokkerer også steget, ellers ville den
+                              røde tilstanden bare blinket før bytte av steg. */}
+                          <FormStatus
+                            state={submitted ? "error" : "warning"}
+                            stretch
+                            text={addressWarningText}
+                          />
                         </List.Cell.Footer>
                       )}
                     </List.Item.Action>

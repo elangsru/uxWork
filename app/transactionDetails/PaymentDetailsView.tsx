@@ -180,6 +180,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
     payments.find((p) => /varekjøp.*bank/i.test(p.type))?.type ?? payments[0]?.type ?? ""
   );
   const [darkMode, setDarkMode]         = useState(false);
+  // Samme bryter og sessionStorage-nøkkel som internationalPayment, så valget
+  // følger med mellom sidene. Default er skjemabredden derfra (488px).
+  const [fullWidth, setFullWidth]       = useState(false);
   const [toolsOpen, setToolsOpen]       = useState(false);
   const [showReserved, setShowReserved] = useState(false);
   const [hideFromSpending, setHideFromSpending] = useState(false);
@@ -199,6 +202,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
 
   useEffect(() => {
     setDarkMode(sessionStorage.getItem("darkMode") === "true");
+    setFullWidth(sessionStorage.getItem("fullWidth") === "true");
     setToolsOpen(sessionStorage.getItem("toolsOpen") === "true");
     setHydrated(true);
   }, []);
@@ -206,6 +210,10 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   useEffect(() => {
     if (hydrated) sessionStorage.setItem("darkMode", String(darkMode));
   }, [darkMode, hydrated]);
+
+  useEffect(() => {
+    if (hydrated) sessionStorage.setItem("fullWidth", String(fullWidth));
+  }, [fullWidth, hydrated]);
 
   useEffect(() => {
     if (hydrated) sessionStorage.setItem("toolsOpen", String(toolsOpen));
@@ -575,7 +583,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           {payments.length === 0 ? (
             <P>Ingen betalinger funnet i regnearket.</P>
           ) : selected && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: fullWidth ? "100%" : "488px", width: "100%" }}>
 
               {/* ── Beløpsmodul ──────────────────────────────────
                   Bygget som Betalt fra: beløpet fritt over en List.Container.
@@ -1122,7 +1130,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                               <List.Cell.End fontWeight="regular">
                                 {showFieldNames
                                   ? fd(/^kortreklamasjon(er)?$/i)
-                                  : <Anchor href="https://www.dnb.no/segp/apps/besok/card_complaints/dashboard?segment=segp" target="_blank">Rapporter</Anchor>}
+                                  : <Anchor href="https://www.dnb.no/hjelp-og-veiledning/klage-reklamasjon" target="_blank">Rapporter</Anchor>}
                               </List.Cell.End>
                             </List.Item.Basic>
                           )}
@@ -1291,6 +1299,11 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
             <P size="basis" style={{ margin: 0 }}>Vis feltnavn</P>
             <Switch label="Vis feltnavn" labelSrOnly checked={showFieldNames} onChange={({ checked }) => setShowFieldNames(checked)} />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
+            <P size="basis" style={{ margin: 0 }}>Full width</P>
+            <Switch label="Full width" labelSrOnly checked={fullWidth} onChange={({ checked }) => setFullWidth(checked)} />
           </div>
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--token-color-background-neutral-subtle)", borderRadius: "8px", padding: "16px" }}>
