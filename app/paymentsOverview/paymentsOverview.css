@@ -297,6 +297,15 @@
 }
 
 /* Filterboksen. Var duplisert ordrett i begge tabbene. */
+/* Filterknappen står til høyre for forfallsdato, og brytes ned under feltet
+   når kolonnen er for smal til begge. */
+.po-date-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-small);
+}
+
 .po-filterbox {
   background: var(--token-color-background-neutral-subtle);
   border: 1px solid var(--token-color-stroke-neutral-alternative);

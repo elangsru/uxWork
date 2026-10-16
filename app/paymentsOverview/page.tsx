@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Autocomplete, Avatar, Breadcrumb, Button, DatePicker, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
+import { Autocomplete, Avatar, Breadcrumb, Button, DatePicker, Filter, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
 import { H1, P } from "@dnb/eufemia/elements";
 import { globe, pay_from, refresh, transfer } from "@dnb/eufemia/icons";
 
@@ -406,6 +406,9 @@ export default function PaymentsOverview() {
 
   const forfallPanel = (
     <div className="po-tabpanel">
+      {/* Filter.Root omslutter hele boksen så filterknappen kan stå ved siden av
+          forfallsdato, mens panelet åpnes i full bredde nederst i boksen. */}
+      <Filter.Root id="po-forfall-filter">
       <FilterBox
         fields={[
           <Autocomplete
@@ -427,8 +430,8 @@ export default function PaymentsOverview() {
               );
             }}
           />,
+          <div key="dato" className="po-date-filter">
           <DatePicker
-            key="dato"
             label="Forfallsdato"
             range
             showInput
@@ -493,7 +496,9 @@ export default function PaymentsOverview() {
                 closeOnSelect: false,
               },
             ]}
-          />,
+          />
+            <Filter.PanelButton />
+          </div>,
         ]}
       >
         <div className="po-typefilter">
@@ -520,7 +525,20 @@ export default function PaymentsOverview() {
             </TermDefinition>
           </div>
         </div>
+        <Filter.Panel>
+          <Filter.Selection
+            label="Beløp"
+            filterKey="/belop"
+            defaultOpen
+            data={[
+              { value: "under-1000", label: "Under 1 000 kr" },
+              { value: "1000-10000", label: "1 000–10 000 kr" },
+              { value: "over-10000", label: "Over 10 000 kr" },
+            ]}
+          />
+        </Filter.Panel>
       </FilterBox>
+      </Filter.Root>
 
       <GroupingRow
         value={groupBy}
