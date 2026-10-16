@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type CSSProperties } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, Checkbox, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Skeleton, Tabs, Tooltip } from "@dnb/eufemia/components";
+import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, Checkbox, CountryFlag, Input, InputMasked, Textarea, Switch, DatePicker, Anchor, List, FormLabel, FormStatus, Radio, Dropdown, Dialog, Skeleton, Tabs, Tooltip, Breadcrumb } from "@dnb/eufemia/components";
 // HelpButtonInline eksporteres ikke fra pakkeroten i 11.13.0 — kun HelpButton
 // (som åpner en dialog). Den inline ekspanderbare varianten må dyp-importeres.
 import HelpButtonInline, { HelpButtonInlineContent } from "@dnb/eufemia/components/help-button/HelpButtonInline";
@@ -1575,7 +1575,41 @@ export default function InternationalPayment() {
           color: var(--token-color-text-neutral-inverse);
         }
       `}</style>
-      <div style={{ background: "var(--token-color-background-neutral-subtle)", minHeight: "100vh", padding: "48px", boxSizing: "border-box" }}>
+      {/* Toppfelt med brødsmulesti, samme oppsett som på transactionDetails */}
+      <div style={{
+        background: "var(--token-color-background-page-background, var(--token-color-background-neutral))",
+        height: "80px",
+        display: "flex",
+        alignItems: "flex-end",
+        boxSizing: "border-box",
+      }}>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "32px",
+          height: "62px",
+          padding: "0 48px",
+          maxWidth: "calc(72rem + 96px)",
+          margin: "0 auto",
+          width: "100%",
+          boxSizing: "border-box",
+        }}>
+          <Breadcrumb
+            variant="multiple"
+            navText="Sidehierarki"
+            data={[
+              { text: "Hjem", href: "/" },
+              { text: "Betalingsoversikt", href: "/paymentsOverview" },
+              { text: "Betale til utlandet" },
+            ]}
+          />
+          <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
+            <Avatar size="medium" variant="primary" hasLabel>E</Avatar>
+            <Button variant="tertiary" size="small" icon="chevron_down" iconPosition="right">Meg</Button>
+          </div>
+        </div>
+      </div>
+      <div style={{ background: "var(--token-color-background-neutral-subtle)", minHeight: "calc(100vh - 80px)", padding: "48px", boxSizing: "border-box" }}>
         <div
           style={{
             background: "var(--token-color-background-neutral)",
@@ -1584,7 +1618,7 @@ export default function InternationalPayment() {
             display: "flex",
             flexDirection: "column",
             gap: "48px",
-            minHeight: "calc(100vh - 96px)",
+            minHeight: "calc(100vh - 176px)",
             boxSizing: "border-box",
             maxWidth: "72rem",
             margin: "0 auto",
@@ -2000,13 +2034,13 @@ export default function InternationalPayment() {
       )}
 
       {/* Tools button */}
-      <div style={{ position: "fixed", top: "32px", right: "32px", zIndex: 100 }}>
+      <div style={{ position: "fixed", top: "21px", right: "20px", zIndex: 100, display: "flex", borderRadius: "50%", boxShadow: "var(--shadow-default)" }}>
         <Button
-          variant="secondary"
+          variant="primary"
           icon={filter}
           aria-label="Tools menu"
           onClick={() => setToolsOpen((o) => !o)}
-          style={{ borderRadius: "50%", width: "48px", height: "48px", padding: 0 }}
+          style={{ borderRadius: "50%", width: "44px", height: "44px", padding: 0 }}
         />
       </div>
 
@@ -2015,9 +2049,9 @@ export default function InternationalPayment() {
         <div
           style={{
             position: "fixed",
-            top: "92px",
-            right: "32px",
-            maxHeight: "calc(100vh - 124px)",
+            top: "77px",
+            right: "20px",
+            maxHeight: "calc(100vh - 97px)",
             overflowY: "auto",
             background: "var(--token-color-background-neutral)",
             border: "1px solid var(--token-color-stroke-neutral-subtle, #ebebeb)",

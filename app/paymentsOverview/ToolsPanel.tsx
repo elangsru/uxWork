@@ -45,7 +45,7 @@ export default function ToolsPanel({
     <>
       <div className="po-tools__button">
         <Button
-          variant="secondary"
+          variant="primary"
           icon={filter}
           aria-label="Tools menu"
           aria-expanded={open}

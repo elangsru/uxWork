@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Autocomplete, Button, DatePicker, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
+import { Autocomplete, Avatar, Breadcrumb, Button, DatePicker, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
 import { H1, P } from "@dnb/eufemia/elements";
 import { globe, pay_from, refresh, transfer } from "@dnb/eufemia/icons";
 
@@ -672,6 +672,23 @@ export default function PaymentsOverview() {
   return (
     <Theme colorScheme={darkMode ? "dark" : "light"}>
       <>
+        {/* Toppfelt med brødsmulesti, samme oppsett som på transactionDetails */}
+        <div className="po-topbar">
+          <div className="po-topbar__inner">
+            <Breadcrumb
+              variant="multiple"
+              navText="Sidehierarki"
+              data={[
+                { text: "Hjem", href: "/" },
+                { text: "Betalingsoversikt" },
+              ]}
+            />
+            <div className="po-topbar__user">
+              <Avatar size="medium" variant="primary" hasLabel>E</Avatar>
+              <Button variant="tertiary" size="small" icon="chevron_down" iconPosition="right">Meg</Button>
+            </div>
+          </div>
+        </div>
         <div className="po-page">
           <div className="po-card">
             <div className="po-hero">
@@ -682,7 +699,7 @@ export default function PaymentsOverview() {
               <div className="po-actions">
                 <Button variant="primary" text="Overfør" icon={transfer} iconPosition="left" />
                 <Button variant="secondary" text="Betal" icon={pay_from} iconPosition="left" />
-                <Button variant="secondary" text="Betal utland" icon={globe} iconPosition="left" />
+                <Button variant="secondary" text="Betal utland" href="/internationalPayment" icon={globe} iconPosition="left" />
               </div>
             </div>
 

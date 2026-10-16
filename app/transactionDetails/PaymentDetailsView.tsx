@@ -525,7 +525,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
             variant="multiple"
             navText="Sidehierarki"
             data={[
-              { text: "Hjem", href: "#" },
+              { text: "Hjem", href: "/" },
               { text: "Kontoer", href: "#" },
               { text: "Brukskonto", href: "#" },
               { text: "Transaksjonsdetaljer" },
@@ -1196,21 +1196,21 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
       </div>
 
       {/* ── Konfigurasjons-knapp ───────────────────────────────────── */}
-      <div style={{ position: "fixed", top: "32px", right: "32px", zIndex: 100 }}>
+      <div style={{ position: "fixed", top: "21px", right: "20px", zIndex: 100, display: "flex", borderRadius: "50%", boxShadow: "var(--shadow-default)" }}>
         <Button
-          variant="secondary"
+          variant="primary"
           icon={filter}
           aria-label="Tools menu"
           onClick={() => setToolsOpen((o) => !o)}
-          style={{ borderRadius: "50%", width: "48px", height: "48px", padding: 0 }}
+          style={{ borderRadius: "50%", width: "44px", height: "44px", padding: 0 }}
         />
       </div>
 
       {/* ── Konfigurasjons-popover ─────────────────────────────────── */}
       {toolsOpen && (
         <div style={{
-          position: "fixed", top: "92px", right: "32px",
-          maxHeight: "calc(100vh - 124px)",
+          position: "fixed", top: "77px", right: "20px",
+          maxHeight: "calc(100vh - 97px)",
           overflowY: "auto",
           background: "var(--token-color-background-neutral)",
           border: "1px solid var(--token-color-stroke-neutral-subtle)",

@@ -219,9 +219,37 @@
    Sidens eget oppsett — erstatter inline-stiler
    ========================================================================== */
 
+.po-topbar {
+  background: var(--token-color-background-page-background, var(--token-color-background-neutral));
+  height: 80px;
+  display: flex;
+  align-items: flex-end;
+  box-sizing: border-box;
+}
+
+.po-topbar__inner {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  height: 62px;
+  padding: 0 var(--spacing-x-large);
+  max-width: calc(72rem + 2 * var(--spacing-x-large));
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.po-topbar__user {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .po-page {
   background: var(--token-color-background-neutral-subtle);
-  min-height: 100vh;
+  min-height: calc(100vh - 80px);
   padding: var(--spacing-x-large);
   box-sizing: border-box;
 }
@@ -236,7 +264,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-x-large);
-  min-height: calc(100vh - 2 * var(--spacing-x-large));
+  min-height: calc(100vh - 80px - 2 * var(--spacing-x-large));
   box-sizing: border-box;
   max-width: 72rem;
   margin: 0 auto;
@@ -426,23 +454,26 @@
 
 .po-tools__button {
   position: fixed;
-  top: 32px;
-  right: 32px;
+  top: 21px;
+  right: 20px;
   z-index: 100;
+  display: flex;
+  border-radius: 50%;
+  box-shadow: var(--shadow-default);
 }
 
 .po-tools__button .dnb-button {
   border-radius: 50%;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   padding: 0;
 }
 
 .po-tools__panel {
   position: fixed;
-  top: 92px;
-  right: 32px;
-  max-height: calc(100vh - 124px);
+  top: 77px;
+  right: 20px;
+  max-height: calc(100vh - 97px);
   overflow-y: auto;
   background: var(--token-color-background-neutral);
   border: 1px solid var(--token-color-stroke-neutral-subtle);
