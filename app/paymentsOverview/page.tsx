@@ -51,6 +51,19 @@ const NO_OWNER = "Uten eier";
 // fakturaer på vei. Docs: skeleton-animasjonen starter først etter 5 sekunder, så
 // her vises den statiske plassholderen.
 const SKELETON_COUNT = 3;
+
+// Verdiene i beløpsfilteret (Filter.Selection «Beløp»). Selection er avkrysnings-
+// bokser med flervalg, og hvert valg lagres som egen nøkkel «/belop/<verdi>».
+// Grensene er inklusive nedad: 1 000 kr havner i «1 000–10 000», 10 000 kr i
+// «Over 10 000».
+const AMOUNT_FILTER_KEY = "/belop";
+type AmountRange = "under-1000" | "1000-10000" | "over-10000";
+const AMOUNT_RANGES: AmountRange[] = ["under-1000", "1000-10000", "over-10000"];
+function matchesAmountRange(amount: number, range: AmountRange) {
+  if (range === "under-1000") return amount < 1000;
+  if (range === "1000-10000") return amount >= 1000 && amount < 10000;
+  return amount >= 10000;
+}
 const LOAD_DELAY_MS = 2000;
 
 export default function PaymentsOverview() {
@@ -77,6 +90,7 @@ export default function PaymentsOverview() {
   const [efakturaAccountFilter, setEfakturaAccountFilter] = useState<AccountKey | null>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
+  const [amountRanges, setAmountRanges] = useState<AmountRange[]>([]);
 
   const mounted = useSyncExternalStore(subscribeNever, getHydrated, getHydratedOnServer);
 
@@ -171,6 +185,8 @@ export default function PaymentsOverview() {
       (paymentTypes.length === 0 || paymentTypes.includes(t.type)) &&
       t.dateValue >= startDate &&
       t.dateValue <= endDate &&
+      (amountRanges.length === 0 ||
+        amountRanges.some((r) => matchesAmountRange(t.amountNok, r))) &&
       (showUnconfirmed || isSettled(t)),
   );
 
@@ -408,7 +424,14 @@ export default function PaymentsOverview() {
     <div className="po-tabpanel">
       {/* Filter.Root omslutter hele boksen så filterknappen kan stå ved siden av
           forfallsdato, mens panelet åpnes i full bredde nederst i boksen. */}
-      <Filter.Root id="po-forfall-filter">
+      <Filter.Root
+        id="po-forfall-filter"
+        onChange={({ filters }) =>
+          setAmountRanges(
+            AMOUNT_RANGES.filter((r) => `${AMOUNT_FILTER_KEY}/${r}` in filters),
+          )
+        }
+      >
       <FilterBox
         fields={[
           <Autocomplete
@@ -528,7 +551,7 @@ export default function PaymentsOverview() {
         <Filter.Panel>
           <Filter.Selection
             label="Beløp"
-            filterKey="/belop"
+            filterKey={AMOUNT_FILTER_KEY}
             defaultOpen
             data={[
               { value: "under-1000", label: "Under 1 000 kr" },
