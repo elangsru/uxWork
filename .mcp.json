@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "eufemia": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["node_modules/@dnb/eufemia/mcp/mcp-docs-server.js"]
-    }
-  }
-}
