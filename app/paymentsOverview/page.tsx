@@ -68,8 +68,6 @@ const LOAD_DELAY_MS = 2000;
 
 export default function PaymentsOverview() {
   const today = new Date();
-  const in30Days = new Date(today);
-  in30Days.setDate(today.getDate() + 30);
   const inOneYear = new Date(today);
   inOneYear.setFullYear(today.getFullYear() + 1);
   const monthName = today.toLocaleDateString(LOCALE, { month: "long" });
@@ -82,8 +80,10 @@ export default function PaymentsOverview() {
   const [showWarnings, setShowWarnings] = useState(false);
   const [showUnconfirmed, setShowUnconfirmed] = useState(false);
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
-  const [startDate, setStartDate] = useState(isoLocalDate(today));
-  const [endDate, setEndDate] = useState(isoLocalDate(in30Days));
+  // Tomt intervall som standard: siden lander på alle betalinger, og feltene
+  // viser bare placeholder.
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [groupBy, setGroupBy] = useState("konto");
   const [efakturaGroupBy, setEfakturaGroupBy] = useState("fakturaeier");
   const [efakturaOwnerFilter, setEfakturaOwnerFilter] = useState<string | null>(null);
@@ -183,8 +183,9 @@ export default function PaymentsOverview() {
     (t) =>
       (selectedAccountKey === null || t.accountKey === selectedAccountKey) &&
       (paymentTypes.length === 0 || paymentTypes.includes(t.type)) &&
-      t.dateValue >= startDate &&
-      t.dateValue <= endDate &&
+      // Tom dato = ingen grense i den retningen (etter «Nullstill»).
+      (startDate === "" || t.dateValue >= startDate) &&
+      (endDate === "" || t.dateValue <= endDate) &&
       (amountRanges.length === 0 ||
         amountRanges.some((r) => matchesAmountRange(t.amountNok, r))) &&
       (showUnconfirmed || isSettled(t)),
@@ -465,6 +466,14 @@ export default function PaymentsOverview() {
             maxDate={isoLocalDate(inOneYear)}
             stretch
             submitButtonText="OK"
+            showResetButton
+            resetButtonText="Nullstill"
+            // Innebygd reset nullstiller bare DatePickerens egen tilstand; state
+            // her må tømmes også. "" (ikke undefined) får feltene til å tømmes.
+            onReset={() => {
+              setStartDate("");
+              setEndDate("");
+            }}
             onChange={({ startDate: s, endDate: e }) => {
               if (s) setStartDate(s);
               if (e) setEndDate(e);
