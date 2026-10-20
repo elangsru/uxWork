@@ -150,8 +150,24 @@
   z-index: 3;
 }
 
-.dnb-list__item__footer-separator:has(+ .dnb-list__item__footer.warning-footer) {
+/* Eufemia setter alltid en Hr foran footeren; uten prop for å slå den av.
+   Skjules for advarsels- og knapp-footeren. */
+.dnb-list__item__footer-separator:has(+ .dnb-list__item__footer.warning-footer),
+.dnb-list__item__footer-separator:has(+ .dnb-list__item__footer.actions-footer) {
   display: none;
+}
+
+/* Footerens padding-top skal gi luft under skillelinjen. Uten linjen ble det
+   16 margin + 16 padding = 32 px tomrom; nå 16 px som resten av raden. */
+.dnb-list__item__footer.warning-footer,
+.dnb-list__item__footer.actions-footer {
+  padding-top: 0;
+}
+
+/* FormStatus begrenser teksten til --prose-max-width (576 px), så den brøt
+   midt i den gule boksen. I radens footer skal den følge boksens bredde. */
+.warning-footer .dnb-form-status__text {
+  max-width: none;
 }
 
 /* Saldomarkøren langs radens venstrekant. */
@@ -421,13 +437,6 @@
     var(--token-color-stroke-neutral-subtle) 1px 2px,
     transparent 0 6px
   );
-}
-
-/* Rediger / Godkjenn i footeren på en ubekreftet rad. */
-.po-row__actions {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
 }
 
 /* Valutarad: NOK-ekvivalent over originalbeløpet. */

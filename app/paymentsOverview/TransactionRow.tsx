@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SubmitIndicator } from "@dnb/eufemia/extensions/forms/Form";
-import { Avatar, Badge, Button, CountryFlag, FormStatus, Icon, List } from "@dnb/eufemia/components";
+import { Avatar, Badge, Button, CountryFlag, Flex, FormStatus, Icon, List } from "@dnb/eufemia/components";
 import { Span } from "@dnb/eufemia/elements";
 import { edit, loan_medium, office_buildings, transfer_medium } from "@dnb/eufemia/icons";
 
@@ -33,6 +33,7 @@ export default function TransactionRow({
   // at den forrige godkjenningen fjernet den fra listen. Uten opprydding kjører
   // timeren videre og kaller setApproving/onConfirm på en avmontert rad.
   const approveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const warningWidthRef = useRef<HTMLDivElement>(null);
   useEffect(
     () => () => {
       if (approveTimer.current !== null) clearTimeout(approveTimer.current);
@@ -110,17 +111,19 @@ export default function TransactionRow({
       <List.Cell.Title>
         <List.Cell.Title.Overline>{overline}</List.Cell.Title.Overline>
         {tx.recipient}
+        {/* Subline er laget for tekst og har ingen avstand; en 28 px badge
+            havnet da rett under tittelen. xx-small (4 px) gir luft. */}
         {tx.badge && (
-          <List.Cell.Title.Subline>
+          <List.Cell.Title.Subline top="xx-small">
             <Badge status="neutral" subtle content={tx.badge} />
           </List.Cell.Title.Subline>
         )}
       </List.Cell.Title>
       <List.Cell.End>{endNode}</List.Cell.End>
       {effectivelyUnconfirmed && (
-        <List.Cell.Footer>
-          <div className="po-row__actions">
-            <Button variant="tertiary" text="Rediger" icon={edit} iconPosition="left" />
+        <List.Cell.Footer className="actions-footer">
+          {/* Eufemias «Footer with buttons»: hovedhandling først, tertiær rett etter. */}
+          <Flex.Horizontal>
             <Button
               variant="secondary"
               disabled={approving}
@@ -136,12 +139,26 @@ export default function TransactionRow({
               Godkjenn
               <SubmitIndicator state={approving ? "pending" : "complete"} />
             </Button>
-          </div>
+            <Button variant="tertiary" text="Rediger" icon={edit} iconPosition="left" />
+          </Flex.Horizontal>
         </List.Cell.Footer>
       )}
       {warning && (
         <List.Cell.Footer className="warning-footer">
-          <FormStatus state="warning" text={warning} stretch />
+          {/* Varselet og knappene i samme footer, så de står samlet under raden.
+              Knappene følger samme mønster som på ubekreftet eFaktura. */}
+          {/* FormStatus setter inline max-width ut fra elementet i widthElement.
+              Uten det måler den seg selv, så bredden kunne bare krympe ved
+              resize, aldri vokse igjen. Wrapperen fyller footeren uansett. */}
+          <div ref={warningWidthRef} style={{ width: "100%" }}>
+            <Flex.Vertical align="stretch" gap="small">
+              <FormStatus state="warning" text={warning} stretch widthElement={warningWidthRef} />
+              <Flex.Horizontal>
+                <Button variant="secondary" text="Reaktiver" />
+                <Button variant="tertiary" text="Rediger" icon={edit} iconPosition="left" />
+              </Flex.Horizontal>
+            </Flex.Vertical>
+          </div>
         </List.Cell.Footer>
       )}
     </List.Item.Action>
