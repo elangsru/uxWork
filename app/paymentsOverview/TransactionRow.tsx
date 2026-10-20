@@ -91,13 +91,13 @@ export default function TransactionRow({
 
   // Beløpsteksten utledes av amountNok, slik at tallet som regnes med og teksten
   // som vises alltid er samme kilde. amountDisplay overstyrer bare når raden er i
-  // en annen valuta.
+  // en annen valuta — da vises kroneverdien over, også den fra amountNok.
   const amountText = tx.amountDisplay ?? fmtNok(tx.amountNok);
 
-  const endNode = tx.nokEquivalent ? (
+  const endNode = tx.amountDisplay ? (
     <div className="po-row__amount">
       <Span size="x-small" weight="medium">
-        {tx.nokEquivalent}
+        ca {fmtNok(tx.amountNok)}
       </Span>
       <span>{amountText}</span>
     </div>

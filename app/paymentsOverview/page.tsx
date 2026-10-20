@@ -690,7 +690,7 @@ export default function PaymentsOverview() {
                             <List.Cell.Title.Overline>0. måned 0000</List.Cell.Title.Overline>
                             Henter faktura
                           </List.Cell.Title>
-                          <List.Cell.End>0 000,00 NOK</List.Cell.End>
+                          <List.Cell.End>0 000,00 kr</List.Cell.End>
                         </List.Item.Basic>
                       </List.Container>
                     </div>

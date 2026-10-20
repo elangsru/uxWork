@@ -23,7 +23,7 @@ export function fmtNok(value: number): string {
     value.toLocaleString(LOCALE, {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    }) + " NOK"
+    }) + " kr"
   );
 }
 
@@ -140,7 +140,6 @@ export interface Transaction {
       Bokstaven utledes av Avatar selv fra `recipient` — ikke lagre den her. */
   avatarKind?: "person" | "company";
   flagIso?: string;
-  nokEquivalent?: string;
   /** Personen fakturaen er adressert til. Brukes til gruppering på
       «Ubekreftede eFakturaer»-tabben, og går på tvers av konto. */
   invoiceOwner?: string;
@@ -154,7 +153,7 @@ export const transactions: Transaction[] = [
   { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
   { id: "fremtind", ...relativeDate(16), recipient: "Fremtind Forsikring AS", amountNok: 1129, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Kari Nordmann" },
   { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, accountKey: "felleskonto", type: "overforing", icon: "loan" },
-  { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES", nokEquivalent: "ca 5234,98 NOK" },
+  { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES" },
   { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura" },
 ];
 
