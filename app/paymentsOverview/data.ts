@@ -18,13 +18,16 @@ export type AccountKey = keyof typeof accountDetails;
 
 export const accountKeys = Object.keys(accountDetails) as AccountKey[];
 
+/** Beløp uten valutaenhet, brukt på transaksjonsradene der «kr» er underforstått. */
+export function fmtAmount(value: number): string {
+  return value.toLocaleString(LOCALE, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export function fmtNok(value: number): string {
-  return (
-    value.toLocaleString(LOCALE, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }) + " kr"
-  );
+  return fmtAmount(value) + " kr";
 }
 
 function fmtKr(value: number): string {

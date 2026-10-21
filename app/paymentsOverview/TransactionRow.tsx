@@ -6,7 +6,7 @@ import { Avatar, Badge, Button, CountryFlag, Flex, FormStatus, Icon, List } from
 import { Span } from "@dnb/eufemia/elements";
 import { edit, loan_medium, office_buildings, transfer_medium } from "@dnb/eufemia/icons";
 
-import { fmtNok, type Transaction } from "./data";
+import { fmtAmount, fmtNok, type Transaction } from "./data";
 
 /** Hvor lenge «Godkjenn» viser spinner før fakturaen regnes som bekreftet.
  *  Rent demo-tidsforbruk. */
@@ -92,7 +92,9 @@ export default function TransactionRow({
   // Beløpsteksten utledes av amountNok, slik at tallet som regnes med og teksten
   // som vises alltid er samme kilde. amountDisplay overstyrer bare når raden er i
   // en annen valuta — da vises kroneverdien over, også den fra amountNok.
-  const amountText = tx.amountDisplay ?? fmtNok(tx.amountNok);
+  // Rader i kroner vises uten «kr»; enheten tas bare med når raden også har
+  // et valutabeløp, så det er tydelig hvilket tall som er kroner.
+  const amountText = tx.amountDisplay ?? fmtAmount(tx.amountNok);
 
   const endNode = tx.amountDisplay ? (
     <div className="po-row__amount">
