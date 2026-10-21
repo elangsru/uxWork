@@ -551,6 +551,13 @@ export default function PaymentsOverview() {
           </div>,
         ]}
       >
+        {/* Aktive valg fra filterpanelet som tags, med kategorinavn så «Aktiv»
+            ikke kan forveksles med noe annet. Leser samme state via Filter.Root.
+            Rendres bare når noe er valgt: tom etterlater komponenten en
+            høydeanimasjon på 0 px som likevel får boksens 16 px gap. */}
+        {(amountRanges.length > 0 || statuses.length > 0) && (
+          <Filter.ActiveFilters showCategoryLabel />
+        )}
         <div className="po-typefilter">
           <ToggleButton.Group
             label="Betalingstype"

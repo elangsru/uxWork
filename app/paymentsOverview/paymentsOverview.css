@@ -536,3 +536,10 @@
 .po-tools__title {
   font-weight: var(--font-weight-medium);
 }
+
+/* Filter.ActiveFilters har 16 px margin-top innebygd. Inne i filterboksen står
+   den i en flex-kolonne som allerede har 16 px gap, så marginen nulles for å
+   gi samme avstand som mellom de andre radene. */
+.po-filterbox .dnb-filter__active-filters {
+  margin-top: 0;
+}
