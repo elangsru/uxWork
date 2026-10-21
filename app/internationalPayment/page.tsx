@@ -658,13 +658,11 @@ export default function InternationalPayment() {
   const currencyFieldId = "international-payment-currency";
   const currencyHelpId = `${currencyFieldId}-help`;
   const currencyHelp = {
-    title: "Andre valutaer",
     content: (
       <>
-        Dersom du har behov for en annen valuta enn de som vises i listen kan du gå til gammel
-        løsning som er tilgjengelig{" "}
+        Dersom du har behov for en annen valuta enn de som vises i listen kan du gå til{" "}
         <Anchor href="#" target="_blank" rel="noopener noreferrer" noLaunchIcon>
-          her
+          gammel løsning
         </Anchor>
         .
       </>
