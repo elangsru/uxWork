@@ -315,6 +315,8 @@ export default function PaymentsOverview() {
         overlineFor={(tx) => tx.date}
         balanceFor={rowBalance}
         warningFor={rowWarning}
+        // Sum-raden vises alltid. «Penger til overs» og saldoen etter
+        // trekk hører til svitsjen.
         sum={
           showSaldo
             ? {
@@ -329,7 +331,7 @@ export default function PaymentsOverview() {
                   { text: fmtNok(remaining), negative: remaining < 0 },
                 ],
               }
-            : undefined
+            : { label: sumLabel(txs), amounts: [{ text: fmtNok(total) }] }
         }
         confirmedIds={confirmedIds}
         onConfirm={confirm}
@@ -353,7 +355,7 @@ export default function PaymentsOverview() {
         overlineFor={accountOverline}
         balanceFor={rowBalance}
         warningFor={rowWarning}
-        sum={showSaldo ? { label: sumLabel(txs), amounts: [{ text: fmtNok(total) }] } : undefined}
+        sum={{ label: sumLabel(txs), amounts: [{ text: fmtNok(total) }] }}
         confirmedIds={confirmedIds}
         onConfirm={confirm}
       />
