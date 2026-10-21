@@ -748,7 +748,7 @@ export default function PaymentsOverview() {
               </div>
               <div className="po-actions">
                 <Button variant="primary" text="Overfør" icon={transfer} iconPosition="left" />
-                <Button variant="secondary" text="Betal" icon={pay_from} iconPosition="left" />
+                <Button variant="secondary" text="Betal" href="/domesticPayment" icon={pay_from} iconPosition="left" />
                 <Button variant="secondary" text="Betal utland" href="/internationalPayment" icon={globe} iconPosition="left" />
               </div>
             </div>

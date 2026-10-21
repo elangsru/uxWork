@@ -142,7 +142,7 @@ export default function InternationalPaymentConfirmation() {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: fullWidth ? "100%" : "488px", width: "100%" }}>
-            <H1 size="x-large">Betale til utlandet</H1>
+            <H1 size="x-large">Betal utland</H1>
 
           {/* Confirmation card */}
           <div

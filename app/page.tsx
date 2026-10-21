@@ -9,6 +9,10 @@ const groups = [
     title: "Netbank",
     projects: [
       {
+        label: "Domestic payments",
+        href: "/domesticPayment",
+      },
+      {
         label: "International payments",
         href: "/internationalPayment",
         jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-48322",

@@ -1598,7 +1598,7 @@ export default function InternationalPayment() {
             data={[
               { text: "Hjem", href: "/" },
               { text: "Betalingsoversikt", href: "/paymentsOverview" },
-              { text: "Betale til utlandet" },
+              { text: "Betal utland" },
             ]}
           />
           <div style={{ marginLeft: "auto", display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
@@ -1625,20 +1625,7 @@ export default function InternationalPayment() {
         >
           {/* Hero */}
           <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <H1 size="x-large">Betale til utlandet</H1>
-              {/* Samme maxWidth som stegindikator og skjema under, så ingressen
-                  brytes i takt med innholdet i stedet for å strekke seg over
-                  hele 72rem-bredden. */}
-              <P style={{ maxWidth: fullWidth ? "100%" : "488px" }}>
-                Bli med å test ny betalingsløsning, og gi oss tilbakemelding hva du
-                synes. Du har fortsatt tilgang til den gamle{" "}
-                <Anchor href="#" target="_blank" rel="noopener noreferrer" noLaunchIcon>
-                  her
-                </Anchor>
-                .
-              </P>
-            </div>
+            <H1 size="x-large">Betal utland</H1>
             <div style={{ maxWidth: fullWidth ? "100%" : "488px", width: "100%" }}>
               <StepIndicator
                 mode="strict"
