@@ -64,6 +64,12 @@ function matchesAmountRange(amount: number, range: AmountRange) {
   if (range === "1000-10000") return amount >= 1000 && amount < 10000;
   return amount >= 10000;
 }
+// Statusfilteret (Filter.Selection «Status»), samme nøkkeloppsett som beløp.
+// Stoppet = har et demovarsel som vises; ubekreftet = eFaktura som ikke er
+// godkjent ennå; alt annet er aktivt.
+const STATUS_FILTER_KEY = "/status";
+type PaymentStatus = "aktiv" | "stoppet" | "ubekreftet";
+const PAYMENT_STATUSES: PaymentStatus[] = ["aktiv", "stoppet", "ubekreftet"];
 const LOAD_DELAY_MS = 2000;
 
 export default function PaymentsOverview() {
@@ -91,6 +97,7 @@ export default function PaymentsOverview() {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
   const [amountRanges, setAmountRanges] = useState<AmountRange[]>([]);
+  const [statuses, setStatuses] = useState<PaymentStatus[]>([]);
 
   const mounted = useSyncExternalStore(subscribeNever, getHydrated, getHydratedOnServer);
 
@@ -132,6 +139,9 @@ export default function PaymentsOverview() {
   /** En transaksjon som faktisk trekkes fra saldo: bekreftet, eller aldri
    *  ubekreftet til å begynne med. */
   const isSettled = (t: Transaction) => !t.unconfirmed || confirmedIds.has(t.id);
+
+  const statusOf = (t: Transaction): PaymentStatus =>
+    !isSettled(t) ? "ubekreftet" : showWarnings && DEMO_WARNINGS[t.id] ? "stoppet" : "aktiv";
 
   const confirm = (id: string) => setConfirmedIds((prev) => new Set([...prev, id]));
 
@@ -188,7 +198,10 @@ export default function PaymentsOverview() {
       (endDate === "" || t.dateValue <= endDate) &&
       (amountRanges.length === 0 ||
         amountRanges.some((r) => matchesAmountRange(t.amountNok, r))) &&
-      (showUnconfirmed || isSettled(t)),
+      (statuses.length === 0 || statuses.includes(statusOf(t))) &&
+      // Statusvalget «Ubekreftet eFaktura» henter de ubekreftede fakturaene inn
+      // i listen, også når «Show unconfirmed eInvoices» er av.
+      (showUnconfirmed || statuses.includes("ubekreftet") || isSettled(t)),
   );
 
   // Ubekreftede eFakturaer har sin egen tab og er derfor uavhengige av «Til
@@ -429,11 +442,14 @@ export default function PaymentsOverview() {
           forfallsdato, mens panelet åpnes i full bredde nederst i boksen. */}
       <Filter.Root
         id="po-forfall-filter"
-        onChange={({ filters }) =>
+        onChange={({ filters }) => {
           setAmountRanges(
             AMOUNT_RANGES.filter((r) => `${AMOUNT_FILTER_KEY}/${r}` in filters),
-          )
-        }
+          );
+          setStatuses(
+            PAYMENT_STATUSES.filter((s) => `${STATUS_FILTER_KEY}/${s}` in filters),
+          );
+        }}
       >
       <FilterBox
         fields={[
@@ -568,6 +584,16 @@ export default function PaymentsOverview() {
               { value: "under-1000", label: "Under 1 000 kr" },
               { value: "1000-10000", label: "1 000–10 000 kr" },
               { value: "over-10000", label: "Over 10 000 kr" },
+            ]}
+          />
+          <Filter.Selection
+            label="Status"
+            filterKey={STATUS_FILTER_KEY}
+            defaultOpen
+            data={[
+              { value: "aktiv", label: "Aktiv" },
+              { value: "stoppet", label: "Stoppet" },
+              { value: "ubekreftet", label: "Ubekreftet eFaktura" },
             ]}
           />
         </Filter.Panel>
