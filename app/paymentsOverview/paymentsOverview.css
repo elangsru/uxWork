@@ -414,6 +414,10 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  /* Radene over har chevron (16px) pluss 16px luft til høyre for beløpet. Sum-
+     raden har ingen chevron, så uten marginen står beløpet 32px lenger ut enn
+     kolonnen over. */
+  margin-right: 2rem;
 }
 
 /* Radene i en gruppe har rette hjørner — kortet eier radiusen. Brukes også av
@@ -542,4 +546,11 @@
    gi samme avstand som mellom de andre radene. */
 .po-filterbox .dnb-filter__active-filters {
   margin-top: 0;
+}
+
+/* Min og Maks side om side i filterpanelets Beløp. */
+.po-amountfilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-small);
 }

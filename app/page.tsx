@@ -6,11 +6,12 @@ import { chevron_right, launch } from "@dnb/eufemia/icons";
 
 const groups = [
   {
-    title: "Netbank",
+    title: "Payments",
     projects: [
       {
         label: "Domestic payments",
         href: "/domesticPayment",
+        jiraUrl: "https://dnb-asa.atlassian.net/browse/MINBANK-48056",
       },
       {
         label: "International payments",
@@ -22,6 +23,11 @@ const groups = [
         href: "/paymentsOverview",
         jiraUrl: "https://dnb-asa.atlassian.net/browse/RCP-5048",
       },
+    ],
+  },
+  {
+    title: "Account/Card",
+    projects: [
       {
         label: "Transaction details",
         href: "/transactionDetails",

@@ -138,7 +138,7 @@ export interface Transaction {
   type: "overforing" | "betaling" | "avtalegiro" | "efaktura";
   unconfirmed?: boolean;
   badge?: "AvtaleGiro" | "eFaktura";
-  icon?: "transfer" | "loan";
+  icon?: "transfer" | "loan" | "savings" | "investment" | "funds";
   /** Avgjør avatarens fallback. Eufemia: person → bokstavversjon, selskap → ikon.
       Bokstaven utledes av Avatar selv fra `recipient` — ikke lagre den her. */
   avatarKind?: "person" | "company";
@@ -150,12 +150,14 @@ export interface Transaction {
 
 export const transactions: Transaction[] = [
   { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, accountKey: "felleskonto", type: "betaling", avatarKind: "person" },
-  { id: "intro-aksel", ...relativeDate(9), recipient: "Intro Aksel", amountNok: 300, accountKey: "felleskonto", type: "overforing", icon: "transfer" },
+  { id: "intro-aksel", ...relativeDate(9), recipient: "Sparing bryllup", amountNok: 300, accountKey: "felleskonto", type: "overforing", icon: "savings" },
   { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, accountKey: "lonnskonto", type: "avtalegiro", avatarKind: "company", badge: "AvtaleGiro" },
   { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, accountKey: "felleskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
   { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
   { id: "fremtind", ...relativeDate(16), recipient: "Fremtind Forsikring AS", amountNok: 1129, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Kari Nordmann" },
   { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, accountKey: "felleskonto", type: "overforing", icon: "loan" },
+  { id: "ask", ...relativeDate(20), recipient: "ASK", amountNok: 1500, accountKey: "lonnskonto", type: "overforing", icon: "investment" },
+  { id: "dnb-global-index", ...relativeDate(22), recipient: "DNB Global index", amountNok: 2000, accountKey: "lonnskonto", type: "overforing", icon: "funds" },
   { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES" },
   { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura" },
 ];

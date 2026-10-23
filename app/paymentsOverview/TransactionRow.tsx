@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { SubmitIndicator } from "@dnb/eufemia/extensions/forms/Form";
 import { Avatar, Badge, Button, CountryFlag, Flex, FormStatus, Icon, List } from "@dnb/eufemia/components";
 import { Span } from "@dnb/eufemia/elements";
-import { edit, loan_medium, office_buildings, transfer_medium } from "@dnb/eufemia/icons";
+import { edit, funds_medium, investment_account_medium, loan_medium, office_buildings, savings_account_medium, transfer_medium } from "@dnb/eufemia/icons";
 
 import { fmtAmount, fmtNok, type Transaction } from "./data";
 
@@ -86,7 +86,7 @@ export default function TransactionRow({
   } else if (avatarNode) {
     startNode = avatarNode;
   } else if (tx.icon) {
-    startNode = <Icon icon={tx.icon === "transfer" ? transfer_medium : loan_medium} />;
+    startNode = <Icon icon={{ transfer: transfer_medium, loan: loan_medium, savings: savings_account_medium, investment: investment_account_medium, funds: funds_medium }[tx.icon]} />;
   }
 
   // Beløpsteksten utledes av amountNok, slik at tallet som regnes med og teksten
@@ -124,8 +124,10 @@ export default function TransactionRow({
       <List.Cell.End>{endNode}</List.Cell.End>
       {effectivelyUnconfirmed && (
         <List.Cell.Footer className="actions-footer">
-          {/* Eufemias «Footer with buttons»: hovedhandling først, tertiær rett etter. */}
-          <Flex.Horizontal>
+          {/* Høyrestilt, med hovedhandlingen lengst til høyre. Footeren fyller
+              ikke bredden av seg selv, så width: 100% trengs for justify. */}
+          <Flex.Horizontal justify="flex-end" style={{ width: "100%" }}>
+            <Button variant="tertiary" text="Rediger" icon={false} />
             <Button
               variant="secondary"
               disabled={approving}
@@ -141,7 +143,6 @@ export default function TransactionRow({
               Godkjenn
               <SubmitIndicator state={approving ? "pending" : "complete"} />
             </Button>
-            <Button variant="tertiary" text="Rediger" icon={edit} iconPosition="left" />
           </Flex.Horizontal>
         </List.Cell.Footer>
       )}

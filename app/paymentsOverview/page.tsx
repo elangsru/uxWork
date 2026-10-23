@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { Autocomplete, Avatar, Breadcrumb, Button, DatePicker, Filter, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
 import { H1, P } from "@dnb/eufemia/elements";
+import { Field } from "@dnb/eufemia/extensions/forms";
 import { globe, pay_from, refresh, transfer } from "@dnb/eufemia/icons";
 
 import "./paymentsOverview.css";
@@ -52,25 +53,112 @@ const NO_OWNER = "Uten eier";
 // her vises den statiske plassholderen.
 const SKELETON_COUNT = 3;
 
-// Verdiene i beløpsfilteret (Filter.Selection «Beløp»). Selection er avkrysnings-
-// bokser med flervalg, og hvert valg lagres som egen nøkkel «/belop/<verdi>».
-// Grensene er inklusive nedad: 1 000 kr havner i «1 000–10 000», 10 000 kr i
-// «Over 10 000».
+// Beløpsfilteret: to felt, Min og Maks, lagret som ett filter «/belop» med
+// { min, max } så det blir én tag. Begge grensene er inklusive, og et tomt felt
+// betyr ingen grense i den retningen.
 const AMOUNT_FILTER_KEY = "/belop";
-type AmountRange = "under-1000" | "1000-10000" | "over-10000";
-const AMOUNT_RANGES: AmountRange[] = ["under-1000", "1000-10000", "over-10000"];
-function matchesAmountRange(amount: number, range: AmountRange) {
-  if (range === "under-1000") return amount < 1000;
-  if (range === "1000-10000") return amount >= 1000 && amount < 10000;
-  return amount >= 10000;
+const AMOUNT_FILTER_LABEL = "Beløp";
+type AmountRange = { min?: number; max?: number };
+function isAmountRange(v: unknown): v is AmountRange {
+  return typeof v === "object" && v !== null && ("min" in v || "max" in v);
 }
-// Statusfilteret (Filter.Selection «Status»), samme nøkkeloppsett som beløp.
+function amountRangeLabel({ min, max }: AmountRange) {
+  const nok = (n: number) => `${n.toLocaleString(LOCALE)} kr`;
+  if (min !== undefined && max !== undefined) return `${nok(min)}–${nok(max)}`;
+  if (min !== undefined) return `Fra ${nok(min)}`;
+  return `Til ${nok(max!)}`;
+}
+
+/**
+ * Min/Maks-feltene i filterpanelet. Leser verdien fra Filter.Root, så «Fjern
+ * alle» og krysset på taggen tømmer feltene også.
+ */
+function AmountRangeFilter() {
+  const { getFilter, setFilter } = Filter.useFilterContext();
+  const current = getFilter(AMOUNT_FILTER_KEY)?.value;
+  const range: AmountRange = isAmountRange(current) ? current : {};
+  const update = (next: AmountRange) => {
+    const empty = next.min === undefined && next.max === undefined;
+    setFilter(
+      AMOUNT_FILTER_KEY,
+      empty
+        ? undefined
+        : { value: next, label: amountRangeLabel(next), categoryLabel: AMOUNT_FILTER_LABEL },
+    );
+  };
+  return (
+    <Filter.Item label={AMOUNT_FILTER_LABEL} filterKey={AMOUNT_FILTER_KEY} defaultOpen>
+      <div className="po-amountfilter">
+        <Field.Currency
+          label="Min"
+          currency="NOK"
+          minimum={0}
+          value={range.min}
+          onChange={(v) => update({ ...range, min: v ?? undefined })}
+        />
+        <Field.Currency
+          label="Maks"
+          currency="NOK"
+          minimum={0}
+          value={range.max}
+          onChange={(v) => update({ ...range, max: v ?? undefined })}
+        />
+      </div>
+    </Filter.Item>
+  );
+}
+
+// Statusfilteret (Filter.Selection «Status»): hvert valg lagres som
+// egen nøkkel «/status/<verdi>».
 // Stoppet = har et demovarsel som vises; ubekreftet = eFaktura som ikke er
 // godkjent ennå; alt annet er aktivt.
 const STATUS_FILTER_KEY = "/status";
 type PaymentStatus = "aktiv" | "stoppet" | "ubekreftet";
-const PAYMENT_STATUSES: PaymentStatus[] = ["aktiv", "stoppet", "ubekreftet"];
+const PAYMENT_STATUSES: PaymentStatus[] = ["ubekreftet", "aktiv", "stoppet"];
+// Typefilteret står enten som ToggleButtons over listen eller, når «Show type
+// filter» er av, som Filter.Selection øverst i filterpanelet. paymentTypes er
+// kilden i begge tilfeller; TypeFilterSync speiler den inn i panelet.
+const TYPE_FILTER_KEY = "/type";
+const TYPE_FILTER_LABEL = "Type";
+const PAYMENT_TYPE_OPTIONS = [
+  { value: "overforing", label: "Overføring" },
+  { value: "betaling", label: "Betaling" },
+  { value: "avtalegiro", label: "AvtaleGiro" },
+  { value: "efaktura", label: "eFaktura" },
+];
 const LOAD_DELAY_MS = 2000;
+
+/**
+ * Filter.Root eier sin egen filter-state, så ved bytte av plassering kopieres
+ * valgte typer inn i panelet (og fjernes igjen ved bytte tilbake). Kjører bare
+ * når plasseringen endres; typene leses via ref så vanlige klikk ikke trigger.
+ */
+function TypeFilterSync({ inPanel, types }: { inPanel: boolean; types: string[] }) {
+  const { setFilter, removeFilter, filters } = Filter.useFilterContext();
+  const latest = useRef({ types, filters, setFilter, removeFilter });
+  useEffect(() => {
+    latest.current = { types, filters, setFilter, removeFilter };
+  });
+  useEffect(() => {
+    const { types, filters, setFilter, removeFilter } = latest.current;
+    const prefix = `${TYPE_FILTER_KEY}/`;
+    if (inPanel) {
+      for (const value of types) {
+        const option = PAYMENT_TYPE_OPTIONS.find((o) => o.value === value);
+        setFilter(prefix + value, {
+          value,
+          label: option?.label ?? value,
+          categoryLabel: TYPE_FILTER_LABEL,
+        });
+      }
+    } else {
+      for (const key of Object.keys(filters)) {
+        if (key.startsWith(prefix)) removeFilter(key);
+      }
+    }
+  }, [inPanel]);
+  return null;
+}
 
 export default function PaymentsOverview() {
   const today = new Date();
@@ -81,6 +169,7 @@ export default function PaymentsOverview() {
 
   const [paymentTypes, setPaymentTypes] = useState<string[]>([]);
   const [showSaldo, setShowSaldo] = useState(false);
+  const [showTypeFilter, setShowTypeFilter] = useState(true);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
@@ -96,7 +185,7 @@ export default function PaymentsOverview() {
   const [efakturaAccountFilter, setEfakturaAccountFilter] = useState<AccountKey | null>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
-  const [amountRanges, setAmountRanges] = useState<AmountRange[]>([]);
+  const [amountRange, setAmountRange] = useState<AmountRange>({});
   const [statuses, setStatuses] = useState<PaymentStatus[]>([]);
 
   const mounted = useSyncExternalStore(subscribeNever, getHydrated, getHydratedOnServer);
@@ -196,10 +285,10 @@ export default function PaymentsOverview() {
       // Tom dato = ingen grense i den retningen (etter «Nullstill»).
       (startDate === "" || t.dateValue >= startDate) &&
       (endDate === "" || t.dateValue <= endDate) &&
-      (amountRanges.length === 0 ||
-        amountRanges.some((r) => matchesAmountRange(t.amountNok, r))) &&
+      (amountRange.min === undefined || t.amountNok >= amountRange.min) &&
+      (amountRange.max === undefined || t.amountNok <= amountRange.max) &&
       (statuses.length === 0 || statuses.includes(statusOf(t))) &&
-      // Statusvalget «Ubekreftet eFaktura» henter de ubekreftede fakturaene inn
+      // Statusvalget «Til godkjenning» henter de ubekreftede fakturaene inn
       // i listen, også når «Show unconfirmed eInvoices» er av.
       (showUnconfirmed || statuses.includes("ubekreftet") || isSettled(t)),
   );
@@ -323,7 +412,8 @@ export default function PaymentsOverview() {
         open={isGroupOpen(accountKey)}
         onToggle={() => toggleGroup(accountKey)}
         header={`${acct.name} ${acct.number}`}
-        headerEnd={showSaldo ? fmtNok(acct.balance) : undefined}
+        // Saldoen står alltid i overskriften; svitsjen styrer bare «Penger til overs».
+        headerEnd={fmtNok(acct.balance)}
         rows={txs}
         overlineFor={(tx) => tx.date}
         balanceFor={rowBalance}
@@ -443,14 +533,22 @@ export default function PaymentsOverview() {
       <Filter.Root
         id="po-forfall-filter"
         onChange={({ filters }) => {
-          setAmountRanges(
-            AMOUNT_RANGES.filter((r) => `${AMOUNT_FILTER_KEY}/${r}` in filters),
-          );
+          const amount = filters[AMOUNT_FILTER_KEY]?.value;
+          setAmountRange(isAmountRange(amount) ? amount : {});
           setStatuses(
             PAYMENT_STATUSES.filter((s) => `${STATUS_FILTER_KEY}/${s}` in filters),
           );
+          // Bare når typen bor i panelet; ellers styres den av ToggleButtons.
+          if (!showTypeFilter) {
+            setPaymentTypes(
+              PAYMENT_TYPE_OPTIONS.map((o) => o.value).filter(
+                (v) => `${TYPE_FILTER_KEY}/${v}` in filters,
+              ),
+            );
+          }
         }}
       >
+      <TypeFilterSync inPanel={!showTypeFilter} types={paymentTypes} />
       <FilterBox
         fields={[
           <Autocomplete
@@ -551,25 +649,33 @@ export default function PaymentsOverview() {
           </div>,
         ]}
       >
-        {/* Aktive valg fra filterpanelet som tags, med kategorinavn så «Aktiv»
-            ikke kan forveksles med noe annet. Leser samme state via Filter.Root.
+        {/* Aktive valg fra filterpanelet som tags, uten kategorinavn — bare
+            selve verdien. Leser samme state via Filter.Root.
             Rendres bare når noe er valgt: tom etterlater komponenten en
             høydeanimasjon på 0 px som likevel får boksens 16 px gap. */}
-        {(amountRanges.length > 0 || statuses.length > 0) && (
-          <Filter.ActiveFilters showCategoryLabel />
+        {(amountRange.min !== undefined ||
+          amountRange.max !== undefined ||
+          statuses.length > 0 ||
+          (!showTypeFilter && paymentTypes.length > 0)) && (
+          <Filter.ActiveFilters />
         )}
         <div className="po-typefilter">
-          <ToggleButton.Group
-            label="Betalingstype"
-            multiselect
-            values={paymentTypes}
-            onChange={({ values }) => setPaymentTypes(values as string[])}
-          >
-            <ToggleButton text="Overføring" value="overforing" />
-            <ToggleButton text="Betaling" value="betaling" />
-            <ToggleButton text="AvtaleGiro" value="avtalegiro" />
-            <ToggleButton text={efakturaLabel} value="efaktura" />
-          </ToggleButton.Group>
+          {showTypeFilter && (
+            <ToggleButton.Group
+              label={TYPE_FILTER_LABEL}
+              multiselect
+              values={paymentTypes}
+              onChange={({ values }) => setPaymentTypes(values as string[])}
+            >
+              {PAYMENT_TYPE_OPTIONS.map((o) => (
+                <ToggleButton
+                  key={o.value}
+                  text={o.value === "efaktura" ? efakturaLabel : o.label}
+                  value={o.value}
+                />
+              ))}
+            </ToggleButton.Group>
+          )}
           <div className="po-saldoswitch">
             <Switch
               label="Penger til overs"
@@ -584,25 +690,24 @@ export default function PaymentsOverview() {
         </div>
         <Filter.Panel>
           <Filter.Selection
-            label="Beløp"
-            filterKey={AMOUNT_FILTER_KEY}
-            defaultOpen
-            data={[
-              { value: "under-1000", label: "Under 1 000 kr" },
-              { value: "1000-10000", label: "1 000–10 000 kr" },
-              { value: "over-10000", label: "Over 10 000 kr" },
-            ]}
-          />
-          <Filter.Selection
             label="Status"
             filterKey={STATUS_FILTER_KEY}
             defaultOpen
             data={[
+              { value: "ubekreftet", label: "Til godkjenning" },
               { value: "aktiv", label: "Aktiv" },
               { value: "stoppet", label: "Stoppet" },
-              { value: "ubekreftet", label: "Ubekreftet eFaktura" },
             ]}
           />
+          {!showTypeFilter && (
+            <Filter.Selection
+              label={TYPE_FILTER_LABEL}
+              filterKey={TYPE_FILTER_KEY}
+              defaultOpen
+              data={PAYMENT_TYPE_OPTIONS}
+            />
+          )}
+          <AmountRangeFilter />
         </Filter.Panel>
       </FilterBox>
       </Filter.Root>
@@ -824,6 +929,7 @@ export default function PaymentsOverview() {
               checked: showUnconfirmed,
               onChange: setShowUnconfirmed,
             },
+            { label: "Show type filter", checked: showTypeFilter, onChange: setShowTypeFilter },
             { label: "Dark mode", checked: darkMode, onChange: setDarkMode },
           ]}
         />
