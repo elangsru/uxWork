@@ -137,7 +137,7 @@ export interface Transaction {
   accountKey: AccountKey;
   type: "overforing" | "betaling" | "avtalegiro" | "efaktura";
   unconfirmed?: boolean;
-  badge?: "AvtaleGiro" | "eFaktura";
+  badge?: string;
   icon?: "transfer" | "loan" | "savings" | "investment" | "funds";
   /** Avgjør avatarens fallback. Eufemia: person → bokstavversjon, selskap → ikon.
       Bokstaven utledes av Avatar selv fra `recipient` — ikke lagre den her. */
@@ -152,7 +152,7 @@ export const transactions: Transaction[] = [
   { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, accountKey: "felleskonto", type: "betaling", avatarKind: "person" },
   { id: "intro-aksel", ...relativeDate(9), recipient: "Sparing bryllup", amountNok: 300, accountKey: "felleskonto", type: "overforing", icon: "savings" },
   { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, accountKey: "lonnskonto", type: "avtalegiro", avatarKind: "company", badge: "AvtaleGiro" },
-  { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, accountKey: "felleskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
+  { id: "sector-alarm", ...relativeDate(12), recipient: "Sector Alarm AS", amountNok: 312, accountKey: "felleskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura på vegne av Lise Hansen", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
   { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Espen Langsrud (deg)" },
   { id: "fremtind", ...relativeDate(16), recipient: "Fremtind Forsikring AS", amountNok: 1129, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: "Kari Nordmann" },
   { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, accountKey: "felleskonto", type: "overforing", icon: "loan" },
