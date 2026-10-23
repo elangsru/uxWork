@@ -443,7 +443,8 @@ export default function PaymentsOverview() {
   });
 
   // «Til forfall», gruppert på dato. Ingen saldo i headeren — en dato har ingen
-  // saldo — og sum-raden viser bare summen.
+  // saldo — og sum-raden viser bare summen. Med én betaling på datoen gjentar
+  // summen bare beløpet på raden, så da droppes sum-raden.
   const forfallDatoGroups = dateKeys.map((dateValue) => {
     const txs = visibleTransactions.filter((t) => t.dateValue === dateValue);
     const total = txs.filter(isSettled).reduce((s, t) => s + t.amountNok, 0);
@@ -458,7 +459,11 @@ export default function PaymentsOverview() {
         overlineFor={accountOverline}
         balanceFor={rowBalance}
         warningFor={rowWarning}
-        sum={{ label: sumLabel(txs), amounts: [{ text: fmtNok(total) }] }}
+        sum={
+          txs.length > 1
+            ? { label: sumLabel(txs), amounts: [{ text: fmtNok(total) }] }
+            : undefined
+        }
         confirmedIds={confirmedIds}
         onConfirm={confirm}
       />
