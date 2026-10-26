@@ -169,7 +169,8 @@ export default function PaymentsOverview() {
 
   const [paymentTypes, setPaymentTypes] = useState<string[]>([]);
   const [showSaldo, setShowSaldo] = useState(false);
-  const [showTypeFilter, setShowTypeFilter] = useState(true);
+  const [showTypeFilter, setShowTypeFilter] = useState(false);
+  const [showSaldoSwitch, setShowSaldoSwitch] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
@@ -654,45 +655,41 @@ export default function PaymentsOverview() {
           </div>,
         ]}
       >
-        {/* Aktive valg fra filterpanelet som tags, uten kategorinavn — bare
-            selve verdien. Leser samme state via Filter.Root.
-            Rendres bare når noe er valgt: tom etterlater komponenten en
-            høydeanimasjon på 0 px som likevel får boksens 16 px gap. */}
-        {(amountRange.min !== undefined ||
-          amountRange.max !== undefined ||
-          statuses.length > 0 ||
-          (!showTypeFilter && paymentTypes.length > 0)) && (
-          <Filter.ActiveFilters />
-        )}
-        <div className="po-typefilter">
-          {showTypeFilter && (
-            <ToggleButton.Group
-              label={TYPE_FILTER_LABEL}
-              multiselect
-              values={paymentTypes}
-              onChange={({ values }) => setPaymentTypes(values as string[])}
-            >
-              {PAYMENT_TYPE_OPTIONS.map((o) => (
-                <ToggleButton
-                  key={o.value}
-                  text={o.value === "efaktura" ? efakturaLabel : o.label}
-                  value={o.value}
+        {/* Rendres bare når noe skal stå i raden: tom får den likevel
+            boksens 16 px gap. */}
+        {(showTypeFilter || showSaldoSwitch) && (
+          <div className="po-typefilter">
+            {showTypeFilter && (
+              <ToggleButton.Group
+                label={TYPE_FILTER_LABEL}
+                multiselect
+                values={paymentTypes}
+                onChange={({ values }) => setPaymentTypes(values as string[])}
+              >
+                {PAYMENT_TYPE_OPTIONS.map((o) => (
+                  <ToggleButton
+                    key={o.value}
+                    text={o.value === "efaktura" ? efakturaLabel : o.label}
+                    value={o.value}
+                  />
+                ))}
+              </ToggleButton.Group>
+            )}
+            {showSaldoSwitch && (
+              <div className="po-saldoswitch">
+                <Switch
+                  label="Penger til overs"
+                  labelSrOnly
+                  checked={showSaldo}
+                  onChange={({ checked }) => setShowSaldo(checked)}
                 />
-              ))}
-            </ToggleButton.Group>
-          )}
-          <div className="po-saldoswitch">
-            <Switch
-              label="Penger til overs"
-              labelSrOnly
-              checked={showSaldo}
-              onChange={({ checked }) => setShowSaldo(checked)}
-            />
-            <TermDefinition content="Når aktiv vises forventet fremtidig saldo etter at betalinger til forfall er trukket fra. Betalinger merket med rødt indikerer saldo kan gå i minus.">
-              Penger til overs
-            </TermDefinition>
+                <TermDefinition content="Når aktiv vises forventet fremtidig saldo etter at betalinger til forfall er trukket fra. Betalinger merket med rødt indikerer saldo kan gå i minus.">
+                  Penger til overs
+                </TermDefinition>
+              </div>
+            )}
           </div>
-        </div>
+        )}
         <Filter.Panel>
           <Filter.Selection
             label="Status"
@@ -714,6 +711,17 @@ export default function PaymentsOverview() {
           )}
           <AmountRangeFilter />
         </Filter.Panel>
+        {/* Aktive valg fra filterpanelet som tags, uten kategorinavn — bare
+            selve verdien. Leser samme state via Filter.Root. Står under
+            panelet, som i Eufemias Filter-eksempler (Panel → ActiveFilters).
+            Rendres bare når noe er valgt: tom etterlater komponenten en
+            høydeanimasjon på 0 px som likevel får boksens 16 px gap. */}
+        {(amountRange.min !== undefined ||
+          amountRange.max !== undefined ||
+          statuses.length > 0 ||
+          (!showTypeFilter && paymentTypes.length > 0)) && (
+          <Filter.ActiveFilters />
+        )}
       </FilterBox>
       </Filter.Root>
 
@@ -935,6 +943,16 @@ export default function PaymentsOverview() {
               onChange: setShowUnconfirmed,
             },
             { label: "Show type filter", checked: showTypeFilter, onChange: setShowTypeFilter },
+            {
+              label: "Show money left over",
+              checked: showSaldoSwitch,
+              // Skjules svitsjen, slås også saldoen av — ellers står den på uten
+              // noen måte å skru den av igjen.
+              onChange: (checked) => {
+                setShowSaldoSwitch(checked);
+                if (!checked) setShowSaldo(false);
+              },
+            },
             { label: "Dark mode", checked: darkMode, onChange: setDarkMode },
           ]}
         />
