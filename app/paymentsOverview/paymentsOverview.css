@@ -71,27 +71,9 @@
   --horizontal-gap: var(--spacing-x-small);
 }
 
-.dnb-list__item__action .dnb-list__item__chevron .dnb-icon {
-  transform: none !important;
-  transition: none !important;
-}
-
-.dnb-list__item__accordion__header {
-  padding-bottom: calc(var(--list-item-padding)) !important;
-}
-
-.dnb-list__item__accordion__header .dnb-list__item__chevron {
-  place-self: center !important;
-}
-
 .dnb-list__item__accordion__header .dnb-list__item__title {
   align-self: center !important;
   justify-self: stretch !important;
-}
-
-.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__chevron,
-.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__icon {
-  place-self: end !important;
 }
 
 .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline):not(:has(> .dnb-list__item__action__button .dnb-list__item__subline)) .dnb-list__item__start {
@@ -102,10 +84,6 @@
 .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__chevron,
 .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__icon {
   place-self: center !important;
-}
-
-.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__title {
-  align-self: start !important;
 }
 
 @media screen and (min-width: 40.00625em) {

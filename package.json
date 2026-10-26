@@ -10,7 +10,7 @@
     "dev:ios": "next dev --turbopack -p 3001"
   },
   "dependencies": {
-    "@dnb/eufemia": "^11.15.2",
+    "@dnb/eufemia": "^11.16.0",
     "@supabase/supabase-js": "^2.105.0",
     "next": "^16.4.2",
     "react": "19.2.4",
