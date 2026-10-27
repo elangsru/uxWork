@@ -773,7 +773,7 @@ export default function PaymentsOverview() {
               />,
               <Autocomplete
                 key="konto"
-                label="Belastningskonto"
+                label="Foreslått belastningskonto"
                 size="medium"
                 data={efakturaAccountOptions}
                 placeholder="Alle"

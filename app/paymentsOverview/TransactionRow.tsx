@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { SubmitIndicator } from "@dnb/eufemia/extensions/forms/Form";
 import { Avatar, Badge, Button, CountryFlag, Flex, FormStatus, Icon, List } from "@dnb/eufemia/components";
 import { Span } from "@dnb/eufemia/elements";
-import { edit, funds_medium, investment_account_medium, loan_medium, office_buildings, savings_account_medium, transfer_medium } from "@dnb/eufemia/icons";
+import { funds_medium, investment_account_medium, loan_medium, office_buildings, savings_account_medium, transfer_medium } from "@dnb/eufemia/icons";
 
 import { fmtAmount, fmtNok, type Transaction } from "./data";
 
@@ -156,9 +156,11 @@ export default function TransactionRow({
           <div ref={warningWidthRef} style={{ width: "100%" }}>
             <Flex.Vertical align="stretch" gap="small">
               <FormStatus state="warning" text={warning} stretch widthElement={warningWidthRef} />
-              <Flex.Horizontal>
+              {/* Høyrestilt med hovedhandlingen lengst til høyre, som Rediger +
+                  Godkjenn på ubekreftet eFaktura. */}
+              <Flex.Horizontal justify="flex-end">
+                <Button variant="tertiary" text="Rediger" icon={false} />
                 <Button variant="secondary" text="Reaktiver" />
-                <Button variant="tertiary" text="Rediger" icon={edit} iconPosition="left" />
               </Flex.Horizontal>
             </Flex.Vertical>
           </div>
