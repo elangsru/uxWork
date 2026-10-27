@@ -43,3 +43,6 @@ next-env.d.ts
 
 # Superpowers brainstorm companion
 .superpowers/
+
+# Playwright MCP: logger, snapshots og skjermbilder fra nettlesertesting
+.playwright-mcp/
