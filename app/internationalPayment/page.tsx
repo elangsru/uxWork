@@ -945,6 +945,8 @@ export default function InternationalPayment() {
     // Sted/by lates stå tom når adressefeilen er slått på, slik at
     // påkrevd-valideringen slår inn med en gang dialogen åpnes.
     setCity(addressWarning ? "" : selectedRecipient.city);
+    // Bekreftelsen gjelder én redigering; ny åpning krever ny avkrysning.
+    setRecipientConfirmed(false);
     setEditOpen(true);
     showBankSkeleton();
   }
@@ -1189,6 +1191,20 @@ export default function InternationalPayment() {
 
   const saveButton = (
     <Button variant="primary" top="large" style={{ alignSelf: "flex-start" }}>
+      Lagre og fortsett
+    </Button>
+  );
+  // I «Rediger mottaker» står knappen etter List.Container-kort, som har
+  // 32 px gap + 16 px margin-top seg imellom. top="small" gir knappen samme
+  // 48 px; top="large" ga 64.
+  // Med adressefeilen må mottakerinfoen bekreftes før den kan lagres.
+  const editSaveButton = (
+    <Button
+      variant="primary"
+      top="small"
+      style={{ alignSelf: "flex-start" }}
+      disabled={addressWarning && !recipientConfirmed}
+    >
       Lagre og fortsett
     </Button>
   );
@@ -1443,37 +1459,24 @@ export default function InternationalPayment() {
           </List.Item.Accordion.Content>
         </List.Item.Accordion>
       </List.Container>
-      <List.Container>
-        {/* Forklaringen står som egen brødtekst over, så checkboxen bare har
-            selve bekreftelsessetningen som label. Alternativet — hele teksten
-            som label med bunnjustert boks — ville gitt en boks som står ved
-            siden av en setning som starter midt på forrige linje. */}
-        <List.Item.Basic>
-          {/* List.Cell.Start setter bare innerSpace left som default, og
-              recipientCardStyles nuller containerens padding-right — uten
-              right her ville teksten gått helt ut til kortkanten. */}
-          <List.Cell.Start innerSpace={{ left: "small", right: "small" }}>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--spacing-small)",
-              }}
-            >
-              <P>
-                For at betalinger til utlandet ikke skal bli avvist i andre
-                banker må informasjon om mottaker jevnlig oppdateres.
-              </P>
+      {/* Bekreftelsen hører til adressefeilen og vises bare med den. */}
+      {addressWarning && (
+        <List.Container>
+          <List.Item.Basic>
+            {/* List.Cell.Start setter bare innerSpace left som default, og
+                recipientCardStyles nuller containerens padding-right — uten
+                right her ville teksten gått helt ut til kortkanten. */}
+            <List.Cell.Start innerSpace={{ left: "small", right: "small" }}>
               <Checkbox
                 label="Jeg bekrefter at informasjonen er korrekt."
                 checked={recipientConfirmed}
                 onChange={({ checked }) => setRecipientConfirmed(checked)}
               />
-            </div>
-          </List.Cell.Start>
-        </List.Item.Basic>
-      </List.Container>
-      {saveButton}
+            </List.Cell.Start>
+          </List.Item.Basic>
+        </List.Container>
+      )}
+      {editSaveButton}
     </div>
   );
 
