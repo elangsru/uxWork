@@ -216,6 +216,7 @@ export const DEMO_WARNINGS: Record<string, string> = {
   "intro-aksel": "Betaling stoppet, det var ikke nok penger på konto.",
   happybytes:
     "Betalingen ble stoppet fordi beløpet overstiger den månedlige beløpsgrensen for AvtaleGiro.",
+  tibber: "Betalingen ble stoppet. Månedlig maksgrense er passert. Juster grensen under innstillinger.",
 };
 
 /** Fakturaen til person nr i poolen. Uten fast faktura utledes feltene av
