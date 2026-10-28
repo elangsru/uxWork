@@ -20,7 +20,7 @@ import {
   accountDetails,
   accountKeys,
   accountOptions,
-  fmtNok,
+  fmtAmount,
   invoiceOwnerSsn,
   isoLocalDate,
   makePoolInvoice,
@@ -63,7 +63,7 @@ function isAmountRange(v: unknown): v is AmountRange {
   return typeof v === "object" && v !== null && ("min" in v || "max" in v);
 }
 function amountRangeLabel({ min, max }: AmountRange) {
-  const nok = (n: number) => `${n.toLocaleString(LOCALE)} kr`;
+  const nok = (n: number) => `kr ${n.toLocaleString(LOCALE)}`;
   if (min !== undefined && max !== undefined) return `${nok(min)}–${nok(max)}`;
   if (min !== undefined) return `Fra ${nok(min)}`;
   return `Til ${nok(max!)}`;
@@ -414,7 +414,7 @@ export default function PaymentsOverview() {
         onToggle={() => toggleGroup(accountKey)}
         header={`${acct.name} ${acct.number}`}
         // Saldoen står alltid i overskriften; svitsjen styrer bare «Penger til overs».
-        headerEnd={fmtNok(acct.balance)}
+        headerEnd={fmtAmount(acct.balance)}
         rows={txs}
         overlineFor={(tx) => tx.date}
         balanceFor={rowBalance}
@@ -431,11 +431,11 @@ export default function PaymentsOverview() {
                   negative: remaining < 0,
                 },
                 amounts: [
-                  { text: fmtNok(total) },
-                  { text: fmtNok(remaining), negative: remaining < 0 },
+                  { text: fmtAmount(total) },
+                  { text: fmtAmount(remaining), negative: remaining < 0 },
                 ],
               }
-            : { label: sumLabel(txs), amounts: [{ text: fmtNok(total) }] }
+            : { label: sumLabel(txs), amounts: [{ text: fmtAmount(total) }] }
         }
         confirmedIds={confirmedIds}
         onConfirm={confirm}
@@ -462,7 +462,7 @@ export default function PaymentsOverview() {
         warningFor={rowWarning}
         sum={
           txs.length > 1
-            ? { label: sumLabel(txs), amounts: [{ text: fmtNok(total) }] }
+            ? { label: sumLabel(txs), amounts: [{ text: fmtAmount(total) }] }
             : undefined
         }
         confirmedIds={confirmedIds}
@@ -485,7 +485,7 @@ export default function PaymentsOverview() {
           open={isGroupOpen(groupKey)}
           onToggle={() => toggleGroup(groupKey)}
           header={`${acct.name} ${acct.number}`}
-          headerEnd={fmtNok(acct.balance)}
+          headerEnd={fmtAmount(acct.balance)}
           rows={visibleEfakturas.filter((t) => t.accountKey === accountKey)}
           overlineFor={(tx) => tx.date}
           confirmedIds={confirmedIds}
@@ -843,7 +843,7 @@ export default function PaymentsOverview() {
                             <List.Cell.Title.Overline>0. måned 0000</List.Cell.Title.Overline>
                             Henter faktura
                           </List.Cell.Title>
-                          <List.Cell.End>0 000,00 kr</List.Cell.End>
+                          <List.Cell.End>kr 0 000,00</List.Cell.End>
                         </List.Item.Basic>
                       </List.Container>
                     </div>

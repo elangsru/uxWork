@@ -27,11 +27,11 @@ export function fmtAmount(value: number): string {
 }
 
 export function fmtNok(value: number): string {
-  return fmtAmount(value) + " kr";
+  return "kr " + fmtAmount(value);
 }
 
 function fmtKr(value: number): string {
-  return value.toLocaleString(LOCALE) + " kr";
+  return "kr " + value.toLocaleString(LOCALE);
 }
 
 /** Kontonummeret vises med punktum i gruppeoverskriftene og med mellomrom i
@@ -158,7 +158,7 @@ export const transactions: Transaction[] = [
   { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, accountKey: "felleskonto", type: "overforing", icon: "loan" },
   { id: "ask", ...relativeDate(20), recipient: "ASK", amountNok: 1500, accountKey: "lonnskonto", type: "overforing", icon: "investment" },
   { id: "dnb-global-index", ...relativeDate(22), recipient: "DNB Global index", amountNok: 2000, accountKey: "lonnskonto", type: "overforing", icon: "funds" },
-  { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "500,00 EUR", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES" },
+  { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "EUR 500,00", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES" },
   { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura" },
 ];
 
