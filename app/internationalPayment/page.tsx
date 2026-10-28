@@ -2065,8 +2065,9 @@ export default function InternationalPayment() {
                 <Icon icon={close} size="small" />
               </button>
             </div>
-            <P size="basis" style={{ margin: 0 }}>
-              For experimenting purposes only...
+            {/* contain: teksten bidrar ikke til panelets bredde, den brytes i stedet. */}
+            <P size="basis" style={{ margin: 0, contain: "inline-size" }}>
+              For experimenting and simulation purpose - not visible to end user.
             </P>
           </div>
 

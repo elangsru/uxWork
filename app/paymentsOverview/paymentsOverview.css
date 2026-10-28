@@ -480,6 +480,12 @@
   gap: var(--spacing-xx-small);
 }
 
+/* Undertittelen bidrar ikke til panelets bredde — den brytes i stedet, så
+   panelet blir like smalt som bryterne gjør det. */
+.po-tools__subtitle {
+  contain: inline-size;
+}
+
 .po-tools__header-top {
   display: flex;
   align-items: center;

@@ -68,7 +68,7 @@ export default function ToolsPanel({
                 onClick={() => onOpenChange(false)}
               />
             </div>
-            <P size="basis">For experimenting purposes only...</P>
+            <P size="basis" className="po-tools__subtitle">For experimenting and simulation purpose - not visible to end user.</P>
           </div>
 
           {toggles.map((t) => (

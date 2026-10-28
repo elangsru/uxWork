@@ -1232,7 +1232,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                 <Icon icon={close} size="small" />
               </button>
             </div>
-            <P size="basis" style={{ margin: 0 }}>For experimenting purposes only...</P>
+            {/* contain: teksten bidrar ikke til panelets bredde, den brytes i stedet. */}
+            <P size="basis" style={{ margin: 0, contain: "inline-size" }}>For experimenting and simulation purpose - not visible to end user.</P>
           </div>
 
           {payments.length > 0 && (
