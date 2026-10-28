@@ -42,20 +42,6 @@
   color: inherit;
 }
 
-/* 16px luft mellom flere ubekreftede fakturaer i samme accordion. Radene er
-   ikke søsken — hver ligger i sin egen div.dnb-space — så :not(:last-child)
-   på raden treffer ingenting. Løsningen settes derfor på UL.dnb-list__container,
-   som allerede er en flex-kolonne med row-gap: 0. Wrapperne har
-   space__top/bottom--zero, så gapet blir nøyaktig 16px uten margin i tillegg.
-   Scopet til .po-efaktura fordi gruppekortet deles med «Til forfall».
-   Bakgrunnen: UL er transparent, så accordionens grå (#f2f2f5) lyste gjennom
-   i gapet. Radene har allerede egen hvit backgroundColor med skravuren malt
-   over, så en hvit UL endrer bare gapet — ikke radenes utseende. */
-.po-efaktura .dnb-list__item__accordion__content .dnb-list__container {
-  row-gap: var(--spacing-small);
-  background-color: var(--token-color-background-neutral);
-}
-
 /* Avstanden label → knapper inne i ToggleButton.Group. Ingen prop styrer
    den, så den settes ned til 8px her. I 11.0.2 var det en margin
    (.dnb-space__top--small) på shellen; fra 11.11.0 er det row-gap på en

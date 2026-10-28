@@ -16,15 +16,15 @@ import {
   ALL_ACCOUNTS,
   DEMO_WARNINGS,
   LOCALE,
-  MORE_OWNER_NAMES,
+  ON_BEHALF_RANDOM_COUNT,
   accountDetails,
   accountKeys,
   accountOptions,
+  compareOwners,
   fmtAmount,
-  invoiceOwnerSsn,
   isoLocalDate,
   makePoolInvoice,
-  randomSyntheticSsn,
+  onBehalfPeople,
   transactions,
   type AccountKey,
   type Transaction,
@@ -49,9 +49,13 @@ const EFAKTURA_EIER_PREFIX = "ef-eier:";
 const NO_OWNER = "Uten eier";
 
 // 2 sekunders skeleton før fakturaene kommer inn, og like mange plassholdere som
-// fakturaer på vei. Docs: skeleton-animasjonen starter først etter 5 sekunder, så
-// her vises den statiske plassholderen.
+// fakturaer på vei (maks SKELETON_COUNT per klikk). Docs: skeleton-animasjonen
+// starter først etter 5 sekunder, så her vises den statiske plassholderen.
 const SKELETON_COUNT = 3;
+const LOAD_DELAY_MS = 2000;
+// Så mange ubekreftede eFakturaer vises med en gang «Show on behalf of» slås
+// på, før man trykker «Hent flere».
+const DEFAULT_EFAKTURA_COUNT = 5;
 
 // Beløpsfilteret: to felt, Min og Maks, lagret som ett filter «/belop» med
 // { min, max } så det blir én tag. Begge grensene er inklusive, og et tomt felt
@@ -126,7 +130,6 @@ const PAYMENT_TYPE_OPTIONS = [
   { value: "avtalegiro", label: "AvtaleGiro" },
   { value: "efaktura", label: "eFaktura" },
 ];
-const LOAD_DELAY_MS = 2000;
 
 /**
  * Filter.Root eier sin egen filter-state, så ved bytte av plassering kopieres
@@ -188,34 +191,34 @@ export default function PaymentsOverview() {
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
   const [amountRange, setAmountRange] = useState<AmountRange>({});
   const [statuses, setStatuses] = useState<PaymentStatus[]>([]);
+  const [showOnBehalfOf, setShowOnBehalfOf] = useState(false);
 
   const mounted = useSyncExternalStore(subscribeNever, getHydrated, getHydratedOnServer);
 
-  // Hele poolen får sitt syntetiske fødselsnummer én gang, ikke ved innlasting.
-  // Da viser nedtrekket og gruppeoverskriften samme identitet for en person som
-  // ennå ikke er lastet inn.
-  // Verdien lages i state-initialisereren, ikke i en effect: den settes én gang og
-  // står stabilt resten av komponentens liv. Serveren regner også ut et sett, men
+  // Personene bak «Show on behalf of» trekkes én gang og står stabilt resten av
+  // komponentens liv, så de er de samme hver gang svitsjen slås på. Verdien lages
+  // i state-initialisereren, ikke i en effect. Serveren trekker også et sett, men
   // det rendres aldri — første render viser «Laster …» — så Math.random() her kan
   // ikke gi hydration mismatch.
-  const [poolSsn] = useState<Record<string, string>>(() =>
-    Object.fromEntries(MORE_OWNER_NAMES.map((n) => [n, randomSyntheticSsn()])),
-  );
+  const [pool] = useState(() => onBehalfPeople(ON_BEHALF_RANDOM_COUNT));
+  const activePool = showOnBehalfOf ? pool : [];
 
   // Innlastede eiere legges til i stedet for å mutere basislisten, så startdataen
   // blir stående som én kilde og tilleggene er lette å nullstille.
   const [extraTransactions, setExtraTransactions] = useState<Transaction[]>([]);
-  const [loadingMore, setLoadingMore] = useState(false);
+  // Antall fakturaer på vei, 0 når ingenting hentes. Styrer både knappen og
+  // hvor mange plassholdere som vises.
+  const [loadingCount, setLoadingCount] = useState(0);
+  const loadingMore = loadingCount > 0;
 
   // Samme grunn som i TransactionRow: forlater man siden midt i hentingen, skal
   // ikke timeren kalle setState etterpå.
   const loadMoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(
-    () => () => {
-      if (loadMoreTimer.current !== null) clearTimeout(loadMoreTimer.current);
-    },
-    [],
-  );
+  const cancelLoadMore = () => {
+    if (loadMoreTimer.current !== null) clearTimeout(loadMoreTimer.current);
+    loadMoreTimer.current = null;
+  };
+  useEffect(() => cancelLoadMore, []);
 
   // Sortert kronologisk, ikke i innsettingsrekkefølge: «Hent flere» legger
   // fakturaene bakerst, men de forfaller midt inne i basislisten. Både
@@ -235,7 +238,11 @@ export default function PaymentsOverview() {
 
   const confirm = (id: string) => setConfirmedIds((prev) => new Set([...prev, id]));
 
-  const ownerSsnMap = { ...invoiceOwnerSsn, ...poolSsn };
+  // Innehaveren selv står uten nummer — «Espen Langsrud (deg)» har ingen rad
+  // her, og labelen faller tilbake til rent navn når eieren mangler oppslag.
+  const ownerSsnMap: Record<string, string> = Object.fromEntries(
+    activePool.map((p) => [p.name, p.ssn]),
+  );
   const ownerLabel = (owner: string) => {
     const ssn = ownerSsnMap[owner];
     return ssn ? `${owner} (${ssn})` : owner;
@@ -244,10 +251,19 @@ export default function PaymentsOverview() {
   const usedOwners = new Set(
     allTransactions.map((t) => t.invoiceOwner).filter((o): o is string => Boolean(o)),
   );
-  const remainingOwnerNames = MORE_OWNER_NAMES.filter((n) => !usedOwners.has(n));
+  // Hentes i samme rekkefølge som de står i nedtrekket.
+  const remainingOwnerNames = activePool
+    .map((p) => p.name)
+    .filter((n) => !usedOwners.has(n))
+    .sort(compareOwners);
 
   function loadOwners(names: string[]) {
-    const nye = names.filter((owner) => !usedOwners.has(owner)).map(makePoolInvoice);
+    const nye = names
+      .filter((owner) => !usedOwners.has(owner))
+      .map((owner) => {
+        const nr = pool.findIndex((p) => p.name === owner);
+        return makePoolInvoice(pool[nr], nr);
+      });
     if (nye.length === 0) return;
     // Dedupliseres på id inne i oppdateringen, ikke bare mot usedOwners over.
     // «Hent flere» venter 2 sekunder før den kaller hit, og i mellomtiden kan
@@ -264,11 +280,11 @@ export default function PaymentsOverview() {
     if (loadingMore) return;
     const picked = remainingOwnerNames.slice(0, SKELETON_COUNT);
     if (picked.length === 0) return;
-    setLoadingMore(true);
+    setLoadingCount(picked.length);
     loadMoreTimer.current = setTimeout(() => {
       loadMoreTimer.current = null;
       loadOwners(picked);
-      setLoadingMore(false);
+      setLoadingCount(0);
     }, LOAD_DELAY_MS);
   }
 
@@ -277,6 +293,29 @@ export default function PaymentsOverview() {
   function selectEfakturaOwner(owner: string | null) {
     if (owner !== null && !usedOwners.has(owner)) loadOwners([owner]);
     setEfakturaOwnerFilter(owner);
+  }
+
+  // På: personene fylles på med en gang, i nedtrekkets rekkefølge, til det
+  // står DEFAULT_EFAKTURA_COUNT fakturaer — resten venter på «Hent flere». Av:
+  // personene og fakturaene deres fjernes, og en henting som er på vei avbrytes.
+  // Eierfilteret nullstilles begge veier — nedtrekket er ukontrollert og
+  // remountes på svitsjen (se key), så filter og felt holdes like.
+  function toggleShowOnBehalfOf(on: boolean) {
+    setShowOnBehalfOf(on);
+    setEfakturaOwnerFilter(null);
+    if (on) {
+      const fill = Math.max(0, DEFAULT_EFAKTURA_COUNT - unconfirmedEfakturaCount);
+      loadOwners(
+        pool
+          .map((p) => p.name)
+          .sort(compareOwners)
+          .slice(0, fill),
+      );
+    } else {
+      cancelLoadMore();
+      setLoadingCount(0);
+      setExtraTransactions([]);
+    }
   }
 
   const visibleTransactions = allTransactions.filter(
@@ -320,9 +359,13 @@ export default function PaymentsOverview() {
   };
 
   const efakturaOwnerOptions = [
-    ...[...new Set(unconfirmedEfakturas.map((t) => t.invoiceOwner ?? NO_OWNER))].map(ownerOption),
-    ...remainingOwnerNames.map(ownerOption),
-  ];
+    ...new Set([
+      ...unconfirmedEfakturas.map((t) => t.invoiceOwner ?? NO_OWNER),
+      ...remainingOwnerNames,
+    ]),
+  ]
+    .sort(compareOwners)
+    .map(ownerOption);
 
   const efakturaAccountOptions = accountKeys
     .filter((k) => unconfirmedEfakturas.some((t) => t.accountKey === k))
@@ -362,7 +405,10 @@ export default function PaymentsOverview() {
 
   // Gruppene følger den filtrerte listen, ellers ville «Åpne alle» operert på
   // nøkler for grupper som ikke er på skjermen.
-  const efakturaOwners = [...new Set(visibleEfakturas.map((t) => t.invoiceOwner ?? NO_OWNER))];
+  // Samme rekkefølge som i Fakturaeier-nedtrekket.
+  const efakturaOwners = [
+    ...new Set(visibleEfakturas.map((t) => t.invoiceOwner ?? NO_OWNER)),
+  ].sort(compareOwners);
   const efakturaGroupKeys =
     efakturaGroupBy === "konto"
       ? accountKeys
@@ -753,7 +799,7 @@ export default function PaymentsOverview() {
           <FilterBox
             fields={[
               <Autocomplete
-                key="eier"
+                key={`eier-${showOnBehalfOf}`}
                 label="Fakturaeier"
                 size="medium"
                 data={efakturaOwnerOptions}
@@ -824,12 +870,12 @@ export default function PaymentsOverview() {
                   settes med marginBottom i stedet for containerens gap. */}
               {loadingMore && (
                 <Skeleton show>
-                  {Array.from({ length: SKELETON_COUNT }, (_, i) => (
+                  {Array.from({ length: loadingCount }, (_, i) => (
                     <div
                       key={`skeleton-${i}`}
                       className="po-group"
                       style={{
-                        marginBottom: i < SKELETON_COUNT - 1 ? "var(--spacing-large)" : 0,
+                        marginBottom: i < loadingCount - 1 ? "var(--spacing-large)" : 0,
                       }}
                     >
                       <List.Container>
@@ -906,29 +952,34 @@ export default function PaymentsOverview() {
               </div>
             </div>
 
-            {/* Render-funksjonen får TabsSelectedKey (string | number) — ikke
+            {/* Fanene finnes bare når «Show on behalf of» er på. Av: bare
+                «Til forfall», uten fanerad.
+                Render-funksjonen får TabsSelectedKey (string | number) — ikke
                 annotér den. */}
-            <Tabs
-              className="po-tabs"
-              breakout={false}
-              data={[
-                { title: "Til forfall", key: "forfall" },
-                {
-                  // «+» så lenge det finnes flere eiere å hente — telleren viser
-                  // da «minst så mange», ikke et endelig antall. Når poolen er
-                  // tømt stemmer tallet eksakt, og plusstegnet faller bort.
-                  title:
-                    unconfirmedEfakturaCount > 0
-                      ? `Ubekreftede eFakturaer (${unconfirmedEfakturaCount}${
-                          remainingOwnerNames.length > 0 ? "+" : ""
-                        })`
-                      : "Ubekreftede eFakturaer",
-                  key: "efakturaer",
-                },
-              ]}
-            >
-              {(key) => (key === "forfall" ? forfallPanel : efakturaPanel)}
-            </Tabs>
+            {showOnBehalfOf ? (
+              <Tabs
+                className="po-tabs"
+                breakout={false}
+                data={[
+                  { title: "Til forfall", key: "forfall" },
+                  {
+                    title:
+                      unconfirmedEfakturaCount > 0
+                        ? // «+» så lenge det finnes flere eiere å hente — telleren
+                          // viser da «minst så mange», ikke et endelig antall.
+                          `Ubekreftede eFakturaer (${unconfirmedEfakturaCount}${
+                            remainingOwnerNames.length > 0 ? "+" : ""
+                          })`
+                        : "Ubekreftede eFakturaer",
+                    key: "efakturaer",
+                  },
+                ]}
+              >
+                {(key) => (key === "forfall" ? forfallPanel : efakturaPanel)}
+              </Tabs>
+            ) : (
+              forfallPanel
+            )}
           </div>
         </div>
 
@@ -936,12 +987,17 @@ export default function PaymentsOverview() {
           open={toolsOpen}
           onOpenChange={setToolsOpen}
           toggles={[
-            { label: "Show warnings", checked: showWarnings, onChange: setShowWarnings },
             {
               label: "Show unconfirmed eInvoices",
               checked: showUnconfirmed,
               onChange: setShowUnconfirmed,
             },
+            {
+              label: "Show on behalf of",
+              checked: showOnBehalfOf,
+              onChange: toggleShowOnBehalfOf,
+            },
+            { label: "Show warnings", checked: showWarnings, onChange: setShowWarnings },
             { label: "Show type filter", checked: showTypeFilter, onChange: setShowTypeFilter },
             {
               label: "Show money left over",
