@@ -513,8 +513,22 @@
 }
 
 /* Min og Maks side om side i filterpanelets Beløp. */
+/* Beløp og «Mottatt eFaktura fra» har samme bredde, så feltene flukter på
+   begge sider. Filterpanelets punkter er bare så brede som innholdet, så
+   bredden må settes eksplisitt. Min og Maks deler den likt, og brytes under
+   hverandre når panelet er smalere. */
+.po-amountfilter,
+.po-receivedfrom {
+  width: 23rem;
+  max-width: 100%;
+}
+
 .po-amountfilter {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-small);
+}
+
+.po-amountfilter > * {
+  flex: 1 1 10rem;
 }

@@ -68,7 +68,7 @@ export function compareOwners(a: string, b: string): number {
   return a.localeCompare(b, LOCALE);
 }
 
-// «Show on behalf of» i verktøypanelet legger til personer du mottar eFaktura
+// «Show on behalf of eInvoices» i verktøypanelet legger til personer du mottar eFaktura
 // på vegne av: Erika med sin faste faktura, pluss så mange tilfeldige personer.
 // Navnene trekkes fra listene under, og hver får én faktura fra en tilfeldig
 // utsteder.

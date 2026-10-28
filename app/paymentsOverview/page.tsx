@@ -16,6 +16,7 @@ import {
   ALL_ACCOUNTS,
   DEMO_WARNINGS,
   LOCALE,
+  SELF_OWNER,
   ON_BEHALF_RANDOM_COUNT,
   accountDetails,
   accountKeys,
@@ -53,7 +54,7 @@ const NO_OWNER = "Uten eier";
 // starter først etter 5 sekunder, så her vises den statiske plassholderen.
 const SKELETON_COUNT = 3;
 const LOAD_DELAY_MS = 2000;
-// Så mange ubekreftede eFakturaer vises med en gang «Show on behalf of» slås
+// Så mange ubekreftede eFakturaer vises med en gang «Show on behalf of eInvoices» slås
 // på, før man trykker «Hent flere».
 const DEFAULT_EFAKTURA_COUNT = 5;
 
@@ -95,6 +96,10 @@ function AmountRangeFilter() {
       <div className="po-amountfilter">
         <Field.Currency
           label="Min"
+          labelSrOnly
+          placeholder="Minimum kr"
+          size="medium"
+          width="stretch"
           currency="NOK"
           minimum={0}
           value={range.min}
@@ -102,6 +107,10 @@ function AmountRangeFilter() {
         />
         <Field.Currency
           label="Maks"
+          labelSrOnly
+          placeholder="Maksimum kr"
+          size="medium"
+          width="stretch"
           currency="NOK"
           minimum={0}
           value={range.max}
@@ -110,6 +119,83 @@ function AmountRangeFilter() {
       </div>
     </Filter.Item>
   );
+}
+
+// «Mottatt eFaktura fra» i filterpanelet, bare når «Show on behalf of eInvoices»
+// er på. Lagres som ett filter med eierens navn som verdi, så det blir én tag.
+const RECEIVED_FROM_FILTER_KEY = "/mottatt-fra";
+const RECEIVED_FROM_FILTER_LABEL = "Mottatt eFaktura fra";
+
+type OwnerOption = { selectedKey: string; content: string | string[] };
+
+/**
+ * Nedtrekket med fakturaeierne, samme liste som Fakturaeier på eFaktura-tabben.
+ * Kontrollert via Filter.Root, så krysset på taggen og «Fjern alle» tømmer
+ * feltet også. onSelect får navnet før filteret settes, så en person som ennå
+ * ikke er lastet kan hentes inn først.
+ */
+function ReceivedFromFilter({
+  options,
+  onSelect,
+}: {
+  options: OwnerOption[];
+  onSelect: (owner: string) => void;
+}) {
+  const { getFilter, setFilter } = Filter.useFilterContext();
+  const current = getFilter(RECEIVED_FROM_FILTER_KEY)?.value;
+  const selected = typeof current === "string" ? current : undefined;
+  return (
+    <Filter.Item
+      label={RECEIVED_FROM_FILTER_LABEL}
+      filterKey={RECEIVED_FROM_FILTER_KEY}
+      defaultOpen
+    >
+      {/* value tar ikke null, og undefined gjør feltet ukontrollert — så
+          feltet remountes når filteret endres utenfra (taggen, «Fjern alle»). */}
+      <div className="po-receivedfrom">
+        <Autocomplete
+          key={selected ?? ""}
+          label={RECEIVED_FROM_FILTER_LABEL}
+          labelSrOnly
+          size="medium"
+          data={options}
+          value={selected}
+          placeholder="Alle"
+          stretch
+          showSubmitButton
+          submitButtonTitle=""
+          showClearButton
+          onChange={({ data }) => {
+            const owner =
+              data && typeof data === "object" && "selectedKey" in data
+                ? String(data.selectedKey)
+                : null;
+            if (owner === null) {
+              setFilter(RECEIVED_FROM_FILTER_KEY, undefined);
+              return;
+            }
+            onSelect(owner);
+            setFilter(RECEIVED_FROM_FILTER_KEY, {
+              value: owner,
+              label: owner,
+              categoryLabel: RECEIVED_FROM_FILTER_LABEL,
+            });
+          }}
+          onClear={() => setFilter(RECEIVED_FROM_FILTER_KEY, undefined)}
+        />
+      </div>
+    </Filter.Item>
+  );
+}
+
+/** Fjerner «Mottatt eFaktura fra» fra Filter.Root når svitsjen slås av, ellers
+ *  ville taggen og filtreringen blitt stående uten noe felt å endre dem i. */
+function ReceivedFromSync({ active }: { active: boolean }) {
+  const { removeFilter } = Filter.useFilterContext();
+  useEffect(() => {
+    if (!active) removeFilter(RECEIVED_FROM_FILTER_KEY);
+  }, [active, removeFilter]);
+  return null;
 }
 
 // Statusfilteret (Filter.Selection «Status»): hvert valg lagres som
@@ -191,11 +277,12 @@ export default function PaymentsOverview() {
   const [selectedAccountKey, setSelectedAccountKey] = useState<AccountKey | null>(null);
   const [amountRange, setAmountRange] = useState<AmountRange>({});
   const [statuses, setStatuses] = useState<PaymentStatus[]>([]);
+  const [receivedFrom, setReceivedFrom] = useState<string | null>(null);
   const [showOnBehalfOf, setShowOnBehalfOf] = useState(false);
 
   const mounted = useSyncExternalStore(subscribeNever, getHydrated, getHydratedOnServer);
 
-  // Personene bak «Show on behalf of» trekkes én gang og står stabilt resten av
+  // Personene bak «Show on behalf of eInvoices» trekkes én gang og står stabilt resten av
   // komponentens liv, så de er de samme hver gang svitsjen slås på. Verdien lages
   // i state-initialisereren, ikke i en effect. Serveren trekker også et sett, men
   // det rendres aldri — første render viser «Laster …» — så Math.random() her kan
@@ -318,6 +405,10 @@ export default function PaymentsOverview() {
     }
   }
 
+  // ReceivedFromSync fjerner filteret i Filter.Root når svitsjen slås av, men
+  // det skjer i en effect — guarden hindrer én render med utdatert filtrering.
+  const activeReceivedFrom = showOnBehalfOf ? receivedFrom : null;
+
   const visibleTransactions = allTransactions.filter(
     (t) =>
       (selectedAccountKey === null || t.accountKey === selectedAccountKey) &&
@@ -328,9 +419,16 @@ export default function PaymentsOverview() {
       (amountRange.min === undefined || t.amountNok >= amountRange.min) &&
       (amountRange.max === undefined || t.amountNok <= amountRange.max) &&
       (statuses.length === 0 || statuses.includes(statusOf(t))) &&
-      // Statusvalget «Til godkjenning» henter de ubekreftede fakturaene inn
-      // i listen, også når «Show unconfirmed eInvoices» er av.
-      (showUnconfirmed || statuses.includes("ubekreftet") || isSettled(t)),
+      // eFaktura uten eier er dine egne.
+      (activeReceivedFrom === null ||
+        (t.type === "efaktura" && (t.invoiceOwner ?? SELF_OWNER) === activeReceivedFrom)) &&
+      // Statusvalget «eFaktura til godkjenning» og «Mottatt eFaktura fra» henter de
+      // ubekreftede fakturaene inn i listen, også når «Show unconfirmed
+      // eInvoices» er av — fakturaer på vegne av andre er alltid ubekreftede.
+      (showUnconfirmed ||
+        statuses.includes("ubekreftet") ||
+        activeReceivedFrom !== null ||
+        isSettled(t)),
   );
 
   // Ubekreftede eFakturaer har sin egen tab og er derfor uavhengige av «Til
@@ -364,6 +462,12 @@ export default function PaymentsOverview() {
       ...remainingOwnerNames,
     ]),
   ]
+    .sort(compareOwners)
+    .map(ownerOption);
+
+  // Deg og alle personene bak svitsjen, også de som ennå ikke er lastet — et
+  // valg der henter fakturaen inn først, som i Fakturaeier.
+  const receivedFromOptions = [SELF_OWNER, ...activePool.map((p) => p.name)]
     .sort(compareOwners)
     .map(ownerOption);
 
@@ -590,6 +694,8 @@ export default function PaymentsOverview() {
           setStatuses(
             PAYMENT_STATUSES.filter((s) => `${STATUS_FILTER_KEY}/${s}` in filters),
           );
+          const from = filters[RECEIVED_FROM_FILTER_KEY]?.value;
+          setReceivedFrom(typeof from === "string" ? from : null);
           // Bare når typen bor i panelet; ellers styres den av ToggleButtons.
           if (!showTypeFilter) {
             setPaymentTypes(
@@ -601,6 +707,7 @@ export default function PaymentsOverview() {
         }}
       >
       <TypeFilterSync inPanel={!showTypeFilter} types={paymentTypes} />
+      <ReceivedFromSync active={showOnBehalfOf} />
       <FilterBox
         fields={[
           <Autocomplete
@@ -737,22 +844,30 @@ export default function PaymentsOverview() {
           </div>
         )}
         <Filter.Panel>
-          <Filter.Selection
-            label="Status"
-            filterKey={STATUS_FILTER_KEY}
-            defaultOpen
-            data={[
-              { value: "ubekreftet", label: "Til godkjenning" },
-              { value: "aktiv", label: "Aktiv" },
-              { value: "stoppet", label: "Stoppet" },
-            ]}
-          />
           {!showTypeFilter && (
             <Filter.Selection
               label={TYPE_FILTER_LABEL}
               filterKey={TYPE_FILTER_KEY}
               defaultOpen
               data={PAYMENT_TYPE_OPTIONS}
+            />
+          )}
+          <Filter.Selection
+            label="Status"
+            filterKey={STATUS_FILTER_KEY}
+            defaultOpen
+            data={[
+              { value: "ubekreftet", label: "eFaktura til godkjenning" },
+              { value: "aktiv", label: "Aktive betalinger" },
+              { value: "stoppet", label: "Stoppede betalinger" },
+            ]}
+          />
+          {showOnBehalfOf && (
+            <ReceivedFromFilter
+              options={receivedFromOptions}
+              onSelect={(owner) => {
+                if (owner !== SELF_OWNER && !usedOwners.has(owner)) loadOwners([owner]);
+              }}
             />
           )}
           <AmountRangeFilter />
@@ -765,6 +880,7 @@ export default function PaymentsOverview() {
         {(amountRange.min !== undefined ||
           amountRange.max !== undefined ||
           statuses.length > 0 ||
+          activeReceivedFrom !== null ||
           (!showTypeFilter && paymentTypes.length > 0)) && (
           <Filter.ActiveFilters />
         )}
@@ -952,7 +1068,7 @@ export default function PaymentsOverview() {
               </div>
             </div>
 
-            {/* Fanene finnes bare når «Show on behalf of» er på. Av: bare
+            {/* Fanene finnes bare når «Show on behalf of eInvoices» er på. Av: bare
                 «Til forfall», uten fanerad.
                 Render-funksjonen får TabsSelectedKey (string | number) — ikke
                 annotér den. */}
@@ -993,7 +1109,7 @@ export default function PaymentsOverview() {
               onChange: setShowUnconfirmed,
             },
             {
-              label: "Show on behalf of",
+              label: "Show on behalf of eInvoices",
               checked: showOnBehalfOf,
               onChange: toggleShowOnBehalfOf,
             },
