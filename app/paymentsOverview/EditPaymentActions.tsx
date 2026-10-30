@@ -18,10 +18,14 @@ export default function EditPaymentActions({
   onClose,
   stopped,
   onToggleStop,
+  locked = false,
 }: {
   onClose: () => void;
   stopped: boolean;
   onToggleStop: () => void;
+  /** Stopp og Slett er ikke tillatt (avdrag på lån). Knappene vises
+   *  deaktivert, så det er tydelig at handlingene finnes men er sperret. */
+  locked?: boolean;
 }) {
   // Fragment: skillelinjen og knapperaden blir egne elementer i skjemaets
   // flex-kolonne, så de får samme 32px-gap som feltene.
@@ -35,8 +39,10 @@ export default function EditPaymentActions({
           text={stopped ? "Gjenoppta" : "Stopp"}
           icon={stopped ? refresh : stop}
           iconPosition="left"
-          // Bare på Stopp — Gjenoppta har ikke fått noen tekst ennå.
-          tooltip={stopped ? undefined : "Stopper betalingen til du gjenopptar"}
+          disabled={locked}
+          // Bare på Stopp — Gjenoppta har ikke fått noen tekst ennå. Ingen
+          // tooltip på deaktivert knapp, den kan ikke få hover eller fokus.
+          tooltip={stopped || locked ? undefined : "Stopper betalingen til du gjenopptar"}
           onClick={onToggleStop}
           // marginLeft: auto skyver Stopp og Slett sammen helt til høyre.
           style={{ marginLeft: "auto" }}
@@ -48,7 +54,8 @@ export default function EditPaymentActions({
           text="Slett"
           icon={trash}
           iconPosition="left"
-          tooltip="Sletter betalingen permanent"
+          disabled={locked}
+          tooltip={locked ? undefined : "Sletter betalingen permanent"}
           onClick={onClose}
         />
       </Flex.Horizontal>

@@ -208,7 +208,7 @@ export const transactions: Transaction[] = [
   { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, accountKey: "lonnskonto", type: "avtalegiro", avatarKind: "company", badge: "AvtaleGiro" },
   { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: SELF_OWNER },
   { id: "fremtind", ...relativeDate(16), recipient: "Fremtind Forsikring AS", amountNok: 1129, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: SELF_OWNER },
-  { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, accountKey: "felleskonto", type: "overforing", icon: "loan" },
+  { id: "boliglaanet", ...relativeDate(18), recipient: "Boliglånet", amountNok: 12345, accountKey: "felleskonto", type: "overforing", icon: "loan", message: "LÅN" },
   { id: "ask", ...relativeDate(20), recipient: "ASK", amountNok: 1500, accountKey: "lonnskonto", type: "overforing", icon: "investment" },
   { id: "dnb-global-index", ...relativeDate(22), recipient: "DNB Global index", amountNok: 2000, accountKey: "lonnskonto", type: "overforing", icon: "funds" },
   { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "EUR 500,00", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES" },

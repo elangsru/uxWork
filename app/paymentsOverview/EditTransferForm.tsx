@@ -11,10 +11,11 @@ import EditPaymentActions from "./EditPaymentActions";
 /** Samme grense som meldingsfeltet på /domesticPayment. */
 const messageMaxLength = 70;
 
-/** Sparekontoene overføringer går til. Ligger ikke i fromAccountList fordi
- *  den deles med betalingssidene, der man ikke betaler fra disse. */
+/** Spare- og lånekontoene overføringer går til. Ligger ikke i fromAccountList
+ *  fordi den deles med betalingssidene, der man ikke betaler fra disse. */
 const savingsAccountList = [
   { content: ["Sparing bryllup", "1503 61 92045"], suffixValue: "NOK 18 300,00" },
+  { content: ["Boliglånet", "1503 88 30417"], suffixValue: "NOK -2 450 000,00" },
 ];
 
 // Til-listen er egne kontoer pluss sparekontoene. Nøklene fortsetter etter
@@ -25,17 +26,21 @@ const toAccounts = toAccountList.map((a, i) => ({ ...a, selectedKey: String(i) }
 /**
  * Overføring mellom egne kontoer. I stedet for mottakerboksen i de andre
  * modalene velges både fra- og til-konto, ellers samme felt og knapper.
+ * `readOnly` brukes for avdrag på lån (Boliglånet): alle felt er låst, og
+ * Stopp og Slett er ikke tillatt.
  */
 export default function EditTransferForm({
   tx,
   accountName,
   onClose,
+  readOnly = false,
 }: {
   tx: Transaction;
   /** Kontonavnet fra betalingsoversikten, for å forhåndsvelge «Fra konto». */
   accountName: string;
   /** Knappene i bunnen gjør ingenting ennå utover å lukke modalen. */
   onClose: () => void;
+  readOnly?: boolean;
 }) {
   const indexOf = (name: string) => {
     const i = toAccountList.findIndex((a) => a.content[0] === name);
@@ -64,6 +69,7 @@ export default function EditTransferForm({
           data={fromAccounts}
           placeholder="Velg konto"
           stretch
+          disabled={readOnly}
           showSubmitButton
           submitButtonTitle=""
           value={selectedFromKey ?? undefined}
@@ -78,6 +84,7 @@ export default function EditTransferForm({
           data={toAccounts}
           placeholder="Velg konto"
           stretch
+          disabled={readOnly}
           showSubmitButton
           submitButtonTitle=""
           value={selectedToKey ?? undefined}
@@ -90,6 +97,7 @@ export default function EditTransferForm({
           label="Beløp"
           size="medium"
           stretch
+          disabled={readOnly}
           numberMask={{
             suffix: " kr",
             allowDecimal: true,
@@ -109,6 +117,7 @@ export default function EditTransferForm({
             label="Melding"
             size="medium"
             stretch
+            disabled={readOnly}
             rows={1}
             autoResize
             autoResizeMaxRows={6}
@@ -125,6 +134,7 @@ export default function EditTransferForm({
           label="Betalingsdato"
           size="medium"
           showInput
+          disabled={readOnly}
           date={paymentDate}
           onChange={({ date }) => {
             if (date) setPaymentDate(date);
@@ -132,7 +142,12 @@ export default function EditTransferForm({
         />
       </div>
 
-      <EditPaymentActions onClose={onClose} stopped={stopped} onToggleStop={() => setStopped(!stopped)} />
+      <EditPaymentActions
+        onClose={onClose}
+        stopped={stopped}
+        onToggleStop={() => setStopped(!stopped)}
+        locked={readOnly}
+      />
     </div>
   );
 }

@@ -329,13 +329,14 @@ export default function PaymentsOverview() {
   const confirm = (id: string) => setConfirmedIds((prev) => new Set([...prev, id]));
 
   // Foreløpig kan bare José Martinez (utland), Tibber (eFaktura), Kim Olsen
-  // (innenlands betaling) og Sparing bryllup (overføring) åpnes i modalen.
+  // (innenlands betaling), Sparing bryllup og Boliglånet (overføringer) åpnes
+  // i modalen.
   const [editPayment, setEditPayment] = useState<Transaction | null>(null);
   // Tittelen settes ved åpning og står igjen når editPayment nullstilles, så
   // den ikke skifter til «Betaling til» mens en overføring lukkes.
   const [editTitle, setEditTitle] = useState("Betaling til");
   const openPayment = (tx: Transaction) => {
-    if (!["jose-martinez", "tibber", "kim-olsen", "intro-aksel"].includes(tx.id)) return;
+    if (!["jose-martinez", "tibber", "kim-olsen", "intro-aksel", "boliglaanet"].includes(tx.id)) return;
     setEditTitle(tx.type === "overforing" ? "Overføring" : "Betaling til");
     setEditPayment(tx);
   };
@@ -1158,6 +1159,8 @@ export default function PaymentsOverview() {
                 tx={editPayment}
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
+                // Avdrag på lån kan verken endres, stoppes eller slettes her.
+                readOnly={editPayment.icon === "loan"}
               />
             ) : editPayment.flagIso ? (
               <EditPaymentForm
