@@ -62,8 +62,7 @@ export default function EditPaymentForm({
   const [selectedCurrency, setSelectedCurrency] = useState<Currency | null>(
     () => currencyList.find((c) => c.code === parsed?.code) ?? null,
   );
-  // Beløpsfeltet er deaktivert, så beløpet trenger ingen state.
-  const amount = parsed?.amount ?? "";
+  const [amount, setAmount] = useState(parsed?.amount ?? "");
   const [message, setMessage] = useState("Rent of vacation home");
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
   const [stopped, setStopped] = useState(false);
@@ -180,8 +179,6 @@ export default function EditPaymentForm({
               id={amountFieldId}
               size="medium"
               stretch
-              // Beløpet kan ikke endres på en eksisterende betaling.
-              disabled
               numberMask={{
                 prefix: `${selectedCurrency?.code ?? "NOK"} `,
                 suffix: "",
@@ -190,7 +187,11 @@ export default function EditPaymentForm({
                 thousandsSeparatorSymbol: " ",
                 decimalSymbol: ",",
               }}
+              placeholder={selectedCurrency?.code ?? ""}
               value={amount}
+              onChange={({ numberValue }) =>
+                setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")
+              }
             />
           </div>
           <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
