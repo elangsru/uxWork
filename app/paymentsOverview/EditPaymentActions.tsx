@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Flex } from "@dnb/eufemia/components";
+import { Hr } from "@dnb/eufemia/elements";
 import { refresh, stop, trash } from "@dnb/eufemia/icons";
 
 /**
@@ -22,30 +23,35 @@ export default function EditPaymentActions({
   stopped: boolean;
   onToggleStop: () => void;
 }) {
+  // Fragment: skillelinjen og knapperaden blir egne elementer i skjemaets
+  // flex-kolonne, så de får samme 32px-gap som feltene.
   return (
-    <Flex.Horizontal align="center">
-      <Button variant="primary" text="Lagre" onClick={onClose} />
-      <Button
-        variant="tertiary"
-        text={stopped ? "Gjenoppta" : "Stopp"}
-        icon={stopped ? refresh : stop}
-        iconPosition="left"
-        // Bare på Stopp — Gjenoppta har ikke fått noen tekst ennå.
-        tooltip={stopped ? undefined : "Stopper betalingen til du gjenopptar"}
-        onClick={onToggleStop}
-      />
-      {/* status="error" er Eufemias destruktive variant av tertiærknappen.
-          marginLeft: auto skyver den helt til høyre. */}
-      <Button
-        variant="tertiary"
-        status="error"
-        text="Slett"
-        icon={trash}
-        iconPosition="left"
-        tooltip="Sletter betalingen permanent"
-        onClick={onClose}
-        style={{ marginLeft: "auto" }}
-      />
-    </Flex.Horizontal>
+    <>
+      <Hr space={0} />
+      <Flex.Horizontal align="center">
+        <Button variant="primary" text="Lagre" onClick={onClose} />
+        <Button
+          variant="tertiary"
+          text={stopped ? "Gjenoppta" : "Stopp"}
+          icon={stopped ? refresh : stop}
+          iconPosition="left"
+          // Bare på Stopp — Gjenoppta har ikke fått noen tekst ennå.
+          tooltip={stopped ? undefined : "Stopper betalingen til du gjenopptar"}
+          onClick={onToggleStop}
+        />
+        {/* status="error" er Eufemias destruktive variant av tertiærknappen.
+            marginLeft: auto skyver den helt til høyre. */}
+        <Button
+          variant="tertiary"
+          status="error"
+          text="Slett"
+          icon={trash}
+          iconPosition="left"
+          tooltip="Sletter betalingen permanent"
+          onClick={onClose}
+          style={{ marginLeft: "auto" }}
+        />
+      </Flex.Horizontal>
+    </>
   );
 }
