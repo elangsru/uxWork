@@ -562,3 +562,27 @@
 .po-edit-recipient .dnb-list__item__footer {
   margin-top: 0;
 }
+
+/* Betalingsmodalen: like bred som feltene (488px) pluss Eufemias sidepadding,
+   så avstanden til kanten er lik til venstre og høyre. Paddingen er
+   --dialog-padding (3.5rem) på brede skjermer og --dialog-spacing (2rem)
+   under 72em — samme brytpunkt som Eufemia bruker. Under 40em går modalen
+   over i fullskjerm, og da må den ikke låses bredere enn skjermen. */
+.dnb-dialog.po-edit-dialog {
+  --po-edit-dialog-width: calc(488px + 2 * var(--dialog-padding));
+  --dialog-min-width: var(--po-edit-dialog-width);
+  --dialog-avg-width: var(--po-edit-dialog-width);
+  --dialog-max-width: var(--po-edit-dialog-width);
+}
+@media screen and (max-width: 72em) {
+  .dnb-dialog.po-edit-dialog {
+    --po-edit-dialog-width: calc(488px + 2 * var(--dialog-spacing));
+  }
+}
+@media screen and (max-width: 40em) {
+  .dnb-dialog.po-edit-dialog {
+    --dialog-min-width: 100%;
+    --dialog-avg-width: 100%;
+    --dialog-max-width: 100%;
+  }
+}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Autocomplete, Avatar, DatePicker, FormLabel, FormStatus, Input, InputMasked, List, Textarea } from "@dnb/eufemia/components";
 import { P } from "@dnb/eufemia/elements";
-import { attachment_medium, office_buildings } from "@dnb/eufemia/icons";
+import { ainvoice_medium, attachment_medium, office_buildings } from "@dnb/eufemia/icons";
 
 import { fromAccountList, fromAccounts } from "../internationalPayment/paymentData";
 import type { Transaction } from "./data";
@@ -14,8 +14,9 @@ const messageMaxLength = 70;
 
 /**
  * Innenlands motstykke til EditPaymentForm. Feltene følger /domesticPayment.
- * En eFaktura (Tibber) har låst KID, en vanlig betaling (Kim Olsen) har en
- * redigerbar melding i stedet. Beløpet kan redigeres i begge.
+ * En eFaktura (Tibber) eller AvtaleGiro (Happybytes) har låst KID, en vanlig
+ * betaling (Kim Olsen) har en redigerbar melding i stedet. Beløpet kan
+ * redigeres i alle.
  */
 export default function EditDomesticPaymentForm({
   tx,
@@ -73,17 +74,18 @@ export default function EditDomesticPaymentForm({
                 </List.Cell.Footer>
               )}
             </List.Item.Basic>
-            {/* Vedlegget åpnes i ny fane. Eufemias lenke legger selv på
-                launch-ikonet ved target="_blank"; chevronen som
-                List.Item.Action alltid tegner skjules i CSS (.po-edit-attachment). */}
-            {tx.type === "efaktura" && (
+            {/* eFaktura lenker til vedlegget, AvtaleGiro til avtalen. Begge
+                åpnes i ny fane; Eufemias lenke legger selv på launch-ikonet
+                ved target="_blank", og chevronen som List.Item.Action alltid
+                tegner skjules i CSS (.po-edit-attachment). */}
+            {(tx.type === "efaktura" || tx.type === "avtalegiro") && (
               <List.Item.Action
                 className="po-edit-attachment"
                 href="https://www.google.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                icon={attachment_medium}
-                title="eFakturavedlegg"
+                icon={tx.type === "efaktura" ? attachment_medium : ainvoice_medium}
+                title={tx.type === "efaktura" ? "eFakturavedlegg" : "Avtalegiro-avtale"}
               />
             )}
           </List.Container>

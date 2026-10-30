@@ -328,15 +328,16 @@ export default function PaymentsOverview() {
 
   const confirm = (id: string) => setConfirmedIds((prev) => new Set([...prev, id]));
 
-  // Foreløpig kan bare José Martinez (utland), Tibber (eFaktura), Kim Olsen
-  // (innenlands betaling), Sparing bryllup og Boliglånet (overføringer) åpnes
-  // i modalen.
+  // Foreløpig kan bare José Martinez (utland), Tibber (eFaktura), Happybytes
+  // (AvtaleGiro), Kim Olsen
+  // (innenlands betaling) og overføringene Sparing bryllup, ASK, DNB Global
+  // index og Boliglånet åpnes i modalen.
   const [editPayment, setEditPayment] = useState<Transaction | null>(null);
   // Tittelen settes ved åpning og står igjen når editPayment nullstilles, så
   // den ikke skifter til «Betaling til» mens en overføring lukkes.
   const [editTitle, setEditTitle] = useState("Betaling til");
   const openPayment = (tx: Transaction) => {
-    if (!["jose-martinez", "tibber", "kim-olsen", "intro-aksel", "boliglaanet"].includes(tx.id)) return;
+    if (!["jose-martinez", "tibber", "happybytes", "kim-olsen", "intro-aksel", "ask", "dnb-global-index", "boliglaanet"].includes(tx.id)) return;
     setEditTitle(tx.type === "overforing" ? "Overføring" : "Betaling til");
     setEditPayment(tx);
   };
@@ -1142,13 +1143,13 @@ export default function PaymentsOverview() {
           ]}
         />
 
-        {/* minWidth = Eufemias standard maksbredde (49rem), så modalen blir like
-            bred som «Ny mottaker» på /internationalPayment uansett innhold. */}
+        {/* Bredden settes i CSS (.po-edit-dialog): feltene (488px) pluss
+            modalens sidepadding, så luften er lik på begge sider. */}
         <Dialog
           title={editTitle}
           open={editPayment !== null}
           omitTriggerButton
-          minWidth="49rem"
+          className="po-edit-dialog"
           onClose={() => setEditPayment(null)}
         >
           {/* Monteres på nytt for hver åpning, så feltene starter fra

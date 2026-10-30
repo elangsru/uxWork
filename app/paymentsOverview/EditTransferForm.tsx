@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Autocomplete, DatePicker, FormStatus, InputMasked, Textarea } from "@dnb/eufemia/components";
+import { Autocomplete, DatePicker, FormStatus, Input, InputMasked, Textarea } from "@dnb/eufemia/components";
 import { P } from "@dnb/eufemia/elements";
 
 import { fromAccountList, fromAccounts } from "../internationalPayment/paymentData";
@@ -11,10 +11,14 @@ import EditPaymentActions from "./EditPaymentActions";
 /** Samme grense som meldingsfeltet på /domesticPayment. */
 const messageMaxLength = 70;
 
-/** Spare- og lånekontoene overføringer går til. Ligger ikke i fromAccountList
+/** Spare-, fonds- og lånekontoene overføringer går til. Ligger ikke i fromAccountList
  *  fordi den deles med betalingssidene, der man ikke betaler fra disse. */
 const savingsAccountList = [
   { content: ["Sparing bryllup", "1503 61 92045"], suffixValue: "NOK 18 300,00" },
+  { content: ["ASK", "1503 72 18564"], suffixValue: "NOK 64 820,00" },
+  // Fondskontoen viser ikke saldo — et fondskjøp handler ikke om hva som står
+  // på kontoen.
+  { content: ["DNB Global index", "1503 74 50931"] },
   { content: ["Boliglånet", "1503 88 30417"], suffixValue: "NOK -2 450 000,00" },
 ];
 
@@ -27,7 +31,9 @@ const toAccounts = toAccountList.map((a, i) => ({ ...a, selectedKey: String(i) }
  * Overføring mellom egne kontoer. I stedet for mottakerboksen i de andre
  * modalene velges både fra- og til-konto, ellers samme felt og knapper.
  * `readOnly` brukes for avdrag på lån (Boliglånet): alle felt er låst, og
- * Stopp og Slett er ikke tillatt.
+ * Stopp og Slett er ikke tillatt. Fondskjøp (DNB Global index) har låst
+ * til-konto og KID i stedet for melding, som en eFaktura. ASK har ingen
+ * melding.
  */
 export default function EditTransferForm({
   tx,
@@ -54,6 +60,9 @@ export default function EditTransferForm({
   const [message, setMessage] = useState(tx.message ?? "");
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
   const [stopped, setStopped] = useState(false);
+  const isFund = tx.icon === "funds";
+  // Overføring til aksjesparekonto (ASK) har verken melding eller KID.
+  const isAsk = tx.icon === "investment";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
@@ -84,7 +93,8 @@ export default function EditTransferForm({
           data={toAccounts}
           placeholder="Velg konto"
           stretch
-          disabled={readOnly}
+          // Et fondskjøp går alltid til samme fondskonto.
+          disabled={readOnly || isFund}
           showSubmitButton
           submitButtonTitle=""
           value={selectedToKey ?? undefined}
@@ -112,23 +122,34 @@ export default function EditTransferForm({
           }
         />
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <Textarea
-            label="Melding"
+        {tx.kid ? (
+          <Input
+            label="KID"
             size="medium"
             stretch
-            disabled={readOnly}
-            rows={1}
-            autoResize
-            autoResizeMaxRows={6}
-            value={message}
-            maxLength={messageMaxLength}
-            onChange={({ value }) => setMessage(value)}
+            // KID identifiserer fondskjøpet og kan ikke endres.
+            disabled
+            value={tx.kid}
           />
-          <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-            {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
-          </P>
-        </div>
+        ) : !isAsk && (
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <Textarea
+              label="Melding"
+              size="medium"
+              stretch
+              disabled={readOnly}
+              rows={1}
+              autoResize
+              autoResizeMaxRows={6}
+              value={message}
+              maxLength={messageMaxLength}
+              onChange={({ value }) => setMessage(value)}
+            />
+            <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+              {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
+            </P>
+          </div>
+        )}
 
         <DatePicker
           label="Betalingsdato"
