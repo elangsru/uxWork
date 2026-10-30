@@ -6,6 +6,8 @@ import { Avatar, Badge, Button, CountryFlag, Flex, FormStatus, Icon, List } from
 import { Span } from "@dnb/eufemia/elements";
 import { funds_medium, investment_account_medium, loan_medium, office_buildings, savings_account_medium, transfer_medium } from "@dnb/eufemia/icons";
 
+import type { ButtonClickEvent } from "@dnb/eufemia/components/button/types";
+
 import { fmtAmount, fmtNok, type Transaction } from "./data";
 
 /** Hvor lenge «Godkjenn» viser spinner før fakturaen regnes som bekreftet.
@@ -19,6 +21,7 @@ export default function TransactionRow({
   warning,
   isConfirmed,
   onConfirm,
+  onClick,
 }: {
   tx: Transaction;
   overline: string;
@@ -26,6 +29,8 @@ export default function TransactionRow({
   warning?: string;
   isConfirmed?: boolean;
   onConfirm?: () => void;
+  /** Klikk på selve raden, og på «Rediger» i footeren. */
+  onClick?: () => void;
 }) {
   const [approving, setApproving] = useState(false);
 
@@ -40,6 +45,13 @@ export default function TransactionRow({
     },
     [],
   );
+
+  // Knappene ligger inne i raden, så klikket bobler opp til radens onClick.
+  // «Rediger» skal åpne det samme som raden; de andre knappene stopper boblingen.
+  const edit = (e: ButtonClickEvent) => {
+    e.event.stopPropagation();
+    onClick?.();
+  };
 
   const negativeBalance = balanceAfter !== undefined && balanceAfter < 0;
   const effectivelyUnconfirmed = tx.unconfirmed && !isConfirmed;
@@ -108,7 +120,7 @@ export default function TransactionRow({
   );
 
   return (
-    <List.Item.Action className={className} chevronPosition="right">
+    <List.Item.Action className={className} chevronPosition="right" onClick={onClick}>
       <List.Cell.Start>{startNode}</List.Cell.Start>
       <List.Cell.Title>
         <List.Cell.Title.Overline>{overline}</List.Cell.Title.Overline>
@@ -127,11 +139,12 @@ export default function TransactionRow({
           {/* Høyrestilt, med hovedhandlingen lengst til høyre. Footeren fyller
               ikke bredden av seg selv, så width: 100% trengs for justify. */}
           <Flex.Horizontal justify="flex-end" style={{ width: "100%" }}>
-            <Button variant="tertiary" text="Rediger" icon={false} />
+            <Button variant="tertiary" text="Rediger" icon={false} onClick={edit} />
             <Button
               variant="secondary"
               disabled={approving}
-              onClick={() => {
+              onClick={(e: ButtonClickEvent) => {
+                e.event.stopPropagation();
                 setApproving(true);
                 approveTimer.current = setTimeout(() => {
                   approveTimer.current = null;
@@ -159,8 +172,8 @@ export default function TransactionRow({
               {/* Høyrestilt med hovedhandlingen lengst til høyre, som Rediger +
                   Godkjenn på ubekreftet eFaktura. */}
               <Flex.Horizontal justify="flex-end">
-                <Button variant="tertiary" text="Rediger" icon={false} />
-                <Button variant="secondary" text="Reaktiver" />
+                <Button variant="tertiary" text="Rediger" icon={false} onClick={edit} />
+                <Button variant="secondary" text="Reaktiver" onClick={(e: ButtonClickEvent) => e.event.stopPropagation()} />
               </Flex.Horizontal>
             </Flex.Vertical>
           </div>

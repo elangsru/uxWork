@@ -40,6 +40,7 @@ export default function GroupCard({
   warningFor,
   confirmedIds,
   onConfirm,
+  onRowClick,
 }: {
   open: boolean;
   onToggle: () => void;
@@ -57,6 +58,7 @@ export default function GroupCard({
   warningFor?: (tx: Transaction) => string | undefined;
   confirmedIds: Set<string>;
   onConfirm: (id: string) => void;
+  onRowClick?: (tx: Transaction) => void;
 }) {
   return (
     <div className="po-group">
@@ -81,6 +83,7 @@ export default function GroupCard({
                   warning={warningFor?.(tx)}
                   isConfirmed={confirmedIds.has(tx.id)}
                   onConfirm={() => onConfirm(tx.id)}
+                  onClick={onRowClick && (() => onRowClick(tx))}
                 />
               ))}
             </List.Container>

@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Autocomplete, Avatar, Breadcrumb, Button, DatePicker, Filter, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
+import { Autocomplete, Avatar, Breadcrumb, Button, DatePicker, Dialog, Filter, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
 import { H1, P } from "@dnb/eufemia/elements";
 import { Field } from "@dnb/eufemia/extensions/forms";
 import { globe, pay_from, refresh, transfer } from "@dnb/eufemia/icons";
 
 import "./paymentsOverview.css";
+import EditDomesticPaymentForm from "./EditDomesticPaymentForm";
+import EditPaymentForm from "./EditPaymentForm";
 import FilterBox from "./FilterBox";
 import GroupCard from "./GroupCard";
 import GroupingRow from "./GroupingRow";
@@ -325,6 +327,13 @@ export default function PaymentsOverview() {
 
   const confirm = (id: string) => setConfirmedIds((prev) => new Set([...prev, id]));
 
+  // Foreløpig kan bare José Martinez (utland), Tibber (eFaktura) og Kim Olsen
+  // (innenlands betaling) åpnes i betalingsmodalen.
+  const [editPayment, setEditPayment] = useState<Transaction | null>(null);
+  const openPayment = (tx: Transaction) => {
+    if (["jose-martinez", "tibber", "kim-olsen"].includes(tx.id)) setEditPayment(tx);
+  };
+
   // Innehaveren selv står uten nummer — «Espen Langsrud (deg)» har ingen rad
   // her, og labelen faller tilbake til rent navn når eieren mangler oppslag.
   const ownerSsnMap: Record<string, string> = Object.fromEntries(
@@ -589,6 +598,7 @@ export default function PaymentsOverview() {
         }
         confirmedIds={confirmedIds}
         onConfirm={confirm}
+        onRowClick={openPayment}
       />
     );
   });
@@ -610,6 +620,7 @@ export default function PaymentsOverview() {
         warningFor={rowWarning}
         confirmedIds={confirmedIds}
         onConfirm={confirm}
+        onRowClick={openPayment}
       />
     );
   });
@@ -633,6 +644,7 @@ export default function PaymentsOverview() {
           overlineFor={(tx) => tx.date}
           confirmedIds={confirmedIds}
           onConfirm={confirm}
+          onRowClick={openPayment}
         />
       );
     });
@@ -653,6 +665,7 @@ export default function PaymentsOverview() {
         overlineFor={(tx) => `${tx.date} · ${accountOverline(tx)}`}
         confirmedIds={confirmedIds}
         onConfirm={confirm}
+        onRowClick={openPayment}
       />
     );
   });
@@ -1121,6 +1134,33 @@ export default function PaymentsOverview() {
             { label: "Dark mode", checked: darkMode, onChange: setDarkMode },
           ]}
         />
+
+        {/* minWidth = Eufemias standard maksbredde (49rem), så modalen blir like
+            bred som «Ny mottaker» på /internationalPayment uansett innhold. */}
+        <Dialog
+          title="Betaling til"
+          open={editPayment !== null}
+          omitTriggerButton
+          minWidth="49rem"
+          onClose={() => setEditPayment(null)}
+        >
+          {/* Monteres på nytt for hver åpning, så feltene starter fra
+              betalingen og ikke fra forrige redigering. */}
+          {editPayment &&
+            (editPayment.flagIso ? (
+              <EditPaymentForm
+                tx={editPayment}
+                accountName={accountDetails[editPayment.accountKey].name}
+                onClose={() => setEditPayment(null)}
+              />
+            ) : (
+              <EditDomesticPaymentForm
+                tx={editPayment}
+                accountName={accountDetails[editPayment.accountKey].name}
+                onClose={() => setEditPayment(null)}
+              />
+            ))}
+        </Dialog>
       </>
     </Theme>
   );

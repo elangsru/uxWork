@@ -195,10 +195,15 @@ export interface Transaction {
   /** Personen fakturaen er adressert til. Brukes til gruppering på
       «Ubekreftede eFakturaer»-tabben, og går på tvers av konto. */
   invoiceOwner?: string;
+  /** Mottakerens kontonummer, og KID eller melding. Foreløpig bare satt på
+      rader som kan åpnes i betalingsmodalen. */
+  toAccount?: string;
+  kid?: string;
+  message?: string;
 }
 
 export const transactions: Transaction[] = [
-  { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, accountKey: "felleskonto", type: "betaling", avatarKind: "person" },
+  { id: "kim-olsen", ...relativeDate(6), recipient: "Kim Olsen", amountNok: 500, accountKey: "felleskonto", type: "betaling", avatarKind: "person", toAccount: "1206 33 45871", message: "Konsertbilletter" },
   { id: "intro-aksel", ...relativeDate(9), recipient: "Sparing bryllup", amountNok: 300, accountKey: "felleskonto", type: "overforing", icon: "savings" },
   { id: "happybytes", ...relativeDate(9), recipient: "Happybytes", amountNok: 299, accountKey: "lonnskonto", type: "avtalegiro", avatarKind: "company", badge: "AvtaleGiro" },
   { id: "asker-kommune", ...relativeDate(15), recipient: "Asker Kommune", amountNok: 1545, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", unconfirmed: true, invoiceOwner: SELF_OWNER },
@@ -207,7 +212,7 @@ export const transactions: Transaction[] = [
   { id: "ask", ...relativeDate(20), recipient: "ASK", amountNok: 1500, accountKey: "lonnskonto", type: "overforing", icon: "investment" },
   { id: "dnb-global-index", ...relativeDate(22), recipient: "DNB Global index", amountNok: 2000, accountKey: "lonnskonto", type: "overforing", icon: "funds" },
   { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "EUR 500,00", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES" },
-  { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura" },
+  { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", toAccount: "1503 40 21187", kid: "0004812753902" },
 ];
 
 /** Demovarsler, slått på med «Show warnings» i verktøypanelet. Lå tidligere som

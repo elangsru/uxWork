@@ -538,3 +538,27 @@
 .po-amountfilter > * {
   flex: 1 1 10rem;
 }
+
+/* Mottakerboksen i betalingsmodalen. List.Container har 16px padding-right
+   som gjør kortet smalere enn feltene under — samme overstyring som
+   .ip-recipient-cards på /internationalPayment. */
+.po-edit-recipient .dnb-list__container {
+  padding-right: 0;
+}
+
+/* eFakturavedlegget åpnes i ny fane, og lenken får Eufemias launch-ikon av
+   seg selv. Chevronen som List.Item.Action alltid tegner ville stått ved
+   siden av, så den skjules. */
+.po-edit-attachment .dnb-list__item__chevron {
+  display: none;
+}
+
+/* «Betalingen er stoppet» ligger i List.Cell.Footer på mottakerraden. Uten
+   separator og ekstra margin, likt .ip-recipient-row på /internationalPayment,
+   så varselet står tett under navnet. */
+.po-edit-recipient .dnb-list__item__footer-separator {
+  display: none;
+}
+.po-edit-recipient .dnb-list__item__footer {
+  margin-top: 0;
+}
