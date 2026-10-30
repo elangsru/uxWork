@@ -10,6 +10,7 @@ import { globe, pay_from, refresh, transfer } from "@dnb/eufemia/icons";
 import "./paymentsOverview.css";
 import EditDomesticPaymentForm from "./EditDomesticPaymentForm";
 import EditPaymentForm from "./EditPaymentForm";
+import EditTransferForm from "./EditTransferForm";
 import FilterBox from "./FilterBox";
 import GroupCard from "./GroupCard";
 import GroupingRow from "./GroupingRow";
@@ -327,11 +328,16 @@ export default function PaymentsOverview() {
 
   const confirm = (id: string) => setConfirmedIds((prev) => new Set([...prev, id]));
 
-  // Foreløpig kan bare José Martinez (utland), Tibber (eFaktura) og Kim Olsen
-  // (innenlands betaling) åpnes i betalingsmodalen.
+  // Foreløpig kan bare José Martinez (utland), Tibber (eFaktura), Kim Olsen
+  // (innenlands betaling) og Sparing bryllup (overføring) åpnes i modalen.
   const [editPayment, setEditPayment] = useState<Transaction | null>(null);
+  // Tittelen settes ved åpning og står igjen når editPayment nullstilles, så
+  // den ikke skifter til «Betaling til» mens en overføring lukkes.
+  const [editTitle, setEditTitle] = useState("Betaling til");
   const openPayment = (tx: Transaction) => {
-    if (["jose-martinez", "tibber", "kim-olsen"].includes(tx.id)) setEditPayment(tx);
+    if (!["jose-martinez", "tibber", "kim-olsen", "intro-aksel"].includes(tx.id)) return;
+    setEditTitle(tx.type === "overforing" ? "Overføring" : "Betaling til");
+    setEditPayment(tx);
   };
 
   // Innehaveren selv står uten nummer — «Espen Langsrud (deg)» har ingen rad
@@ -1138,7 +1144,7 @@ export default function PaymentsOverview() {
         {/* minWidth = Eufemias standard maksbredde (49rem), så modalen blir like
             bred som «Ny mottaker» på /internationalPayment uansett innhold. */}
         <Dialog
-          title="Betaling til"
+          title={editTitle}
           open={editPayment !== null}
           omitTriggerButton
           minWidth="49rem"
@@ -1147,7 +1153,13 @@ export default function PaymentsOverview() {
           {/* Monteres på nytt for hver åpning, så feltene starter fra
               betalingen og ikke fra forrige redigering. */}
           {editPayment &&
-            (editPayment.flagIso ? (
+            (editPayment.type === "overforing" ? (
+              <EditTransferForm
+                tx={editPayment}
+                accountName={accountDetails[editPayment.accountKey].name}
+                onClose={() => setEditPayment(null)}
+              />
+            ) : editPayment.flagIso ? (
               <EditPaymentForm
                 tx={editPayment}
                 accountName={accountDetails[editPayment.accountKey].name}

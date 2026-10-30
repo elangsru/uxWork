@@ -38,9 +38,10 @@ export default function EditPaymentActions({
           // Bare på Stopp — Gjenoppta har ikke fått noen tekst ennå.
           tooltip={stopped ? undefined : "Stopper betalingen til du gjenopptar"}
           onClick={onToggleStop}
+          // marginLeft: auto skyver Stopp og Slett sammen helt til høyre.
+          style={{ marginLeft: "auto" }}
         />
-        {/* status="error" er Eufemias destruktive variant av tertiærknappen.
-            marginLeft: auto skyver den helt til høyre. */}
+        {/* status="error" er Eufemias destruktive variant av tertiærknappen. */}
         <Button
           variant="tertiary"
           status="error"
@@ -49,7 +50,6 @@ export default function EditPaymentActions({
           iconPosition="left"
           tooltip="Sletter betalingen permanent"
           onClick={onClose}
-          style={{ marginLeft: "auto" }}
         />
       </Flex.Horizontal>
     </>
