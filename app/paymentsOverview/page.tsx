@@ -850,7 +850,7 @@ export default function PaymentsOverview() {
                   checked={showSaldo}
                   onChange={({ checked }) => setShowSaldo(checked)}
                 />
-                <TermDefinition content="Når aktiv vises forventet fremtidig saldo etter at betalinger til forfall er trukket fra. Betalinger merket med rødt indikerer saldo kan gå i minus.">
+                <TermDefinition content="Når aktiv vises forventet fremtidig saldo etter at betalinger til forfall er trukket fra. Betalinger merket med rødt indikerer at saldo kan gå i minus.">
                   Penger til overs
                 </TermDefinition>
               </div>
@@ -1160,6 +1160,7 @@ export default function PaymentsOverview() {
                 tx={editPayment}
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
+                initiallyStopped={statusOf(editPayment) === "stoppet"}
                 // Avdrag på lån kan verken endres, stoppes eller slettes her.
                 readOnly={editPayment.icon === "loan"}
               />
@@ -1168,12 +1169,14 @@ export default function PaymentsOverview() {
                 tx={editPayment}
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
+                initiallyStopped={statusOf(editPayment) === "stoppet"}
               />
             ) : (
               <EditDomesticPaymentForm
                 tx={editPayment}
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
+                initiallyStopped={statusOf(editPayment) === "stoppet"}
               />
             ))}
         </Dialog>

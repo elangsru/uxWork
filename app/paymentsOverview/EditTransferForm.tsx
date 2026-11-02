@@ -39,6 +39,7 @@ export default function EditTransferForm({
   tx,
   accountName,
   onClose,
+  initiallyStopped = false,
   readOnly = false,
 }: {
   tx: Transaction;
@@ -46,6 +47,8 @@ export default function EditTransferForm({
   accountName: string;
   /** Knappene i bunnen gjør ingenting ennå utover å lukke modalen. */
   onClose: () => void;
+  /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
+  initiallyStopped?: boolean;
   readOnly?: boolean;
 }) {
   const indexOf = (name: string) => {
@@ -59,7 +62,7 @@ export default function EditTransferForm({
   const [amount, setAmount] = useState(String(tx.amountNok));
   const [message, setMessage] = useState(tx.message ?? "");
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
-  const [stopped, setStopped] = useState(false);
+  const [stopped, setStopped] = useState(initiallyStopped);
   const isFund = tx.icon === "funds";
   // Overføring til aksjesparekonto (ASK) har verken melding eller KID.
   const isAsk = tx.icon === "investment";

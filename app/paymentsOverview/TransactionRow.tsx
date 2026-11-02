@@ -173,7 +173,7 @@ export default function TransactionRow({
                   Godkjenn på ubekreftet eFaktura. */}
               <Flex.Horizontal justify="flex-end">
                 <Button variant="tertiary" text="Rediger" icon={false} onClick={edit} />
-                <Button variant="secondary" text="Reaktiver" onClick={(e: ButtonClickEvent) => e.event.stopPropagation()} />
+                <Button variant="secondary" text="Gjenoppta" onClick={(e: ButtonClickEvent) => e.event.stopPropagation()} />
               </Flex.Horizontal>
             </Flex.Vertical>
           </div>

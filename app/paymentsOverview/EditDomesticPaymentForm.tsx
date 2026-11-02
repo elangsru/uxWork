@@ -22,12 +22,15 @@ export default function EditDomesticPaymentForm({
   tx,
   accountName,
   onClose,
+  initiallyStopped = false,
 }: {
   tx: Transaction;
   /** Kontonavnet fra betalingsoversikten, for å forhåndsvelge «Fra konto». */
   accountName: string;
   /** Knappene i bunnen gjør ingenting ennå utover å lukke modalen. */
   onClose: () => void;
+  /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
+  initiallyStopped?: boolean;
 }) {
   const [selectedFromKey, setSelectedFromKey] = useState<string | null>(() => {
     const i = fromAccountList.findIndex((a) => a.content[0] === accountName);
@@ -36,7 +39,7 @@ export default function EditDomesticPaymentForm({
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
   const [message, setMessage] = useState(tx.message ?? "");
   const [amount, setAmount] = useState(String(tx.amountNok));
-  const [stopped, setStopped] = useState(false);
+  const [stopped, setStopped] = useState(initiallyStopped);
 
   // Egne id-er, så de ikke kolliderer med feltene på /domesticPayment.
   const fromAccountFieldId = "edit-domestic-payment-from-account";

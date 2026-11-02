@@ -43,12 +43,15 @@ export default function EditPaymentForm({
   tx,
   accountName,
   onClose,
+  initiallyStopped = false,
 }: {
   tx: Transaction;
   /** Kontonavnet fra betalingsoversikten, for å forhåndsvelge «Fra konto». */
   accountName: string;
   /** Knappene i bunnen gjør ingenting ennå utover å lukke modalen. */
   onClose: () => void;
+  /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
+  initiallyStopped?: boolean;
 }) {
   const parsed = parseAmountDisplay(tx.amountDisplay);
 
@@ -65,7 +68,7 @@ export default function EditPaymentForm({
   const [amount, setAmount] = useState(parsed?.amount ?? "");
   const [message, setMessage] = useState("Rent of vacation home");
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
-  const [stopped, setStopped] = useState(false);
+  const [stopped, setStopped] = useState(initiallyStopped);
 
   const filteredCurrencies = selectedRecipient
     ? currencies.filter((c) => selectedRecipient.currencies.includes(String(c.selectedKey)))
