@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Form } from "@dnb/eufemia/extensions/forms";
 import { SubmitIndicator } from "@dnb/eufemia/extensions/forms/Form";
-import { Avatar, Badge, Button, CountryFlag, Flex, FormStatus, Icon, List } from "@dnb/eufemia/components";
+import { Avatar, Badge, Button, CountryFlag, Dialog, Flex, FormStatus, Icon, List } from "@dnb/eufemia/components";
 import { Span } from "@dnb/eufemia/elements";
 import { funds_medium, investment_account_medium, loan_medium, office_buildings, savings_account_medium, transfer_medium } from "@dnb/eufemia/icons";
 
@@ -13,6 +14,9 @@ import { fmtAmount, fmtNok, type Transaction } from "./data";
 /** Hvor lenge «Godkjenn» viser spinner før fakturaen regnes som bekreftet.
  *  Rent demo-tidsforbruk. */
 const APPROVE_DELAY_MS = 5000;
+
+/** Hvor lenge «Reaktiver» viser spinner før kvitteringen vises. */
+const RESUME_DELAY_MS = 1500;
 
 export default function TransactionRow({
   tx,
@@ -173,7 +177,40 @@ export default function TransactionRow({
                   Godkjenn på ubekreftet eFaktura. */}
               <Flex.Horizontal justify="flex-end">
                 <Button variant="tertiary" text="Rediger" icon={false} onClick={edit} />
-                <Button variant="secondary" text="Gjenoppta" onClick={(e: ButtonClickEvent) => e.event.stopPropagation()} />
+                {/* Kvitteringen er en Form.SubmitConfirmation: onSubmit svarer
+                    med en customStatus, og den åpner dialogen i etterkant i
+                    stedet for å spørre før. Wrapperen stopper boblingen —
+                    også fra dialogen, siden React-hendelser bobler gjennom
+                    portalen og ellers ville åpnet raden. */}
+                <div onClick={(e) => e.stopPropagation()}>
+                  <Form.Handler
+                    onSubmit={async () => {
+                      await new Promise((resolve) => setTimeout(resolve, RESUME_DELAY_MS));
+                      return { customStatus: "resumed" };
+                    }}
+                  >
+                    <Form.SubmitButton variant="secondary" text={tx.type === "overforing" ? "Reaktiver overføring" : "Reaktiver betaling"} icon={false} />
+                    <Form.SubmitConfirmation
+                      onSubmitResult={({ submitState, setConfirmationState }) => {
+                        if (submitState?.customStatus) setConfirmationState("readyToBeSubmitted");
+                      }}
+                      renderWithState={({ connectWithDialog, cancelHandler }) => (
+                        <Dialog
+                          variant="confirmation"
+                          title="Reaktivert"
+                          description={`${tx.type === "overforing" ? "Overføringen" : "Betalingen"} er reaktivert med forfallsdato ${tx.date}.`}
+                          confirmText="Lukk"
+                          hideDecline
+                          {...connectWithDialog}
+                          // «Lukk» skal bare lukke — connectWithDialog sin
+                          // onConfirm ville sendt skjemaet på nytt.
+                          onConfirm={cancelHandler}
+                          onClose={cancelHandler}
+                        />
+                      )}
+                    />
+                  </Form.Handler>
+                </div>
               </Flex.Horizontal>
             </Flex.Vertical>
           </div>

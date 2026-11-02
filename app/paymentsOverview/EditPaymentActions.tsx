@@ -10,7 +10,7 @@ import { refresh, stop, trash } from "@dnb/eufemia/icons";
  * feltene), så «Slett» flukter med «Lukk» oppe til høyre.
  *
  * Ingen av knappene lagrer, stopper eller sletter ennå. Lagre og Slett lukker
- * modalen; Stopp veksler bare til Gjenoppta og tilbake, slik at modalen blir
+ * modalen; Stopp veksler bare til «Reaktiver» og tilbake, slik at modalen blir
  * stående og brukeren ser at betalingen er stoppet. Tilstanden eies av
  * skjemaet, som også viser varselet under mottakeren.
  */
@@ -36,11 +36,11 @@ export default function EditPaymentActions({
         <Button variant="primary" text="Lagre" onClick={onClose} />
         <Button
           variant="tertiary"
-          text={stopped ? "Gjenoppta" : "Stopp"}
+          text={stopped ? "Reaktiver" : "Stopp"}
           icon={stopped ? refresh : stop}
           iconPosition="left"
           disabled={locked}
-          // Bare på Stopp — Gjenoppta har ikke fått noen tekst ennå. Ingen
+          // Bare på Stopp — Reaktiver har ikke fått noen tekst ennå. Ingen
           // tooltip på deaktivert knapp, den kan ikke få hover eller fokus.
           tooltip={stopped || locked ? undefined : "Stopper betalingen til du gjenopptar"}
           onClick={onToggleStop}
