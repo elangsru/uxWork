@@ -1128,7 +1128,7 @@ export default function PaymentsOverview() {
               onChange: toggleShowOnBehalfOf,
             },
             { label: "Show warnings", checked: showWarnings, onChange: setShowWarnings },
-            { label: "Show type filter", checked: showTypeFilter, onChange: setShowTypeFilter },
+            { label: "Show type toggle buttons", checked: showTypeFilter, onChange: setShowTypeFilter },
             {
               label: "Show money left over",
               checked: showSaldoSwitch,

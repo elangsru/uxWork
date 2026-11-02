@@ -70,7 +70,7 @@ export default function EditTransferForm({
           ligger utenfor, så den kan gå over hele modalens bredde. */}
       <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: "488px" }}>
         {/* Uten mottakerboks står varselet øverst i skjemaet. */}
-        {stopped && <FormStatus state="warning" text="Betalingen er stoppet." stretch />}
+        {stopped && <FormStatus state="warning" text="Overføringen er stoppet." stretch />}
 
         <Autocomplete
           label="Fra konto"

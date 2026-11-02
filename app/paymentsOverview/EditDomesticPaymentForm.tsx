@@ -81,7 +81,11 @@ export default function EditDomesticPaymentForm({
             {(tx.type === "efaktura" || tx.type === "avtalegiro") && (
               <List.Item.Action
                 className="po-edit-attachment"
-                href="https://www.google.com"
+                href={
+                  tx.type === "efaktura"
+                    ? "https://www.google.com"
+                    : "https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/DirectDebit/70871410354138/details"
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 icon={tx.type === "efaktura" ? attachment_medium : ainvoice_medium}
