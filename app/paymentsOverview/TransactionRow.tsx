@@ -189,7 +189,7 @@ export default function TransactionRow({
                       return { customStatus: "resumed" };
                     }}
                   >
-                    <Form.SubmitButton variant="secondary" text={tx.type === "overforing" ? "Reaktiver overføring" : "Reaktiver betaling"} icon={false} />
+                    <Form.SubmitButton variant="secondary" text="Reaktiver" icon={false} />
                     <Form.SubmitConfirmation
                       onSubmitResult={({ submitState, setConfirmationState }) => {
                         if (submitState?.customStatus) setConfirmationState("readyToBeSubmitted");
