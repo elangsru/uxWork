@@ -2,12 +2,12 @@
 
 import { useState, useEffect, type ReactNode, type CSSProperties } from "react";
 import {
-  Button, Icon, Switch, Dropdown, List, TermDefinition, Tag, Flex,
-  Avatar, Badge, CountryFlag, Anchor, FormStatus, Tooltip, Breadcrumb, Dialog, Autocomplete,
+  Button, Icon, Switch, Dropdown, List, TermDefinition, Tag,
+  Avatar, Badge, CountryFlag, Anchor, Tooltip, Breadcrumb, Dialog, Autocomplete,
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
 import { H1, H2, H3, P, Span, Hr } from "@dnb/eufemia/elements";
-import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, globe_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, pay_from_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
+import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
@@ -54,17 +54,7 @@ const COUNTRY_ISO: Record<string, string> = {
 
 /* Felt som rendres i kortet og derfor ikke i detaljlisten */
 const BENEFICIARY_LABELS =
-  /^(logo\/avatar|logourl|mottaker navn|mottaker navn reservert|mottaker konto|mottaker konto ?type|mottaker land|mottaker adresse 1|mottaker adresse 2|mottaker postnr|mottaker sted\/by|mottaker web|mottaker orgnr|mottaker beskrivelse|mottaker telefon|telefon|orgnr|org\.?nr\.?|organisasjonsnummer|melding|kid|pengebruk tag|dato|transaksjonsdato|reservert dato|reservasjonsdato|bokf[øo]rt dato|bokf[øo]ringsdato|rentedato|beløp|beløp nok|nok beløp|beløp valuta|valuta beløp|valutabeløp|vekslingskurs|valutasort|res(?:erv|v)ert melding|kontonavn|fra kontonavn|kontotype|konto type|fra konto type|kontonummer|fra kontonummer|fra konto|kortnavn|fra kortnavn|kortnummer|kortnummer pan|kortnummer\/pan|fra kortnummer\/pan|fra kortnummer pan|pan|kortnettverk|fra kortnettverk|kortnettverk logo|fra kortnettverk logo|digital wallet|digital wallet logo|klokkeslett|pengebruk sub|pengebruk main|pengebruk reservert|sas eurobonuspoeng|eurobonus poeng|sas bonus|betalingsprodukt|kvittering|efaktura|efaktura-vedlegg|betalingsbekreftelse|pris|gebyr|pris\/gebyr|lån avdrag|lån renter|kortreklamasjon(er)?|transaksjonsid|fra milj[øo]|pengebruk icon)$/i;
-
-/* Valutakode → ISO-landkode for CountryFlag */
-const CURRENCY_FLAG: Record<string, string> = {
-  EUR: "EU", USD: "US", GBP: "GB", SEK: "SE",
-  DKK: "DK", NOK: "NO", CHF: "CH", JPY: "JP",
-  AUD: "AU", CAD: "CA", NZD: "NZ", HKD: "HK",
-  SGD: "SG", PLN: "PL", CZK: "CZ", HUF: "HU",
-  ISK: "IS", TRY: "TR", MXN: "MX", BRL: "BR",
-  INR: "IN", CNY: "CN", ZAR: "ZA", THB: "TH",
-};
+  /^(logo\/avatar|logourl|mottaker navn|mottaker navn reservert|mottaker konto|mottaker konto ?type|mottaker land|mottaker adresse 1|mottaker adresse 2|mottaker postnr|mottaker sted\/by|mottaker web|mottaker orgnr|mottaker beskrivelse|mottaker telefon|telefon|orgnr|org\.?nr\.?|organisasjonsnummer|melding|kid|pengebruk tag|dato|transaksjonsdato|reservert dato|reservasjonsdato|bokf[øo]rt dato|bokf[øo]ringsdato|rentedato|beløp|beløp nok|nok beløp|beløp valuta|valuta beløp|valutabeløp|vekslingskurs|valutasort|res(?:erv|v)ert melding|kontonavn|fra kontonavn|kontotype|konto type|fra konto type|kontonummer|fra kontonummer|fra konto|kortnavn|fra kortnavn|kortnummer|kortnummer pan|kortnummer\/pan|fra kortnummer\/pan|fra kortnummer pan|pan|kortnettverk|fra kortnettverk|kortnettverk logo|fra kortnettverk logo|digital wallet|digital wallet logo|klokkeslett|pengebruk sub|pengebruk main|pengebruk reservert|sas eurobonuspoeng|eurobonus poeng|sas bonus|betalingsprodukt|kvittering|efaktura|efaktura-vedlegg|betalingsbekreftelse|pris|gebyr|pris\/gebyr|lån avdrag|lån renter|kortreklamasjon(er)?|transaksjonsid|betalingsid|fra milj[øo]|pengebruk icon)$/i;
 
 function fieldValue(record: PaymentRecord | undefined, re: RegExp): string {
   return record?.fields.find((f) => re.test(f.label.trim()))?.value ?? "";
@@ -109,30 +99,6 @@ function formatDateNo(raw: string): string {
   const month = parseInt(m[2], 10) - 1;
   const year = m[3];
   return `${day}. ${months[month]} ${year}`;
-}
-
-/** Høyrestilt innhold for List.Cell.End, slik den nye listeraden i Figma viser
- *  beløp: hovedverdien i basis/medium (arves fra Cell.End) og en underlinje i
- *  small/regular under. Cell.End har ingen innebygd subline i 11.11.0 — den har
- *  bare fontSize/fontWeight — så stablingen gjøres her med Flex.Vertical.
- *
- *  Underlinja er alltid dempet, med samme farge som Subline
- *  variant="description" gir på venstresiden (rgb(115,115,115)). Den er en
- *  detalj under hovedverdien, ikke en likeverdig verdi.
- *
- *  Returnerer bare innmaten, ikke Cell.End selv: Flex.Container pakker ukjente
- *  barn i sine egne Flex.Item, så en wrapper-komponent rundt Cell.End ville
- *  kunne gi et ekstra ledd i radens flex-layout. */
-function endStack(value: ReactNode, subline?: ReactNode): ReactNode {
-  if (!subline) return value;
-  return (
-    <Flex.Vertical align="flex-end" gap={false}>
-      <span>{value}</span>
-      <Span size="small" weight="regular" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-        {subline}
-      </Span>
-    </Flex.Vertical>
-  );
 }
 
 function accountIcon(type: string) {
@@ -241,11 +207,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const isEfaktura       = /efaktura/i.test(selectedType);
   const isOverforing     = /overf[øo]ring|boliglån/i.test(selectedType);
   const isGebyrRenter    = /gebyr og renter/i.test(selectedType);
-  /* Egen sjekk, ikke isOverforing — den matcher «Overføring» og «Boliglån»,
-     ikke «Utenlandsbetaling». Valutaraden vises på fire typer (Varekjøp Visa
-     Utland, Utenlandsbetaling, ATM Visa, ATM Mastercard); bare denne kaller
-     den «Overføringsvaluta». */
-  const isUtenlandsbetaling = /utenlandsbetaling/i.test(selectedType);
   const tilLabel         = isGebyrRenter ? "Innbetalt" : isOverforing ? "Overført til" : "Betalt til";
   const fraLabel         = isOverforing ? "Overført fra" : "Betalt fra";
   const logoUrl          = fieldValue(selected, /^logourl$/i);
@@ -264,16 +225,12 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const nokAmount        = fieldValue(selected, /^(beløp|beløp nok|nok beløp)$/i);
   const currencyAmount   = fieldValue(selected, /^(beløp valuta|valuta beløp|valutabeløp)$/i);
   const exchangeRate     = fieldValue(selected, /^(vekslingskurs)$/i);
-  const currencyFlagIso  = CURRENCY_FLAG[currencyCode.trim().toUpperCase()];
   const sasPoints        = fieldValue(selected, /^(sas eurobonuspoeng|eurobonus poeng|sas bonus)$/i);
   const betalingsprodukt = fieldValue(selected, /^betalingsprodukt$/i);
   const prisGebyr        = fieldValue(selected, /^(pris|gebyr|pris\/gebyr)$/i);
   const avdrag           = fieldValue(selected, /^lån avdrag$/i);
   const renter           = fieldValue(selected, /^lån renter$/i);
   const hasLoanBreakdown = Boolean(avdrag || renter);
-  /* Figma bruker actions/pay_from for straksbetaling og essentials/globe ellers. */
-  const betalingsproduktIcon = /straksbetaling/i.test(betalingsprodukt) ? pay_from_medium : globe_medium;
-  const reservedMessage  = fieldValue(selected, /^res(erv|v)ert melding$/i);
   const transaksjonsDato = fieldValue(selected, /^transaksjonsdato$/i);
   const reservertDate    = fieldValue(selected, /^(reservert dato|reservasjonsdato)$/i);
   const bokfortDato      = fieldValue(selected, /^(bokf[øo]rt dato|bokf[øo]ringsdato)$/i);
@@ -299,6 +256,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const phone            = fieldValue(selected, /^(mottaker telefon|telefon)$/i);
   const kortreklamasjoner = fieldValue(selected, /^kortreklamasjon(er)?$/i);
   const transactionId     = fieldValue(selected, /^transaksjonsid$/i);
+  const paymentId         = fieldValue(selected, /^betalingsid$/i);
   const mottakerBeskrivelse = fieldValue(selected, /^mottaker beskrivelse$/i);
   const termDefRecord = payments.find((p) => /^termdefinition$/i.test(p.type));
   /* Ordforklaringen hentes fra TermDefinition-kolonnen i arket. `fallbackDef`
@@ -335,7 +293,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
      en tom Container ville gitt en ramme uten innhold. Må stå etter
      isMastercard, som SAS-raden avhenger av. */
   const hasAmountRows = Boolean(
-    currencyAmount || exchangeRate || isMastercard || betalingsprodukt || prisGebyr || hasLoanBreakdown
+    isMastercard
   );
 
   const digitalWallet     = fieldValue(selected, /^digital wallet$/i);
@@ -483,21 +441,24 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
            sidevirkning. Dobbel klasse gir 0,4,0 og vinner. Scopet til .td-chevron-row
            så vi ikke tvinger chevron på rader som ikke skal ha den. */
         .td-chevron-row.td-chevron-row .dnb-list__item__chevron.dnb-list__item__chevron { display: flex; }
-        /* FormStatus krymper men vokser aldri tilbake ved resize. Årsaken ligger
-           i updateWidth(): den er laget for skjemafelt og slår opp feltet
-           statusen tilhører via en selector avledet av id-en, måler bredden og
-           fryser den som inline max-width. Vår FormStatus er frittstående uten
-           felt, så oppslaget gir feil tall og verdien blir stående — 30rem
-           (480px) selv når containeren er 960px.
-
-           min-width tilfredsstiller vaktsetningen
-             hasCustomWidth = element.style.maxWidth ? false
-               : style.minWidth !== '' && style.minWidth !== 'auto' || ...
-             if (!hasCustomWidth) element.style.maxWidth = remWidth
-           så Eufemia slutter å skrive max-width i det hele tatt. max-width:none
-           med !important nøytraliserer en verdi som eventuelt rakk å bli satt
-           før stilarket lastet — inline stil slår klassespesifisitet. */
-        .td-status-fullwidth { min-width: 0; max-width: none !important; }
+        /* Eufemia løfter rader inne i accordion-innholdet til z-index 11 ved hover
+           (0,4,0), over accordionens kantlinje på ::after (z-index 10). Det er ment
+           for hover-rammen på Action-rader, men Basic-radene har ingen ramme — bare
+           hvit bakgrunn som dekker sidekantene. Ikke-klikkbare rader blir liggende. */
+        .dnb-list__item__accordion .dnb-list__item__accordion__content .dnb-list__item.dnb-list__item:not(.dnb-list__item__action):is(:hover, :has(>:focus-visible)) { z-index: 1; }
+        /* Reservert-tag (Figma 22624:84981): subtil grå bunn, 1px kant og 8px
+           radius. Eufemias standard-Tag er hvit uten kant. */
+        .td-reserved-tag.dnb-tag.dnb-button {
+          background-color: var(--token-color-background-neutral-subtle);
+          box-shadow: inset 0 0 0 1px var(--token-color-stroke-neutral-bold);
+          border-radius: var(--token-radius-md, 0.5rem);
+          color: var(--token-color-text-neutral);
+          height: auto;
+          padding: 0.25rem 0.5rem;
+        }
+        .td-reserved-tag.dnb-tag.dnb-button .dnb-button__text { font-weight: var(--font-weight-medium); line-height: 1.25rem; }
+        /* Knappens alignment-helper er 24px høy og ville gitt 32px tag. */
+        .td-reserved-tag.dnb-tag.dnb-button .dnb-button__alignment { height: 1.25rem; }
       `}</style>
 
       {/* ── Page header (netbank-shell) ─────────────────────────────
@@ -573,7 +534,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
               rekkefølgen på overskriftsnivåene. */}
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <H1 size="x-large" style={{ margin: 0 }}>{selectedType || "Transaksjonsdetaljer"}</H1>
-            {selected && <P style={{ margin: 0 }}>{dateTimeDisplay}</P>}
+            {selected && <P size="x-small" style={{ margin: 0, color: "var(--token-color-text-neutral-alternative)" }}>{dateTimeDisplay}</P>}
             {/* Skiller sidehodet fra innholdet. top="small" (16px) legger seg
                 til wrapperens 8px gap = 24px luft over streken. */}
             <Hr top="small" bottom={0} />
@@ -588,79 +549,73 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
               {/* ── Beløpsmodul ──────────────────────────────────
                   Bygget som Betalt fra: beløpet fritt over en List.Container.
                   List.Cell.Title tilbyr bare basis/small som fontSize, så en
-                  H2 på 34px hører ikke hjemme i en rad. Ikoner går gjennom
+                  H2 på 26px hører ikke hjemme i en rad. Ikoner går gjennom
                   List sine egne slots: ekte Eufemia-ikoner via icon-propen
                   (ItemIcon wrapper dem i <Icon size="medium">), flagg og
                   logoer via List.Cell.Start. Fargen på ikonene kommer fra
                   .dnb-list__item__icon-regelen øverst, så ingen inline color. */}
               {(nokAmount || hasLoanBreakdown) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {nokAmount && (
-                    <H2 size="x-large" style={{ margin: 0, ...(showReserved && { color: "var(--token-color-text-neutral-alternative)" }) }}>NOK {fd(/^(beløp|beløp nok|nok beløp)$/i)}</H2>
+                  {/* Reservert-status som tag over beløpet (Figma 22624:84981,
+                      flyttet over etter ønske). hasLabel: frittstående tag uten
+                      Tag.Group — beløpet under er konteksten. Utseendet kommer
+                      fra .td-reserved-tag. */}
+                  {showReserved && (
+                    <div>
+                      <Tag className="td-reserved-tag" hasLabel text="Reservert transaksjon" />
+                    </div>
                   )}
 
-                  {showReserved && reservedMessage && (
-                    /* bottom="small" gir luft ned til det som følger. Flex-gap
-                       kollapser ikke med margin, så 16px legges til wrapperens
-                       8px = 24px under meldingen.
+                  {nokAmount && (
+                    <H2 size="large" style={{ margin: 0, ...(showReserved && { color: "var(--token-color-text-neutral-alternative)" }) }}>Kr {fd(/^(beløp|beløp nok|nok beløp)$/i)}</H2>
+                  )}
 
-                       stretch må stå: den er det som gjør at bakgrunnen fyller
-                       bredden i stedet for å hugge teksten. Bieffekten er en
-                       inline max-width som ikke vokser tilbake ved resize —
-                       den nøytraliseres av .td-status-fullwidth. */
-                    <FormStatus
-                      className="td-status-fullwidth"
-                      text={showFieldNames ? fd(/^res(erv|v)ert melding$/i) : reservedMessage}
-                      state="information"
-                      stretch
-                      bottom="small"
-                    />
+                  {/* Valutakjøp (Figma 22660:111327): en dempet linje rett
+                      under beløpet i stedet for egen rad i lista. Figma bruker
+                      Subhead 15/20 — nærmeste Eufemia-størrelse er x-small
+                      (14/20), som gir samme linjehøyde. Verdiene er bold.
+                      Fargen er text-neutral, ikke neutral-alternative. */}
+                  {(currencyAmount || exchangeRate) && (
+                    <P size="x-small" style={{ margin: 0, display: "flex", flexWrap: "wrap", columnGap: "16px", color: "var(--token-color-text-neutral)" }}>
+                      {currencyAmount && (
+                        <Span weight="bold">
+                          {currencyCode ? `${fd(/^valutasort$/i)} ` : ""}{fd(/^(beløp valuta|valuta beløp|valutabeløp)$/i)}
+                        </Span>
+                      )}
+                      {exchangeRate && (
+                        <span>
+                          Vekslingskurs:{" "}
+                          <Span weight="bold">
+                            {currencyCode ? `${fd(/^valutasort$/i)} 1 = ` : ""}{fd(/^vekslingskurs$/i)}
+                          </Span>
+                        </span>
+                      )}
+                    </P>
+                  )}
+
+                  {/* Avdrag + renter (boliglån, Figma 22669:111328): samme
+                      linje som valutakjøpet over, med labelen regular og
+                      beløpet bold. Degraderer til én verdi når bare ett av
+                      feltene finnes. */}
+                  {hasLoanBreakdown && (
+                    <P size="x-small" style={{ margin: 0, display: "flex", flexWrap: "wrap", columnGap: "16px", color: "var(--token-color-text-neutral)" }}>
+                      {avdrag && (
+                        <span>
+                          Avdrag:{" "}
+                          <Span weight="bold">Kr {fd(/^lån avdrag$/i)}</Span>
+                        </span>
+                      )}
+                      {renter && (
+                        <span>
+                          Renter:{" "}
+                          <Span weight="bold">Kr {fd(/^lån renter$/i)}</Span>
+                        </span>
+                      )}
+                    </P>
                   )}
 
                   {hasAmountRows && (
                     <List.Container>
-                      {/* Valutakjøp. Flagget må ligge i Cell.Start, ikke
-                          icon-propen: ItemBasic rendrer icon → title →
-                          children, så en Cell.Start som child havner etter
-                          tittelen. Derfor children-formen på radene med
-                          flagg og avatar. */}
-                      {(currencyAmount || exchangeRate) && (
-                        <List.Item.Basic>
-                          {currencyFlagIso && (
-                            <List.Cell.Start>
-                              <CountryFlag iso={currencyFlagIso} size="medium" />
-                            </List.Cell.Start>
-                          )}
-                          <List.Cell.Title>{td(isUtenlandsbetaling ? "Overføringsvaluta" : "Valutakjøp")}</List.Cell.Title>
-                          <List.Cell.End>
-                            {endStack(
-                              `${currencyCode ? `${fd(/^valutasort$/i)} ` : ""}${fd(/^(beløp valuta|valuta beløp|valutabeløp)$/i)}`,
-                              exchangeRate ? `Vekslingskurs ${fd(/^vekslingskurs$/i)}` : undefined,
-                            )}
-                          </List.Cell.End>
-                        </List.Item.Basic>
-                      )}
-
-                      {/* Transaksjonskostnad. Betalingsproduktet er underlinje
-                          under prisen, ikke egen rad — slik Figma viser det.
-                          Mangler prisen, står produktet som hovedverdi i stedet
-                          for å etterlate en tom høyreside. */}
-                      {(betalingsprodukt || prisGebyr) && (
-                        <List.Item.Basic
-                          icon={betalingsproduktIcon}
-                          title={td("Transaksjonskostnad")}
-                        >
-                          <List.Cell.End>
-                            {endStack(
-                              prisGebyr
-                                ? `NOK ${fd(/^(pris|gebyr|pris\/gebyr)$/i)}`
-                                : fd(/^betalingsprodukt$/i),
-                              prisGebyr && betalingsprodukt ? fd(/^betalingsprodukt$/i) : undefined,
-                            )}
-                          </List.Cell.End>
-                        </List.Item.Basic>
-                      )}
-
                       {/* SAS Eurobonus. Avatar med src i stedet for en rå <img>:
                           Figma peker på Eufemias Avatar, og hasLabel demper
                           «Avatar group required»-advarselen siden raden selv
@@ -697,29 +652,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                         </List.Item.Basic>
                       )}
 
-                      {/* Avdrag + renter (boliglån). Én rad med underlinje på
-                          begge sider: labelene til venstre, beløpene til høyre.
-                          Renter-linja er dempet (variant="description", samme
-                          grå som kontonumrene) siden den er en detalj under
-                          avdraget, ikke en likeverdig verdi. I 11.11.0 endrer
-                          varianten bare fargen — fontSize er small uansett.
-                          Degraderer til én linje når bare ett av feltene finnes. */}
-                      {hasLoanBreakdown && (
-                        <List.Item.Basic icon={loan_medium}>
-                          <List.Cell.Title>
-                            {avdrag ? td("Avdrag lån") : td("Renter lån")}
-                            {avdrag && renter && (
-                              <List.Cell.Title.Subline variant="description">Renter lån</List.Cell.Title.Subline>
-                            )}
-                          </List.Cell.Title>
-                          <List.Cell.End>
-                            {endStack(
-                              avdrag ? `NOK ${fd(/^lån avdrag$/i)}` : `NOK ${fd(/^lån renter$/i)}`,
-                              avdrag && renter ? `NOK ${fd(/^lån renter$/i)}` : undefined,
-                            )}
-                          </List.Cell.End>
-                        </List.Item.Basic>
-                      )}
                     </List.Container>
                   )}
                 </div>
@@ -984,50 +916,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                 </div>
               )}
 
-              {/* ── Vedlegg ──────────────────────────────────────── */}
-              {hasVedlegg && (
-                <div>
-                  <List.Container>
-                  <List.Item.Accordion icon={attachment_medium}>
-                    <List.Item.Accordion.Header>
-                      <List.Cell.Title>Vedlegg</List.Cell.Title>
-                    </List.Item.Accordion.Header>
-                    <List.Item.Accordion.Content>
-                      <div className="dnb-card" style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)" }}>
-                        <List.Container>
-                          {kvittering && (
-                            <List.Item.Basic title={td("Kjøpskvittering")}>
-                              <List.Cell.End fontWeight="regular">
-                                {/^vis$/i.test(kvittering) ? (
-                                  <Anchor href="#" target="_blank">Vis</Anchor>
-                                ) : /^last opp$/i.test(kvittering) ? (
-                                  <Anchor href="#" icon={upload} iconPosition="right">Last opp</Anchor>
-                                ) : null}
-                              </List.Cell.End>
-                            </List.Item.Basic>
-                          )}
-                          {efaktura && (
-                            <List.Item.Basic title={td("eFaktura")}>
-                              <List.Cell.End fontWeight="regular">
-                                <Anchor href="#" target="_blank">Vis</Anchor>
-                              </List.Cell.End>
-                            </List.Item.Basic>
-                          )}
-                          {betalingsbekreftelse && (
-                            <List.Item.Basic title={td("Betalingsbekreftelse")}>
-                              <List.Cell.End fontWeight="regular">
-                                <Anchor href="#" icon={download} iconPosition="right">Last ned</Anchor>
-                              </List.Cell.End>
-                            </List.Item.Basic>
-                          )}
-                        </List.Container>
-                      </div>
-                    </List.Item.Accordion.Content>
-                  </List.Item.Accordion>
-                </List.Container>
-                </div>
-              )}
-
               {/* ── Pengebruk ──────────────────────────────────── */}
               {hasPengebruk && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -1096,11 +984,55 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                 </div>
               )}
 
+              {/* ── Vedlegg ──────────────────────────────────────── */}
+              {hasVedlegg && (
+                <div>
+                  <List.Container>
+                  <List.Item.Accordion icon={attachment_medium}>
+                    <List.Item.Accordion.Header>
+                      <List.Cell.Title>Vedlegg</List.Cell.Title>
+                    </List.Item.Accordion.Header>
+                    <List.Item.Accordion.Content>
+                      <div className="dnb-card" style={{ borderTop: "1px solid var(--token-color-stroke-neutral-subtle)" }}>
+                        <List.Container>
+                          {kvittering && (
+                            <List.Item.Basic title={td("Kjøpskvittering")}>
+                              <List.Cell.End fontWeight="regular">
+                                {/^vis$/i.test(kvittering) ? (
+                                  <Anchor href="#" target="_blank">Vis</Anchor>
+                                ) : /^last opp$/i.test(kvittering) ? (
+                                  <Anchor href="#" icon={upload} iconPosition="right">Last opp</Anchor>
+                                ) : null}
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
+                          {efaktura && (
+                            <List.Item.Basic title={td("eFaktura")}>
+                              <List.Cell.End fontWeight="regular">
+                                <Anchor href="#" target="_blank">Vis</Anchor>
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
+                          {betalingsbekreftelse && (
+                            <List.Item.Basic title={td("Betalingsbekreftelse")}>
+                              <List.Cell.End fontWeight="regular">
+                                <Anchor href="#" icon={download} iconPosition="right">Last ned</Anchor>
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
+                        </List.Container>
+                      </div>
+                    </List.Item.Accordion.Content>
+                  </List.Item.Accordion>
+                </List.Container>
+                </div>
+              )}
+
               {/* ── Detaljer ────────────────────────────────────────
                   Kortreklamasjon og beskrivelse står i betingelsen: radene
                   ligger i denne seksjonen, så en type med bare ett av de
                   feltene og uten datofelt ville ellers mistet raden helt. */}
-              {(transaksjonsDato || reservertDate || bokfortDato || rentedato || mottakerBeskrivelse || transactionId || /^ja$/i.test(kortreklamasjoner) || showFieldNames) && (
+              {(transaksjonsDato || reservertDate || bokfortDato || rentedato || mottakerBeskrivelse || prisGebyr || betalingsprodukt || paymentId || transactionId || /^ja$/i.test(kortreklamasjoner) || showFieldNames) && (
                 <div>
                 <List.Container>
                   <List.Item.Accordion icon={information_circled_medium}>
@@ -1159,6 +1091,33 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             <List.Item.Basic title={td("Rentedato")}>
                               <List.Cell.End fontWeight="regular">
                                 {formatDateNo(fd(/^rentedato$/i))}
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
+                          {/* Transaksjonskostnad med betalingsproduktet (SEPA,
+                              Straksbetaling …) i parentes i tittelen — én rad, flyttet
+                              hit fra beløpsmodulen. Mangler prisen, står produktet
+                              som verdi i stedet for å etterlate en tom høyreside. */}
+                          {(prisGebyr || betalingsprodukt || showFieldNames) && (
+                            <List.Item.Basic
+                              title={td(
+                                "Transaksjonskostnad",
+                                prisGebyr && betalingsprodukt
+                                  ? <>Transaksjonskostnad ({fd(/^betalingsprodukt$/i)})</>
+                                  : "Transaksjonskostnad",
+                              )}
+                            >
+                              <List.Cell.End fontWeight="regular">
+                                {prisGebyr
+                                  ? `Kr ${fd(/^(pris|gebyr|pris\/gebyr)$/i)}`
+                                  : fd(/^betalingsprodukt$/i)}
+                              </List.Cell.End>
+                            </List.Item.Basic>
+                          )}
+                          {(paymentId || showFieldNames) && (
+                            <List.Item.Basic title={td("BetalingsID")}>
+                              <List.Cell.End fontWeight="regular">
+                                {fd(/^betalingsid$/i)}
                               </List.Cell.End>
                             </List.Item.Basic>
                           )}
