@@ -57,13 +57,28 @@
   --horizontal-gap: var(--spacing-x-small);
 }
 
+/* Eufemia 11.17.0 innførte --list-item-cell-height (32px): cellene får
+   min-høyde og marger regnet ut fra den, beregnet for å midtstille én
+   tekstlinje mot en 32px-avatar. Reglene under er skrevet for den gamle
+   modellen, der cellehøyden var linjehøyden (24px), og de to systemene
+   sammen ga skjeve rader. Med linjehøyden her blir plasseringen identisk
+   med 11.16.1 på desktop (målt rad for rad). */
+.po-page .dnb-list--variant-basic {
+  --list-item-cell-height: var(--line-height-basis);
+}
+
 .dnb-list__item__accordion__header .dnb-list__item__title {
   align-self: center !important;
   justify-self: stretch !important;
 }
 
+/* Rader med overline (dato) uten subline: avataren skal stå på navnelinjen.
+   Eufemia 11.17.0 gir start-cellen margin-top lik overlinens høyde, så
+   align-self: start treffer navnelinjen. Tidligere brukte vi end, som bare
+   traff når raden var like høy som tittelen — med to linjer beløp
+   («ca kr» + EUR) ble raden høyere og avataren havnet under navnet. */
 .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline):not(:has(> .dnb-list__item__action__button .dnb-list__item__subline)) .dnb-list__item__start {
-  align-self: end !important;
+  align-self: start !important;
   justify-self: center !important;
 }
 
@@ -72,9 +87,25 @@
   place-self: center !important;
 }
 
+/* Avataren i rader med subline (AvtaleGiro/eFaktura) midtstilles i raden.
+   Eufemia 11.17.0 gir start-cellen margin-top under en overline; den skal
+   bort her, ellers havner avataren 4px over midten. */
+.dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__start {
+  place-self: center !important;
+  margin-top: 0;
+}
+
 @media screen and (min-width: 40.00625em) {
   .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline) .dnb-list__item__end {
     place-self: end !important;
+  }
+
+  /* Beløpet bunnjusteres mot navnelinjen. Eufemia 11.17.0 gir end-cellen
+     margin-top under en overline, som dyttet et tolinjers beløp («ca kr» +
+     EUR) ned under navnet. Rader med subline beholder marginen — der
+     treffer den samme plass som før. */
+  .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__overline):not(:has(> .dnb-list__item__action__button .dnb-list__item__subline)) .dnb-list__item__end {
+    margin-top: 0;
   }
 
   .dnb-list__item:has(> .dnb-list__item__action__button .dnb-list__item__subline) .dnb-list__item__end {
@@ -359,10 +390,12 @@
   --list-item-rounded-corner: var(--token-radius-xl);
 }
 
-/* Gruppens header og sum-rad deler bakgrunn. Hjørnene kommer fra regelen over. */
+/* Gruppens header og sum-rad deler bakgrunn. Hjørnene kommer fra regelen over.
+   neutral-base, ikke neutral-alternative: Eufemia 11.17.0 gjorde
+   neutral-alternative til greyscale-200 (#ccc), som ble for mørkt. */
 .dnb-list__item__accordion.po-group__head,
 .dnb-list__item.po-group__sum {
-  background: var(--token-color-background-neutral-alternative);
+  background: var(--token-color-background-neutral-base);
 }
 
 .dnb-list__item__title.po-group__title {
@@ -395,7 +428,7 @@
 .dnb-list__item.po-group__skeleton-head {
   --list-item-rounded-corner: 0;
 
-  background: var(--token-color-background-neutral-alternative);
+  background: var(--token-color-background-neutral-base);
 }
 
 /* Skravur på ubekreftede rader. */
