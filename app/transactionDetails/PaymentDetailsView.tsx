@@ -3,11 +3,12 @@
 import { useState, useEffect, type ReactNode, type CSSProperties } from "react";
 import {
   Button, Icon, Switch, Dropdown, List, TermDefinition, Tag,
-  Avatar, Badge, CountryFlag, Anchor, Tooltip, Breadcrumb, Dialog, Autocomplete,
+  Avatar, Badge, CountryFlag, Anchor, Tooltip, Breadcrumb, Dialog, Autocomplete, FormStatus,
 } from "@dnb/eufemia/components";
 import Theme from "@dnb/eufemia/shared/Theme";
+import { formatNumber } from "@dnb/eufemia/components/number-format/NumberUtils";
 import { H1, H2, H3, P, Span, Hr } from "@dnb/eufemia/elements";
-import { filter, close, check, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
+import { filter, close, check, swap, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
@@ -66,6 +67,18 @@ function fieldDisplay(record: PaymentRecord | undefined, re: RegExp, showNames: 
   return showNames ? `{${field.label}}` : field.value;
 }
 
+/** Formaterer et tall fra arket med norsk tusenskille via Eufemias
+ *  formatNumber: «12345,78» → «12 345,78», «-1800» → «−1 800,00».
+ *  Arket bruker komma som desimaltegn og kan ha mellomrom. Beløp får minst
+ *  to desimaler; flere beholdes (vekslingskurs har ofte fire). Verdier som
+ *  ikke er tall vises uendret. */
+function formatNo(raw: string, minDecimals = 2): string {
+  const n = raw.trim().replace(/[\s\u00a0\u202f]/g, "").replace(/^\u2212/, "-").replace(",", ".");
+  if (!/^-?\d+(\.\d+)?$/.test(n)) return raw;
+  const decimals = Math.max(minDecimals, n.split(".")[1]?.length ?? 0);
+  return formatNumber(n, { locale: "nb-NO", decimals });
+}
+
 /** Sant når verdien i arket er en lenke (http://, https:// eller //) og ikke
  *  et filnavn under /public. Brukes både av logoSrc og av visningen, som
  *  rammer lenkelogoer rundt slik som avataren. */
@@ -87,6 +100,60 @@ function logoSrc(value: string, folder: "kortnettverk" | "wallet" | "merchants")
   const stripped = raw.replace(/\s+/g, "");
   const file = folder === "merchants" ? stripped : stripped.toLowerCase();
   return `/${folder}/${/\.(svg|png|jpe?g|webp)$/i.test(file) ? file : `${file}.svg`}`;
+}
+
+/* Alle betalingslogoer (kortnettverk og lommebøker) vises 24px høye med
+   naturlig bredde. */
+const PAYMENT_LOGO_HEIGHT = 24;
+/* List.Cell.End har 4px padding-top, men også min-height 32px. Så lenge
+   logoen + paddingen er under 32px, midtstiller cellen den selv. Over
+   28px logohøyde må paddingen kompenseres med -4px marginTop. */
+const LOCAL_LOGO_STYLE: CSSProperties = {
+  display: "block", height: PAYMENT_LOGO_HEIGHT, width: "auto",
+};
+
+/* Firmalogoer fra Eufemias logokatalog (@eufemia/logos), servert fra den
+   versjonerte CDN-en: https://assets.eufemia.dnb.no/logos/manifest.json.
+   Nøkkelen er verdien i arket. Katalogen har egne light/dark-varianter.
+   Mastercard står bevisst utenfor: katalogens logo har «mastercard»-
+   ordmerket, og vi vil bare ha sirklene. Den faller derfor tilbake til
+   public/kortnettverk/mastercard.svg, som bare er sirklene.
+
+   Katalogfilene er kvadratiske lerreter med gjennomsiktig luft rundt
+   logoen. box er logoens synlige flate målt i 192px-filene (@3x, union av
+   light og dark): [x0, y0, x1, y1]. Lerretet skaleres så den flaten blir
+   PAYMENT_LOGO_HEIGHT høy, og negativ marg fjerner luften — filen selv er uendret.
+   Versjonen er låst (v1.6.0, immutable), så målene står seg. */
+const EUFEMIA_LOGOS_BASE = "https://assets.eufemia.dnb.no/logos/v1.6.0";
+const EUFEMIA_LOGO_CANVAS = 192;
+const EUFEMIA_LOGOS: Record<string, { slug: string; box: [number, number, number, number] }> = {
+  click2pay: { slug: "clicktopay", box: [35, 55, 153, 130] },
+  visa:      { slug: "visa",       box: [0, 62, 192, 128] },
+  bankaxept: { slug: "bankaxept",  box: [0, 38, 191, 154] },
+  applepay:  { slug: "apple-pay",  box: [3, 35, 189, 155] },
+  vipps:     { slug: "vipps",      box: [0, 72, 192, 121] },
+};
+function eufemiaLogo(value: string, dark: boolean) {
+  const entry = EUFEMIA_LOGOS[value.trim().toLowerCase().replace(/\s+/g, "")];
+  if (!entry) return null;
+  const [x0, y0, x1, y1] = entry.box;
+  const k = PAYMENT_LOGO_HEIGHT / (y1 - y0);
+  const size = EUFEMIA_LOGO_CANVAS * k;
+  const file = (scale: number) => `${EUFEMIA_LOGOS_BASE}/${entry.slug}/logo-${dark ? "dark" : "light"}-64pt@${scale}x.png`;
+  return {
+    src: file(1),
+    srcSet: `${file(2)} 2x, ${file(3)} 3x`,
+    width: size,
+    height: size,
+    style: {
+      display: "block",
+      maxWidth: "none",
+      marginTop: -y0 * k,
+      marginBottom: -(EUFEMIA_LOGO_CANVAS - y1) * k,
+      marginLeft: -x0 * k,
+      marginRight: -(EUFEMIA_LOGO_CANVAS - x1) * k,
+    } satisfies CSSProperties,
+  };
 }
 
 /** Formaterer DD.MM.YYYY → "15. januar 2026" (norsk) */
@@ -188,6 +255,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   /* ── Datauttrekk ───────────────────────────────────────────────── */
   const selected         = payments.find((p) => p.type === selectedType);
   const fd               = (re: RegExp) => fieldDisplay(selected, re, showFieldNames);
+  // Som fd, men tallet formateres med tusenskille (feltnavn-visning urørt).
+  const fdNo             = (re: RegExp, minDecimals?: number) => showFieldNames ? fd(re) : formatNo(fd(re), minDecimals);
   const nameReserved     = fieldValue(selected, /^mottaker navn reservert$/i);
   const useReservedName  = showReserved && Boolean(nameReserved);
   const nameRe           = useReservedName ? /^mottaker navn reservert$/i : /^mottaker navn$/i;
@@ -225,6 +294,8 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const nokAmount        = fieldValue(selected, /^(beløp|beløp nok|nok beløp)$/i);
   const currencyAmount   = fieldValue(selected, /^(beløp valuta|valuta beløp|valutabeløp)$/i);
   const exchangeRate     = fieldValue(selected, /^(vekslingskurs)$/i);
+  // Valutakoder (ISO 4217) starter med landkoden; euro har EU-flagget.
+  const currencyFlagIso  = /^eur$/i.test(currencyCode.trim()) ? "EU" : currencyCode.trim().slice(0, 2).toUpperCase();
   const sasPoints        = fieldValue(selected, /^(sas eurobonuspoeng|eurobonus poeng|sas bonus)$/i);
   const betalingsprodukt = fieldValue(selected, /^betalingsprodukt$/i);
   const prisGebyr        = fieldValue(selected, /^(pris|gebyr|pris\/gebyr)$/i);
@@ -286,19 +357,21 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
   const fraMiljo         = fieldValue(selected, /^fra milj[øo]$/i);
   const cardNetwork      = fieldValue(selected, /^(kortnettverk|fra kortnettverk)$/i);
   const cardNetworkLogo  = fieldValue(selected, /^(kortnettverk logo|fra kortnettverk logo)$/i);
+  const cardNetworkLogoEufemia = eufemiaLogo(cardNetworkLogo, darkMode);
   const hasCard       = Boolean(cardName || cardPan || cardNetwork);
   const cardSubline   = [cardPan, fraMiljo && `(${fraMiljo})`].filter(Boolean).join(" ");
   const isMastercard  = /mastercard/i.test(cardNetwork) || /mastercard/i.test(fromAccountType);
   /* Styrer om List.Container under beløpet skal rendres i det hele tatt —
-     en tom Container ville gitt en ramme uten innhold. Må stå etter
-     isMastercard, som SAS-raden avhenger av. */
-  const hasAmountRows = Boolean(
-    isMastercard
-  );
+     en tom Container ville gitt en ramme uten innhold. */
+  /* Med opptjente poeng vises EuroBonus som tag under beløpet; lista
+     brukes bare til mersalget når poengene mangler. */
+  const showSasUpsell = isMastercard && !(showSasBonus && sasPoints);
+  const hasAmountRows = showSasUpsell;
 
   const digitalWallet     = fieldValue(selected, /^digital wallet$/i);
   const digitalWalletLogo = fieldValue(selected, /^digital wallet logo$/i);
   const hasDigitalWallet = Boolean(digitalWallet);
+  const walletLogoEufemia = eufemiaLogo(digitalWalletLogo, darkMode);
 
   const pengebrukSub  = fieldValue(selected, /^pengebruk sub$/i);
   const pengebrukMain = fieldValue(selected, /^pengebruk main$/i);
@@ -428,9 +501,12 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
         .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__chevron.dnb-list__item__chevron { place-self: center; display: flex; }
         .dnb-list__item__accordion--open { --item-background-color: var(--token-color-background-neutral-subtle); }
         .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__icon.dnb-list__item__icon { place-self: center; }
+        /* List.Cell.Start (avatar/ikon i Betalt til) toppjusteres av Eufemia som __icon, men sto ikke i reglene. */
+        .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__start.dnb-list__item__start { align-self: center; }
         .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__title.dnb-list__item__title { align-self: center; }
         .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__end.dnb-list__item__end { align-self: center; }
         .dnb-list__item.dnb-list__item .dnb-list__item__icon.dnb-list__item__icon { place-self: center; }
+        .dnb-list__item.dnb-list__item .dnb-list__item__start.dnb-list__item__start { align-self: center; }
         .dnb-list__item.dnb-list__item .dnb-list__item__title.dnb-list__item__title { align-self: center; }
         .dnb-list__item.dnb-list__item .dnb-list__item__end.dnb-list__item__end { align-self: center; }
         /* Eufemia skjuler chevronen med
@@ -446,9 +522,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
            for hover-rammen på Action-rader, men Basic-radene har ingen ramme — bare
            hvit bakgrunn som dekker sidekantene. Ikke-klikkbare rader blir liggende. */
         .dnb-list__item__accordion .dnb-list__item__accordion__content .dnb-list__item.dnb-list__item:not(.dnb-list__item__action):is(:hover, :has(>:focus-visible)) { z-index: 1; }
-        /* Reservert-tag (Figma 22624:84981): subtil grå bunn, 1px kant og 8px
+        /* Info-tag (Figma 22660:111327): subtil grå bunn, 1px kant og 8px
            radius. Eufemias standard-Tag er hvit uten kant. */
-        .td-reserved-tag.dnb-tag.dnb-button {
+        .td-info-tag.dnb-tag.dnb-button {
           background-color: var(--token-color-background-neutral-subtle);
           box-shadow: inset 0 0 0 1px var(--token-color-stroke-neutral-bold);
           border-radius: var(--token-radius-md, 0.5rem);
@@ -456,9 +532,14 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
           height: auto;
           padding: 0.25rem 0.5rem;
         }
-        .td-reserved-tag.dnb-tag.dnb-button .dnb-button__text { font-weight: var(--font-weight-medium); line-height: 1.25rem; }
+        .td-info-tag.dnb-tag.dnb-button .dnb-button__text { font-weight: var(--font-weight-medium); line-height: 1.25rem; }
         /* Knappens alignment-helper er 24px høy og ville gitt 32px tag. */
-        .td-reserved-tag.dnb-tag.dnb-button .dnb-button__alignment { height: 1.25rem; }
+        .td-info-tag.dnb-tag.dnb-button .dnb-button__alignment { height: 1.25rem; }
+        /* FormStatus måler sin egen bredde ved mount og låser den som inline
+           max-width (setMaxWidthToElement, laget for feltstatus). Da følger
+           ikke boksen med når Full width slås på. Eufemia hopper over låsingen
+           når elementet allerede har max-width fra CSS. */
+        .td-reserved-status.dnb-form-status { max-width: 100%; }
       `}</style>
 
       {/* ── Page header (netbank-shell) ─────────────────────────────
@@ -556,77 +637,81 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                   .dnb-list__item__icon-regelen øverst, så ingen inline color. */}
               {(nokAmount || hasLoanBreakdown) && (
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  {/* Reservert-status som tag over beløpet (Figma 22624:84981,
-                      flyttet over etter ønske). hasLabel: frittstående tag uten
-                      Tag.Group — beløpet under er konteksten. Utseendet kommer
-                      fra .td-reserved-tag. */}
+                  {nokAmount && (
+                    <H2 size="large" style={{ margin: 0, ...(showReserved && { color: "var(--token-color-text-neutral-alternative)" }) }}>Kr {fdNo(/^(beløp|beløp nok|nok beløp)$/i)}</H2>
+                  )}
+
+                  {/* Reservert-status som infoboks under beløpet (Figma
+                      22624:84981, erstatter tidligere tag). stretch: boksen
+                      står alene og skal fylle bredden som i Figma. */}
                   {showReserved && (
+                    <FormStatus
+                      className="td-reserved-status"
+                      state="information"
+                      stretch
+                      text="Beløpet er reservert og trukket fra disponibel saldo, men ikke bokført."
+                    />
+                  )}
+
+                  {/* Valutakjøp (Figma 22660:111327): to tagger under beløpet
+                      — valutabeløp med flagget til valutaen, og vekslingskurs
+                      med swap-ikon. Utseendet kommer fra .td-info-tag. */}
+                  {(currencyAmount || exchangeRate) && (
+                    <Tag.Group label="Valuta">
+                      {currencyAmount && (
+                        <Tag
+                          className="td-info-tag"
+                          icon={currencyFlagIso ? <CountryFlag iso={currencyFlagIso} size="small" /> : undefined}
+                          text={`${currencyCode ? `${fd(/^valutasort$/i)} ` : ""}${fdNo(/^(beløp valuta|valuta beløp|valutabeløp)$/i)}`}
+                        />
+                      )}
+                      {exchangeRate && (
+                        <Tag
+                          className="td-info-tag"
+                          icon={swap}
+                          text={`${currencyCode ? `${fd(/^valutasort$/i)} 1 = NOK ` : ""}${fdNo(/^vekslingskurs$/i, 0)}`}
+                        />
+                      )}
+                    </Tag.Group>
+                  )}
+
+                  {/* SAS EuroBonus (Figma 22659:111326): samme tag som
+                      valutaen. SAS.svg er sas_avatar-ressursen fra Figma. */}
+                  {isMastercard && showSasBonus && sasPoints && (
                     <div>
-                      <Tag className="td-reserved-tag" hasLabel text="Reservert transaksjon" />
+                      <Tag
+                        className="td-info-tag"
+                        hasLabel
+                        icon={<img src="/merchants/SAS.svg" width={16} height={16} alt="" />}
+                        text={`EuroBonus ${fd(/^(sas eurobonuspoeng|eurobonus poeng|sas bonus)$/i)} p`}
+                      />
                     </div>
                   )}
 
-                  {nokAmount && (
-                    <H2 size="large" style={{ margin: 0, ...(showReserved && { color: "var(--token-color-text-neutral-alternative)" }) }}>Kr {fd(/^(beløp|beløp nok|nok beløp)$/i)}</H2>
-                  )}
-
-                  {/* Valutakjøp (Figma 22660:111327): en dempet linje rett
-                      under beløpet i stedet for egen rad i lista. Figma bruker
-                      Subhead 15/20 — nærmeste Eufemia-størrelse er x-small
-                      (14/20), som gir samme linjehøyde. Verdiene er bold.
-                      Fargen er text-neutral, ikke neutral-alternative. */}
-                  {(currencyAmount || exchangeRate) && (
-                    <P size="x-small" style={{ margin: 0, display: "flex", flexWrap: "wrap", columnGap: "16px", color: "var(--token-color-text-neutral)" }}>
-                      {currencyAmount && (
-                        <Span weight="bold">
-                          {currencyCode ? `${fd(/^valutasort$/i)} ` : ""}{fd(/^(beløp valuta|valuta beløp|valutabeløp)$/i)}
-                        </Span>
-                      )}
-                      {exchangeRate && (
-                        <span>
-                          Vekslingskurs:{" "}
-                          <Span weight="bold">
-                            {currencyCode ? `${fd(/^valutasort$/i)} 1 = ` : ""}{fd(/^vekslingskurs$/i)}
-                          </Span>
-                        </span>
-                      )}
-                    </P>
-                  )}
-
-                  {/* Avdrag + renter (boliglån, Figma 22669:111328): samme
-                      linje som valutakjøpet over, med labelen regular og
-                      beløpet bold. Degraderer til én verdi når bare ett av
-                      feltene finnes. */}
+                  {/* Avdrag + renter (boliglån, Figma 22669:111328): to tagger
+                      uten ikon, samme .td-info-tag som valutaen. Degraderer
+                      til én tag når bare ett av feltene finnes. */}
                   {hasLoanBreakdown && (
-                    <P size="x-small" style={{ margin: 0, display: "flex", flexWrap: "wrap", columnGap: "16px", color: "var(--token-color-text-neutral)" }}>
-                      {avdrag && (
-                        <span>
-                          Avdrag:{" "}
-                          <Span weight="bold">Kr {fd(/^lån avdrag$/i)}</Span>
-                        </span>
-                      )}
-                      {renter && (
-                        <span>
-                          Renter:{" "}
-                          <Span weight="bold">Kr {fd(/^lån renter$/i)}</Span>
-                        </span>
-                      )}
-                    </P>
+                    <Tag.Group label="Lån">
+                      {avdrag && <Tag className="td-info-tag" text={`Avdrag kr ${fdNo(/^lån avdrag$/i)}`} />}
+                      {renter && <Tag className="td-info-tag" text={`Renter kr ${fdNo(/^lån renter$/i)}`} />}
+                    </Tag.Group>
                   )}
 
                   {hasAmountRows && (
                     <List.Container>
-                      {/* SAS Eurobonus. Avatar med src i stedet for en rå <img>:
-                          Figma peker på Eufemias Avatar, og hasLabel demper
-                          «Avatar group required»-advarselen siden raden selv
-                          gir konteksten. */}
-                      {isMastercard && (
+                      {/* Mersalg når kortet ikke har opptjent EuroBonus.
+                          Poengsummen vises som tag over. Avatar med src i
+                          stedet for en rå <img>: Figma peker på Eufemias
+                          Avatar, og hasLabel demper «Avatar group
+                          required»-advarselen siden raden selv gir
+                          konteksten. */}
+                      {showSasUpsell && (
                         <List.Item.Basic>
                           <List.Cell.Start>
                             {/* backgroundColor må settes: Avatar er primary som
                                 default, og SAS-merket er #0002BE — blått på
-                                DNB-grønt forsvinner. Figma viser logoen på
-                                nøytral flate. */}
+                                DNB-grønt forsvinner. */}
                             <Avatar
                               size="small"
                               src="/merchants/SAS-wordmark.svg"
@@ -635,19 +720,12 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                               backgroundColor="var(--token-color-background-neutral)"
                             />
                           </List.Cell.Start>
-                          <List.Cell.Title>
-                            {showSasBonus && sasPoints
-                              ? td("SAS Eurobonus")
-                              : "Få Eurobonuspoeng når du bruker ditt Mastercard"}
-                          </List.Cell.Title>
-                          {/* fontWeight="regular" på lenkevarianten: Cell.End er
-                              medium som default, som er riktig for et beløp, men
-                              gjør lenken tyngre enn «Vis i kart» og de andre
-                              lenkene i lista. Poengsummen beholder medium. */}
-                          <List.Cell.End fontWeight={showSasBonus && sasPoints ? "medium" : "regular"}>
-                            {showSasBonus && sasPoints
-                              ? `${fd(/^(sas eurobonuspoeng|eurobonus poeng|sas bonus)$/i)} poeng`
-                              : <Anchor href="https://www.dnb.no/kort/kredittkort/mastercard/upgrade" target="_blank" rel="noopener noreferrer">Les mer</Anchor>}
+                          <List.Cell.Title>Få Eurobonuspoeng når du bruker ditt Mastercard</List.Cell.Title>
+                          {/* fontWeight="regular": Cell.End er medium som
+                              default, som gjør lenken tyngre enn de andre
+                              lenkene i lista. */}
+                          <List.Cell.End fontWeight="regular">
+                            <Anchor href="https://www.dnb.no/kort/kredittkort/mastercard/upgrade" target="_blank" rel="noopener noreferrer">Les mer</Anchor>
                           </List.Cell.End>
                         </List.Item.Basic>
                       )}
@@ -888,7 +966,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                           <List.Cell.End fontWeight="regular">
                             {showFieldNames
                               ? fd(/^(kortnettverk logo|fra kortnettverk logo)$/i)
-                              : <img src={logoSrc(cardNetworkLogo, "kortnettverk")} alt={cardNetwork} style={{ height: "24px", width: "auto", display: "block" }} />
+                              : cardNetworkLogoEufemia
+                                ? <img {...cardNetworkLogoEufemia} alt={cardNetwork} />
+                                : <img src={logoSrc(cardNetworkLogo, "kortnettverk")} alt={cardNetwork} style={LOCAL_LOGO_STYLE} />
                             }
                           </List.Cell.End>
                         )}
@@ -907,7 +987,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                           {showFieldNames
                             ? fd(/^digital wallet logo$/i)
                             : digitalWalletLogo
-                              ? <Tooltip targetElement={<img src={logoSrc(digitalWalletLogo, "wallet")} alt={digitalWallet} style={{ height: "24px", width: "auto", display: "block" }} />}>{`Betalt med ${digitalWallet}`}</Tooltip>
+                              ? <Tooltip targetElement={walletLogoEufemia
+                                  ? <img {...walletLogoEufemia} alt={digitalWallet} />
+                                  : <img src={logoSrc(digitalWalletLogo, "wallet")} alt={digitalWallet} style={LOCAL_LOGO_STYLE} />}>{`Betalt med ${digitalWallet}`}</Tooltip>
                               : null}
                         </List.Cell.End>
                       </List.Item.Basic>
@@ -1046,7 +1128,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             <List.Item.Basic
                               title={td(
                                 "Mottaker beskrivelse",
-                                "Original beskrivelse",
+                                "Forhandler",
                                 "Viser original beskrivelse fra forhandleren.",
                               )}
                             >
@@ -1109,13 +1191,13 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                             >
                               <List.Cell.End fontWeight="regular">
                                 {prisGebyr
-                                  ? `Kr ${fd(/^(pris|gebyr|pris\/gebyr)$/i)}`
+                                  ? `Kr ${fdNo(/^(pris|gebyr|pris\/gebyr)$/i)}`
                                   : fd(/^betalingsprodukt$/i)}
                               </List.Cell.End>
                             </List.Item.Basic>
                           )}
                           {(paymentId || showFieldNames) && (
-                            <List.Item.Basic title={td("BetalingsID")}>
+                            <List.Item.Basic title={td("BetalingsID", "Betalingsreferanse")}>
                               <List.Cell.End fontWeight="regular">
                                 {fd(/^betalingsid$/i)}
                               </List.Cell.End>
