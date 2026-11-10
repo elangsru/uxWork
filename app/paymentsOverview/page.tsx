@@ -1096,7 +1096,7 @@ export default function PaymentsOverview() {
                   {showFeedback && (
                     <>
                       {" "}Gi oss gjerne <Anchor href={`#${FEEDBACK_ID}`}>tilbakemeldinger</Anchor> på hvordan du
-                      opplever den nye oversikten.
+                      opplever den nye oversikten. Forbedringer og nye funksjoner legges til fortløpende.
                     </>
                   )}
                 </P>
