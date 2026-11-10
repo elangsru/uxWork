@@ -25,6 +25,7 @@ export default function TransactionRow({
   warning,
   isConfirmed,
   onConfirm,
+  onConfirmReceipt,
   onClick,
 }: {
   tx: Transaction;
@@ -33,6 +34,10 @@ export default function TransactionRow({
   warning?: string;
   isConfirmed?: boolean;
   onConfirm?: () => void;
+  /** Kalles etter «Godkjenn» så siden kan vise kvittering. Dialogen bor i
+   *  siden, ikke i raden: raden faller ut av listen når den blir bekreftet
+   *  (alltid i eFaktura-fanen, og med statusfilter i «Til forfall»). */
+  onConfirmReceipt?: () => void;
   /** Klikk på selve raden, og på «Rediger» i footeren. */
   onClick?: () => void;
 }) {
@@ -154,6 +159,7 @@ export default function TransactionRow({
                   approveTimer.current = null;
                   setApproving(false);
                   onConfirm?.();
+                  onConfirmReceipt?.();
                 }, APPROVE_DELAY_MS);
               }}
             >

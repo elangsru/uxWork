@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Autocomplete, Avatar, Breadcrumb, Button, DatePicker, Dialog, Filter, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
+import { Anchor, Autocomplete, Avatar, Breadcrumb, Button, DatePicker, Dialog, Filter, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
 import { H1, P } from "@dnb/eufemia/elements";
 import { Field } from "@dnb/eufemia/extensions/forms";
 import { globe, pay_from, refresh, transfer } from "@dnb/eufemia/icons";
@@ -12,6 +12,7 @@ import EditDomesticPaymentForm from "./EditDomesticPaymentForm";
 import EditPaymentForm from "./EditPaymentForm";
 import EditTransferForm from "./EditTransferForm";
 import FilterBox from "./FilterBox";
+import FeedbackModule from "./FeedbackModule";
 import GroupCard from "./GroupCard";
 import GroupingRow from "./GroupingRow";
 import ToolsPanel from "./ToolsPanel";
@@ -252,6 +253,9 @@ function TypeFilterSync({ inPanel, types }: { inPanel: boolean; types: string[] 
   return null;
 }
 
+/** Ankeret innledningsteksten lenker til. */
+const FEEDBACK_ID = "tilbakemelding";
+
 export default function PaymentsOverview() {
   const today = new Date();
   const inOneYear = new Date(today);
@@ -266,6 +270,7 @@ export default function PaymentsOverview() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [showWarnings, setShowWarnings] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(true);
   const [showUnconfirmed, setShowUnconfirmed] = useState(false);
   const [confirmedIds, setConfirmedIds] = useState<Set<string>>(new Set());
   // Tomt intervall som standard: siden lander på alle betalinger, og feltene
@@ -327,6 +332,11 @@ export default function PaymentsOverview() {
     !isSettled(t) ? "ubekreftet" : showWarnings && DEMO_WARNINGS[t.id] ? "stoppet" : "aktiv";
 
   const confirm = (id: string) => setConfirmedIds((prev) => new Set([...prev, id]));
+  // eFakturaen som nettopp ble godkjent, så lenge kvitteringen
+  // vises. Raden er allerede bekreftet; dialogen bor her og ikke i raden fordi
+  // raden kan falle ut av listen (f.eks. statusfilteret «eFaktura til
+  // godkjenning») og ville tatt dialogen med seg.
+  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
 
   // Foreløpig kan bare José Martinez (utland), Tibber (eFaktura), Happybytes
   // (AvtaleGiro), Kim Olsen
@@ -606,6 +616,8 @@ export default function PaymentsOverview() {
         }
         confirmedIds={confirmedIds}
         onConfirm={confirm}
+        // Kvittering etter «Godkjenn» — også i eFaktura-fanen.
+        onConfirmReceipt={setReceiptTx}
         onRowClick={openPayment}
       />
     );
@@ -628,6 +640,7 @@ export default function PaymentsOverview() {
         warningFor={rowWarning}
         confirmedIds={confirmedIds}
         onConfirm={confirm}
+        onConfirmReceipt={setReceiptTx}
         onRowClick={openPayment}
       />
     );
@@ -652,6 +665,7 @@ export default function PaymentsOverview() {
           overlineFor={(tx) => tx.date}
           confirmedIds={confirmedIds}
           onConfirm={confirm}
+          onConfirmReceipt={setReceiptTx}
           onRowClick={openPayment}
         />
       );
@@ -673,6 +687,7 @@ export default function PaymentsOverview() {
         overlineFor={(tx) => `${tx.date} · ${accountOverline(tx)}`}
         confirmedIds={confirmedIds}
         onConfirm={confirm}
+        onConfirmReceipt={setReceiptTx}
         onRowClick={openPayment}
       />
     );
@@ -1073,7 +1088,13 @@ export default function PaymentsOverview() {
             <div className="po-hero">
               <div className="po-hero__head">
                 <H1 size="x-large">Betalingsoversikt</H1>
-                <P>Betalinger du har til forfall frem i tid. Oppdatert kl 11:35</P>
+                {/* «tilbakemeldinger» lenker ned til modulen når den vises; er den
+                    slått av i Tools-menyen, står ordet som vanlig tekst. */}
+                <P>
+                  Betalinger du har til forfall frem i tid. Gi oss gjerne{" "}
+                  {showFeedback ? <Anchor href={`#${FEEDBACK_ID}`}>tilbakemeldinger</Anchor> : "tilbakemeldinger"} på
+                  hvordan du opplever den nye oversikten.
+                </P>
               </div>
               <div className="po-actions">
                 <Button variant="primary" text="Overfør" icon={transfer} iconPosition="left" />
@@ -1110,6 +1131,8 @@ export default function PaymentsOverview() {
             ) : (
               forfallPanel
             )}
+
+            {showFeedback && <FeedbackModule id={FEEDBACK_ID} question="Hva synes du om betalingsoversikten?" />}
           </div>
         </div>
 
@@ -1128,6 +1151,7 @@ export default function PaymentsOverview() {
               onChange: toggleShowOnBehalfOf,
             },
             { label: "Show warnings", checked: showWarnings, onChange: setShowWarnings },
+            { label: "Show feedback module", checked: showFeedback, onChange: setShowFeedback },
             { label: "Show type toggle buttons", checked: showTypeFilter, onChange: setShowTypeFilter },
             {
               label: "Show money left over",
@@ -1141,6 +1165,19 @@ export default function PaymentsOverview() {
             },
             { label: "Dark mode", checked: darkMode, onChange: setDarkMode },
           ]}
+        />
+
+        {/* Kvittering etter «Godkjenn», se receiptTx. */}
+        <Dialog
+          variant="confirmation"
+          title="Godkjent"
+          description={receiptTx ? `eFakturaen fra ${receiptTx.recipient} er godkjent med forfallsdato ${receiptTx.date}.` : undefined}
+          confirmText="Lukk"
+          hideDecline
+          open={receiptTx !== null}
+          omitTriggerButton
+          onConfirm={() => setReceiptTx(null)}
+          onClose={() => setReceiptTx(null)}
         />
 
         {/* Bredden settes i CSS (.po-edit-dialog): feltene (488px) pluss

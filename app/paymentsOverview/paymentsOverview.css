@@ -619,3 +619,89 @@
     --dialog-max-width: 100%;
   }
 }
+
+/* Tilbakemeldingsmodulen nederst i kortet (FeedbackModule). Smalere enn
+   listene og sentrert.
+   Bakgrunnen er warmgreen-50 (#f2f4ec), som i nettbankens modul. Det var
+   info-subtle før Eufemia 11.17.0; ingen token peker dit lenger, så
+   palettfargen brukes direkte. Kanten (stroke-neutral-subtle) og den hvite
+   skjemadelen vises bare når et svar er valgt. */
+.po-feedback {
+  /* width: kortet er en flex-kolonne, og uten den krymper modulen til innholdet. */
+  width: 100%;
+  max-width: 36rem;
+  box-sizing: border-box;
+  margin: var(--spacing-x-large) auto 0;
+  border-radius: var(--token-radius-lg);
+  overflow: hidden;
+  position: relative;
+  /* Luft over modulen når innledningens lenke hopper hit. */
+  scroll-margin-top: var(--spacing-x-large);
+}
+
+/* Kanten ligger på ::after over innholdet: en inset box-shadow på selve
+   modulen ble dekket av bakgrunnen i de to delene. */
+.po-feedback--open::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--token-color-stroke-neutral-subtle);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.po-feedback__top {
+  padding: var(--spacing-large) var(--spacing-medium) var(--spacing-x-large);
+  background: var(--dnb-warmgreen-50);
+  text-align: center;
+}
+
+.po-feedback .dnb-p {
+  margin: 0;
+}
+
+.po-feedback__question {
+  margin-bottom: var(--spacing-x-large) !important;
+}
+
+.po-feedback__options {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-x-large);
+}
+
+.po-feedback__option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-small);
+}
+
+/* Når et svar er valgt blir begge valgene grønne, og det valgte får fet
+   tekst og tykkere, mørkere ring (pressed-fargen). Eufemia har ingen
+   valgt-tilstand på en ikonknapp, så ringen settes her. */
+.po-feedback__option--answered .dnb-p {
+  color: var(--token-color-text-action);
+}
+
+.po-feedback__option--selected .dnb-p {
+  font-weight: var(--font-weight-medium);
+}
+
+.po-feedback__option--selected .dnb-button.dnb-button--secondary {
+  box-shadow: inset 0 0 0 2px var(--token-color-stroke-action-pressed);
+}
+
+.po-feedback__form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-large);
+  padding: var(--spacing-medium) var(--spacing-small) var(--spacing-small);
+  background: var(--token-color-background-neutral);
+}
+
+/* Feltet fyller bredden; knappen under står venstrestilt. */
+.po-feedback__form > .dnb-textarea {
+  align-self: stretch;
+}
