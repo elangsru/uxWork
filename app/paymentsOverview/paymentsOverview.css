@@ -440,6 +440,13 @@
   );
 }
 
+/* I fanen «Ubekreftede eFakturaer» er alle radene ubekreftede, så skravuren
+   skiller ingenting fra noe — den trengs bare der de blandes med andre
+   betalinger («Til forfall»). */
+.po-efaktura .dnb-list__item.po-row--unconfirmed {
+  background-image: none;
+}
+
 /* Valutarad: NOK-ekvivalent over originalbeløpet. */
 .po-row__amount {
   display: flex;
