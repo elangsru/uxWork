@@ -35,7 +35,7 @@ function fmtDate(iso: string): string {
 // Rammen rundt kortene på oppsummeringssteget. Brukes av flere seksjoner, så den
 // ligger her framfor å gjentas inline.
 const summaryCardStyle: CSSProperties = {
-  outline: "1px solid var(--token-color-stroke-neutral-alternative)",
+  outline: "1px solid var(--ip-card-stroke)",
   borderRadius: "var(--token-radius-lg)",
   overflow: "hidden",
 };
@@ -432,7 +432,7 @@ const recipientCardStyles = `
     padding-right: 0;
   }
   .ip-recipient-cards .dnb-list__item::after {
-    border-color: var(--token-color-background-neutral-alternative);
+    border-color: var(--ip-card-stroke);
   }
   .ip-recipient-cards .dnb-list__item .dnb-list__item__icon .dnb-icon {
     color: var(--token-color-icon-action);
@@ -1341,8 +1341,23 @@ export default function InternationalPayment() {
   return (
     <Theme colorScheme={darkMode ? "dark" : "light"}>
       <style>{`
+        /* Eufemia 11.17.0-tilpasninger, se paymentsOverview.css for samme grep.
+           --list-item-cell-height (ny, 32px) gir lista nye min-høyder og
+           marger; med linjehøyden blir radene som i 11.16.1.
+           --ip-card-stroke: kantfargen på kortene var #f2f2f5 (stroke- og
+           background-neutral-alternative i 11.16.1). I 11.17.0 ble de
+           #f8f8f8 og #ccc. Nærmeste nå er stroke-neutral-subtle (#ebebeb);
+           i mørk modus er stroke-neutral-alternative fortsatt #333 som før. */
+        .eufemia-theme { --ip-card-stroke: var(--token-color-stroke-neutral-subtle); }
+        .eufemia-theme__color-scheme--dark { --ip-card-stroke: var(--token-color-stroke-neutral-alternative); }
+        .eufemia-theme .dnb-list--variant-basic { --list-item-cell-height: var(--line-height-basis); }
+        /* Unntak: rader med 32px-avatar (medium). Der er 2rem nettopp Eufemias
+           mål for å midtstille navnet mot avataren; med linjehøyden sto navnet
+           4px over avatarens midte. */
+        .eufemia-theme .dnb-list--variant-basic :is(.dnb-list__item, .dnb-list__item__accordion__header, .dnb-list__item__action__button):has(> .dnb-list__item__start .dnb-avatar--size-medium) { --list-item-cell-height: 2rem; }
         .eufemia-theme__color-scheme--dark .dnb-step-indicator {
-          --step-indicator-trigger-background: var(--token-color-background-neutral-alternative);
+          /* neutral-base = greyscale-800 (#333), som neutral-alternative var før 11.17.0. */
+          --step-indicator-trigger-background: var(--token-color-background-neutral-base);
           --step-indicator-trigger-content-background: var(--token-color-background-neutral);
           --step-indicator-current-border: var(--token-color-text-neutral);
           color: var(--token-color-text-neutral);
