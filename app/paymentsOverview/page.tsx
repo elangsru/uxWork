@@ -1088,12 +1088,17 @@ export default function PaymentsOverview() {
             <div className="po-hero">
               <div className="po-hero__head">
                 <H1 size="x-large">Betalingsoversikt</H1>
-                {/* «tilbakemeldinger» lenker ned til modulen når den vises; er den
-                    slått av i Tools-menyen, står ordet som vanlig tekst. */}
+                {/* Oppfordringen til tilbakemelding følger modulen: «tilbakemeldinger»
+                    lenker ned til den, og setningen fjernes når modulen er slått
+                    av i Tools-menyen. */}
                 <P>
-                  Betalinger du har til forfall frem i tid. Gi oss gjerne{" "}
-                  {showFeedback ? <Anchor href={`#${FEEDBACK_ID}`}>tilbakemeldinger</Anchor> : "tilbakemeldinger"} på
-                  hvordan du opplever den nye oversikten.
+                  Betalinger du har til forfall frem i tid.
+                  {showFeedback && (
+                    <>
+                      {" "}Gi oss gjerne <Anchor href={`#${FEEDBACK_ID}`}>tilbakemeldinger</Anchor> på hvordan du
+                      opplever den nye oversikten.
+                    </>
+                  )}
                 </P>
               </div>
               <div className="po-actions">
