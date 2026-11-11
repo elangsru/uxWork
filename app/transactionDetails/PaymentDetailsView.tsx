@@ -213,9 +213,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
     payments.find((p) => /varekjøp.*bank/i.test(p.type))?.type ?? payments[0]?.type ?? ""
   );
   const [darkMode, setDarkMode]         = useState(false);
-  // Samme bryter og sessionStorage-nøkkel som internationalPayment, så valget
-  // følger med mellom sidene. Default er skjemabredden derfra (488px).
-  const [fullWidth, setFullWidth]       = useState(false);
+  // Alltid på ved lasting. Bryteren kan fortsatt slå den av midlertidig, men
+  // valget lagres ikke (og deler derfor ikke nøkkel med internationalPayment).
+  const [fullWidth, setFullWidth]       = useState(true);
   const [toolsOpen, setToolsOpen]       = useState(false);
   const [showReserved, setShowReserved] = useState(false);
   const [hideFromSpending, setHideFromSpending] = useState(false);
@@ -235,7 +235,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
 
   useEffect(() => {
     setDarkMode(sessionStorage.getItem("darkMode") === "true");
-    setFullWidth(sessionStorage.getItem("fullWidth") === "true");
     setToolsOpen(sessionStorage.getItem("toolsOpen") === "true");
     setHydrated(true);
   }, []);
@@ -244,9 +243,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
     if (hydrated) sessionStorage.setItem("darkMode", String(darkMode));
   }, [darkMode, hydrated]);
 
-  useEffect(() => {
-    if (hydrated) sessionStorage.setItem("fullWidth", String(fullWidth));
-  }, [fullWidth, hydrated]);
 
   useEffect(() => {
     if (hydrated) sessionStorage.setItem("toolsOpen", String(toolsOpen));
