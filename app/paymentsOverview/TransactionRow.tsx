@@ -9,11 +9,7 @@ import { funds_medium, investment_account_medium, loan_medium, office_buildings,
 
 import type { ButtonClickEvent } from "@dnb/eufemia/components/button/types";
 
-import { fmtAmount, fmtNok, type Transaction } from "./data";
-
-/** Hvor lenge «Godkjenn» viser spinner før fakturaen regnes som bekreftet.
- *  Rent demo-tidsforbruk. */
-const APPROVE_DELAY_MS = 5000;
+import { APPROVE_DELAY_MS, fmtAmount, fmtNok, type Transaction } from "./data";
 
 /** Hvor lenge «Reaktiver» viser spinner før kvitteringen vises. */
 const RESUME_DELAY_MS = 1500;

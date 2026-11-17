@@ -9,6 +9,11 @@
  *  output, men to sannheter.) */
 export const LOCALE = "nb-NO";
 
+/** Hvor lenge «Godkjenn» på en eFaktura og «Lagre» i betalingsmodalen viser
+ *  spinner før handlingen regnes som utført. Rent demo-tidsforbruk; delt så
+ *  de to venter like lenge. */
+export const APPROVE_DELAY_MS = 5000;
+
 export const accountDetails = {
   felleskonto: { name: "Felleskonto", number: "1503.24.78612", balance: 42500 },
   lonnskonto: { name: "Lønnskonto", number: "6082.19.47531", balance: 789 },
