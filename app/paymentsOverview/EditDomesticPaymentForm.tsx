@@ -92,7 +92,7 @@ export default function EditDomesticPaymentForm({
                 target="_blank"
                 rel="noopener noreferrer"
                 icon={tx.type === "efaktura" ? attachment_medium : ainvoice_medium}
-                title={tx.type === "efaktura" ? "eFakturavedlegg" : "Avtalegiro-avtale"}
+                title={tx.type === "efaktura" ? "eFakturavedlegg" : "AvtaleGiro-avtale"}
               />
             )}
           </List.Container>
