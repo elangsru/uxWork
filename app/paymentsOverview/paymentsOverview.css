@@ -586,6 +586,13 @@
   padding-right: 0;
 }
 
+/* Eufemia toppstiller start-cellen (align-self: start), så avataren havnet
+   over midten av navn + kontonummer. Midtstilt mot tittelen i stedet; et
+   eventuelt varsel i footeren ligger i egen rad og påvirkes ikke. */
+.po-edit-recipient .dnb-list__item__start {
+  align-self: center;
+}
+
 /* eFakturavedlegget åpnes i ny fane, og lenken får Eufemias launch-ikon av
    seg selv. Chevronen som List.Item.Action alltid tegner ville stått ved
    siden av, så den skjules. */
