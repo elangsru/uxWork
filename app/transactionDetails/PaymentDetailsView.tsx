@@ -1229,6 +1229,18 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
 
             </div>
           )}
+
+          {/* ── Tilbake ──────────────────────────────────────────
+              Skal ta brukeren til forrige side, men navigerer ikke ennå.
+              Utenfor innholdsblokken, så den vises også i tom-tilstanden.
+              alignSelf hindrer at kortets flex-kolonne strekker knappen. */}
+          <Button
+            variant="tertiary"
+            text="Tilbake"
+            icon="chevron_left"
+            iconPosition="left"
+            style={{ alignSelf: "flex-start" }}
+          />
         </div>
       </div>
 
