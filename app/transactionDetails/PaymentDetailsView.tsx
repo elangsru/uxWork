@@ -1235,7 +1235,7 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
               Utenfor innholdsblokken, så den vises også i tom-tilstanden.
               alignSelf hindrer at kortets flex-kolonne strekker knappen. */}
           <Button
-            variant="tertiary"
+            variant="primary"
             text="Tilbake"
             icon="chevron_left"
             iconPosition="left"
