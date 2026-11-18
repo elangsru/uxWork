@@ -9,10 +9,15 @@ import { funds_medium, investment_account_medium, loan_medium, office_buildings,
 
 import type { ButtonClickEvent } from "@dnb/eufemia/components/button/types";
 
-import { APPROVE_DELAY_MS, fmtAmount, fmtNok, type Transaction } from "./data";
+import { APPROVE_DELAY_MS, accountDetails, fmtAmount, fmtNok, type Transaction } from "./data";
 
 /** Hvor lenge «Reaktiver» viser spinner før kvitteringen vises. */
 const RESUME_DELAY_MS = 1500;
+
+/** Hvor lenge kvitteringen etter «Godkjenn» står før den fader bort. */
+const RECEIPT_VISIBLE_MS = 5000;
+/** Samme varighet som transition på .receipt-footer--leaving i CSS-en. */
+const RECEIPT_LEAVE_MS = 400;
 
 export default function TransactionRow({
   tx,
@@ -32,24 +37,40 @@ export default function TransactionRow({
   onConfirm?: () => void;
   /** Kalles etter «Godkjenn» så siden kan vise kvittering. Dialogen bor i
    *  siden, ikke i raden: raden faller ut av listen når den blir bekreftet
-   *  (alltid i eFaktura-fanen, og med statusfilter i «Til forfall»). */
+   *  (alltid i eFaktura-fanen, og med statusfilter i «Til forfall»).
+   *  Utelatt: kvitteringen vises som FormStatus i raden i stedet. */
   onConfirmReceipt?: () => void;
   /** Klikk på selve raden, og på «Rediger» i footeren. */
   onClick?: () => void;
 }) {
   const [approving, setApproving] = useState(false);
+  // Uten onConfirmReceipt vises kvitteringen i raden: footeren blir stående
+  // etter godkjenning, med en FormStatus i stedet for knappene. Fasene:
+  // «shown» i RECEIPT_VISIBLE_MS, «leaving» mens den fader og raden krymper,
+  // så null — footeren fjernes.
+  const [receipt, setReceipt] = useState<"shown" | "leaving" | null>(null);
 
   // Raden kan forsvinne mens godkjenningen pågår — tabbytte, endret filter, eller
   // at den forrige godkjenningen fjernet den fra listen. Uten opprydding kjører
   // timeren videre og kaller setApproving/onConfirm på en avmontert rad.
   const approveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const warningWidthRef = useRef<HTMLDivElement>(null);
+  const receiptWidthRef = useRef<HTMLDivElement>(null);
   useEffect(
     () => () => {
       if (approveTimer.current !== null) clearTimeout(approveTimer.current);
     },
     [],
   );
+
+  useEffect(() => {
+    if (receipt === null) return;
+    const t = setTimeout(
+      () => setReceipt(receipt === "shown" ? "leaving" : null),
+      receipt === "shown" ? RECEIPT_VISIBLE_MS : RECEIPT_LEAVE_MS,
+    );
+    return () => clearTimeout(t);
+  }, [receipt]);
 
   // Knappene ligger inne i raden, så klikket bobler opp til radens onClick.
   // «Rediger» skal åpne det samme som raden; de andre knappene stopper boblingen.
@@ -139,7 +160,28 @@ export default function TransactionRow({
         )}
       </List.Cell.Title>
       <List.Cell.End>{endNode}</List.Cell.End>
-      {effectivelyUnconfirmed && (
+      {receipt && (
+        <List.Cell.Footer
+          className={`actions-footer receipt-footer${receipt === "leaving" ? " receipt-footer--leaving" : ""}`}
+        >
+          {/* Venstrestilt. widthElement av samme grunn som
+              på varselet: ellers låser FormStatus en max-width ut fra
+              teksten ved mount, og boksen brøt før footeren var full. */}
+          <Flex.Horizontal ref={receiptWidthRef} justify="flex-start" style={{ width: "100%" }}>
+            <FormStatus
+              state="success"
+              widthElement={receiptWidthRef}
+              text={
+                <>
+                  Betaling godkjent og lagt til forfall.{" "}
+                  {accountDetails[tx.accountKey].name} vil bli benyttet neste gang du betaler til {tx.recipient}.
+                </>
+              }
+            />
+          </Flex.Horizontal>
+        </List.Cell.Footer>
+      )}
+      {effectivelyUnconfirmed && !receipt && (
         <List.Cell.Footer className="actions-footer">
           {/* Høyrestilt, med hovedhandlingen lengst til høyre. Footeren fyller
               ikke bredden av seg selv, så width: 100% trengs for justify. */}
@@ -155,7 +197,8 @@ export default function TransactionRow({
                   approveTimer.current = null;
                   setApproving(false);
                   onConfirm?.();
-                  onConfirmReceipt?.();
+                  if (onConfirmReceipt) onConfirmReceipt();
+                  else setReceipt("shown");
                 }, APPROVE_DELAY_MS);
               }}
             >

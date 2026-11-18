@@ -616,8 +616,9 @@ export default function PaymentsOverview() {
         }
         confirmedIds={confirmedIds}
         onConfirm={confirm}
-        // Kvittering etter «Godkjenn» — også i eFaktura-fanen.
-        onConfirmReceipt={setReceiptTx}
+        // Ingen onConfirmReceipt: «Til forfall» tester kvittering som
+        // FormStatus i raden i stedet for dialog. eFaktura-fanen har fortsatt
+        // dialogen, der faller raden ut av listen ved godkjenning.
         onRowClick={openPayment}
       />
     );
@@ -640,7 +641,6 @@ export default function PaymentsOverview() {
         warningFor={rowWarning}
         confirmedIds={confirmedIds}
         onConfirm={confirm}
-        onConfirmReceipt={setReceiptTx}
         onRowClick={openPayment}
       />
     );

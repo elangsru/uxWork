@@ -159,9 +159,39 @@
   padding-top: 0;
 }
 
+/* Kvitteringen etter «Godkjenn» i «Til forfall»: fader bort og footeren
+   krymper, så raden glir opp. max-height må være minst like høy som
+   footeren — 88 px med to linjer tekst, mer på smale skjermer der den
+   brytes over flere. 12rem gir slark. 400 ms = RECEIPT_LEAVE_MS.
+   padding-bottom (16 px) beholdes: en rad uten footer får like mye luft i
+   bunnen fra Eufemia, så raden lander på sluttøyden uten et hopp når
+   footeren fjernes. */
+.dnb-list__item__footer.receipt-footer {
+  max-height: 12rem;
+  overflow: hidden;
+  transition:
+    opacity 200ms ease-out,
+    max-height 400ms ease-in-out,
+    margin-top 400ms ease-in-out;
+}
+
+.dnb-list__item__footer.receipt-footer--leaving {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dnb-list__item__footer.receipt-footer {
+    transition: none;
+  }
+}
+
 /* FormStatus begrenser teksten til --prose-max-width (576 px), så den brøt
-   midt i den gule boksen. I radens footer skal den følge boksens bredde. */
-.warning-footer .dnb-form-status__text {
+   midt i den gule boksen. I radens footer skal den følge boksens bredde.
+   Gjelder også kvitteringen etter «Godkjenn». */
+.warning-footer .dnb-form-status__text,
+.receipt-footer .dnb-form-status__text {
   max-width: none;
 }
 
