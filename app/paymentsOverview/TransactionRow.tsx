@@ -27,6 +27,8 @@ export default function TransactionRow({
   isConfirmed,
   onConfirm,
   onConfirmReceipt,
+  onReceiptDone,
+  collapseOnDone,
   onClick,
 }: {
   tx: Transaction;
@@ -40,6 +42,12 @@ export default function TransactionRow({
    *  (alltid i eFaktura-fanen, og med statusfilter i «Til forfall»).
    *  Utelatt: kvitteringen vises som FormStatus i raden i stedet. */
   onConfirmReceipt?: () => void;
+  /** Kalles når kvitteringen i raden er ferdig — eller raden avmonteres
+   *  mens den vises. eFaktura-fanen holder raden i listen til da. */
+  onReceiptDone?: () => void;
+  /** Hele raden krymper bort når kvitteringen fader, ikke bare footeren.
+   *  For eFaktura-fanen, der raden forsvinner fra listen etterpå. */
+  collapseOnDone?: boolean;
   /** Klikk på selve raden, og på «Rediger» i footeren. */
   onClick?: () => void;
 }) {
@@ -63,14 +71,37 @@ export default function TransactionRow({
     [],
   );
 
+  // Tabbytte eller filter kan avmontere raden midt i kvitteringen. Da må
+  // siden likevel få beskjed, ellers blir raden stående i eFaktura-listen.
+  const onReceiptDoneRef = useRef(onReceiptDone);
+  const receiptActive = useRef(false);
+  useEffect(() => {
+    onReceiptDoneRef.current = onReceiptDone;
+    receiptActive.current = receipt !== null;
+  });
+
   useEffect(() => {
     if (receipt === null) return;
     const t = setTimeout(
-      () => setReceipt(receipt === "shown" ? "leaving" : null),
+      () => {
+        if (receipt === "shown") {
+          setReceipt("leaving");
+        } else {
+          setReceipt(null);
+          onReceiptDoneRef.current?.();
+        }
+      },
       receipt === "shown" ? RECEIPT_VISIBLE_MS : RECEIPT_LEAVE_MS,
     );
     return () => clearTimeout(t);
   }, [receipt]);
+
+  useEffect(
+    () => () => {
+      if (receiptActive.current) onReceiptDoneRef.current?.();
+    },
+    [],
+  );
 
   // Knappene ligger inne i raden, så klikket bobler opp til radens onClick.
   // «Rediger» skal åpne det samme som raden; de andre knappene stopper boblingen.
@@ -86,6 +117,8 @@ export default function TransactionRow({
     "po-row",
     balanceAfter !== undefined && (negativeBalance ? "row-balance-negative" : "row-balance-positive"),
     effectivelyUnconfirmed && "po-row--unconfirmed",
+    collapseOnDone && receipt && "po-row--receipt",
+    collapseOnDone && receipt === "leaving" && "po-row--leaving",
   ]
     .filter(Boolean)
     .join(" ");

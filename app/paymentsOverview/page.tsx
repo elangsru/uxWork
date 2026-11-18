@@ -332,11 +332,20 @@ export default function PaymentsOverview() {
     !isSettled(t) ? "ubekreftet" : showWarnings && DEMO_WARNINGS[t.id] ? "stoppet" : "aktiv";
 
   const confirm = (id: string) => setConfirmedIds((prev) => new Set([...prev, id]));
-  // eFakturaen som nettopp ble godkjent, så lenge kvitteringen
-  // vises. Raden er allerede bekreftet; dialogen bor her og ikke i raden fordi
-  // raden kan falle ut av listen (f.eks. statusfilteret «eFaktura til
-  // godkjenning») og ville tatt dialogen med seg.
-  const [receiptTx, setReceiptTx] = useState<Transaction | null>(null);
+  // eFakturaer i eFaktura-fanen som er godkjent, men som fortsatt viser
+  // kvitteringen i raden. De holdes i listen til kvitteringen har fadet og
+  // raden har krympet bort — ellers forsvant raden i samme øyeblikk.
+  const [receiptIds, setReceiptIds] = useState<Set<string>>(new Set());
+  const receiptDone = (tx: Transaction) =>
+    setReceiptIds((prev) => {
+      const next = new Set(prev);
+      next.delete(tx.id);
+      return next;
+    });
+  const efakturaConfirm = (id: string) => {
+    setReceiptIds((prev) => new Set([...prev, id]));
+    confirm(id);
+  };
 
   // Foreløpig kan bare José Martinez (utland), Tibber (eFaktura), Happybytes
   // (AvtaleGiro), Kim Olsen
@@ -505,8 +514,11 @@ export default function PaymentsOverview() {
       content: [accountDetails[k].name, accountDetails[k].number],
     }));
 
-  const visibleEfakturas = unconfirmedEfakturas.filter(
+  const visibleEfakturas = allTransactions.filter(
     (t) =>
+      t.unconfirmed &&
+      t.type === "efaktura" &&
+      (!confirmedIds.has(t.id) || receiptIds.has(t.id)) &&
       (efakturaOwnerFilter === null || (t.invoiceOwner ?? NO_OWNER) === efakturaOwnerFilter) &&
       (efakturaAccountFilter === null || t.accountKey === efakturaAccountFilter),
   );
@@ -664,8 +676,9 @@ export default function PaymentsOverview() {
           rows={visibleEfakturas.filter((t) => t.accountKey === accountKey)}
           overlineFor={(tx) => tx.date}
           confirmedIds={confirmedIds}
-          onConfirm={confirm}
-          onConfirmReceipt={setReceiptTx}
+          onConfirm={efakturaConfirm}
+          onReceiptDone={receiptDone}
+          collapseOnDone
           onRowClick={openPayment}
         />
       );
@@ -686,8 +699,9 @@ export default function PaymentsOverview() {
         rows={visibleEfakturas.filter((t) => (t.invoiceOwner ?? NO_OWNER) === owner)}
         overlineFor={(tx) => `${tx.date} · ${accountOverline(tx)}`}
         confirmedIds={confirmedIds}
-        onConfirm={confirm}
-        onConfirmReceipt={setReceiptTx}
+        onConfirm={efakturaConfirm}
+        onReceiptDone={receiptDone}
+        collapseOnDone
         onRowClick={openPayment}
       />
     );
@@ -933,7 +947,9 @@ export default function PaymentsOverview() {
 
   const efakturaPanel = (
     <div className="po-efaktura po-tabpanel">
-      {unconfirmedEfakturaCount === 0 ? (
+      {/* Tomtilstanden venter til siste kvittering er ferdig, ellers ville
+          den overtatt idet den siste fakturaen ble godkjent. */}
+      {unconfirmedEfakturaCount === 0 && receiptIds.size === 0 ? (
         <div className="po-empty">
           <P>Du har ingen ubekreftede eFakturaer.</P>
         </div>
@@ -1170,19 +1186,6 @@ export default function PaymentsOverview() {
             },
             { label: "Dark mode", checked: darkMode, onChange: setDarkMode },
           ]}
-        />
-
-        {/* Kvittering etter «Godkjenn», se receiptTx. */}
-        <Dialog
-          variant="confirmation"
-          title="Godkjent"
-          description={receiptTx ? `eFakturaen fra ${receiptTx.recipient} er godkjent med forfallsdato ${receiptTx.date}.` : undefined}
-          confirmText="Lukk"
-          hideDecline
-          open={receiptTx !== null}
-          omitTriggerButton
-          onConfirm={() => setReceiptTx(null)}
-          onClose={() => setReceiptTx(null)}
         />
 
         {/* Bredden settes i CSS (.po-edit-dialog): feltene (488px) pluss

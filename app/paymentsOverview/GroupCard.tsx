@@ -41,6 +41,8 @@ export default function GroupCard({
   confirmedIds,
   onConfirm,
   onConfirmReceipt,
+  onReceiptDone,
+  collapseOnDone,
   onRowClick,
 }: {
   open: boolean;
@@ -61,6 +63,9 @@ export default function GroupCard({
   onConfirm: (id: string) => void;
   /** Siden viser kvittering etter «Godkjenn», se TransactionRow. */
   onConfirmReceipt?: (tx: Transaction) => void;
+  /** Se TransactionRow: kvitteringen i raden er ferdig. */
+  onReceiptDone?: (tx: Transaction) => void;
+  collapseOnDone?: boolean;
   onRowClick?: (tx: Transaction) => void;
 }) {
   return (
@@ -87,6 +92,8 @@ export default function GroupCard({
                   isConfirmed={confirmedIds.has(tx.id)}
                   onConfirm={() => onConfirm(tx.id)}
                   onConfirmReceipt={onConfirmReceipt && (() => onConfirmReceipt(tx))}
+                  onReceiptDone={onReceiptDone && (() => onReceiptDone(tx))}
+                  collapseOnDone={collapseOnDone}
                   onClick={onRowClick && (() => onRowClick(tx))}
                 />
               ))}

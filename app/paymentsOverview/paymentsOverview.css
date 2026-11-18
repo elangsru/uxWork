@@ -187,6 +187,37 @@
   }
 }
 
+/* eFaktura-fanen: raden forsvinner fra listen etter kvitteringen, så hele
+   raden fader og krymper, ikke bare footeren. max-height som over: større
+   enn raden kan bli (rundt 200 px med kvittering over to linjer). Den
+   nederste kantlinjen tas med, ellers ble det stående en 1 px strek.
+   Eufemia gir raden min-height 64 px og padding-top 16 px; begge må til
+   null, ellers stoppet krympingen på 64 px og raden forsvant med et hopp. */
+.dnb-list__item.po-row--receipt {
+  max-height: 20rem;
+  overflow: hidden;
+  transition:
+    opacity 200ms ease-out,
+    max-height 400ms ease-in-out,
+    min-height 400ms ease-in-out,
+    padding-top 400ms ease-in-out,
+    border-width 400ms ease-in-out;
+}
+
+.dnb-list__item.po-row--leaving {
+  opacity: 0;
+  max-height: 0;
+  min-height: 0;
+  padding-top: 0;
+  border-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dnb-list__item.po-row--receipt {
+    transition: none;
+  }
+}
+
 /* FormStatus begrenser teksten til --prose-max-width (576 px), så den brøt
    midt i den gule boksen. I radens footer skal den følge boksens bredde.
    Gjelder også kvitteringen etter «Godkjenn». */
