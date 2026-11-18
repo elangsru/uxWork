@@ -290,6 +290,11 @@ export default function PaymentsOverview() {
 
   const mounted = useSyncExternalStore(subscribeNever, getHydrated, getHydratedOnServer);
 
+  // «Oppdatert kl» under tittelen: når siden ble lastet. Siden rendres først
+  // etter mount (se mounted), så server og klient regner aldri ut hver sin.
+  const [updatedAt] = useState(() =>
+    new Date().toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" }),
+  );
   // Personene bak «Show on behalf of eInvoices» trekkes én gang og står stabilt resten av
   // komponentens liv, så de er de samme hver gang svitsjen slås på. Verdien lages
   // i state-initialisereren, ikke i en effect. Serveren trekker også et sett, men
@@ -1103,7 +1108,14 @@ export default function PaymentsOverview() {
           <div className="po-card">
             <div className="po-hero">
               <div className="po-hero__head">
-                <H1 size="x-large">Betalingsoversikt</H1>
+                {/* Tittel og «Oppdatert» i egen stack med 8 px gap, som
+                    sidehodet på startsiden og transactionDetails. */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <H1 size="x-large" style={{ margin: 0 }}>Betalingsoversikt</H1>
+                  <P size="x-small" style={{ margin: 0, color: "var(--token-color-text-neutral-alternative)" }}>
+                    Oppdatert kl {updatedAt}
+                  </P>
+                </div>
                 {/* Oppfordringen til tilbakemelding følger modulen: «tilbakemeldinger»
                     lenker ned til den, og setningen fjernes når modulen er slått
                     av i Tools-menyen. */}
