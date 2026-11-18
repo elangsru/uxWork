@@ -8,7 +8,7 @@ import {
 import Theme from "@dnb/eufemia/shared/Theme";
 import { formatNumber } from "@dnb/eufemia/components/number-format/NumberUtils";
 import { H1, H2, H3, P, Span, Hr } from "@dnb/eufemia/elements";
-import { filter, close, check, swap, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble_medium, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
+import { filter, close, check, swap, account_medium, savings_account_medium, account_card_medium, card_medium, wallet_medium, coins_1_medium, location_medium, web_medium, history_medium, information_circled_medium, office_buildings_medium, phone_medium, bubble, kid_number_medium, copy, ainvoice_medium, einvoice_medium, attachment_medium, file_pdf_medium, upload, download, paperclip_medium, loan_medium, restaurant_medium, shopping_cart_medium, hanger_medium, travel_medium, bus_medium, car_1_medium, bandage_medium, baby_medium, dog_medium, house_1_medium, heart_rate_medium, laptop_medium, recurring_medium, shield_medium, hand_money_medium, house_value_medium } from "@dnb/eufemia/icons";
 import * as EufemiaIcons from "@dnb/eufemia/icons";
 import type { PaymentRecord } from "@/lib/payments";
 
@@ -492,8 +492,9 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
         /* Ikon inne i en Avatar skal ha samme farge som bokstavversjonen. Regelen
            over er ment for ikoner som ligger direkte i raden, men slår også inn på
            bygningsikonet inne i avataren og gjør det grønt på mørkegrønn bunn.
-           inherit henter avatarens egen tekstfarge, så den følger variant. */
-        .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-avatar .dnb-icon { color: inherit; }
+           inherit henter avatarens egen tekstfarge, så den følger variant.
+           Samme for meldingstaggen i headeren: ikonet følger tagtekstens farge. */
+        .dnb-list__item__accordion__header.dnb-list__item__accordion__header :is(.dnb-avatar, .td-info-tag) .dnb-icon { color: inherit; }
         .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__chevron.dnb-list__item__chevron { place-self: center; display: flex; }
         .dnb-list__item__accordion--open { --item-background-color: var(--token-color-background-neutral-subtle); }
         .dnb-list__item__accordion__header.dnb-list__item__accordion__header .dnb-list__item__icon.dnb-list__item__icon { place-self: center; }
@@ -756,6 +757,20 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                               {fd(/^mottaker konto/i)}
                             </List.Cell.Title.Subline>
                           )}
+                          {/* Meldingen som tag i headeren, under kontonummeret:
+                              synlig uansett om kortet er åpent. Samme
+                              .td-info-tag som valutaen. Subline har ingen
+                              avstand av seg selv, så xx-small gir luft. */}
+                          {melding && (
+                            <List.Cell.Title.Subline top="xx-small">
+                              <Tag
+                                className="td-info-tag"
+                                hasLabel
+                                icon={bubble}
+                                text={showFieldNames ? fd(/^melding$/i) : melding}
+                              />
+                            </List.Cell.Title.Subline>
+                          )}
                         </List.Cell.Title>
                       </List.Item.Accordion.Header>
                       <List.Item.Accordion.Content>
@@ -765,13 +780,6 @@ export default function PaymentDetailsView({ payments }: { payments: PaymentReco
                               <List.Item.Basic icon={mottakerKontoIcon} title={td("Kontotype")}>
                                 <List.Cell.End fontWeight="regular">
                                   {showFieldNames ? fd(/^mottaker konto ?type$/i) : mottakerKontoType}
-                                </List.Cell.End>
-                              </List.Item.Basic>
-                            )}
-                            {melding && (
-                              <List.Item.Basic icon={bubble_medium} title={td("Melding")}>
-                                <List.Cell.End fontWeight="regular">
-                                  {showFieldNames ? fd(/^melding$/i) : `"${melding}"`}
                                 </List.Cell.End>
                               </List.Item.Basic>
                             )}
