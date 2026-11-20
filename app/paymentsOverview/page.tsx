@@ -60,7 +60,7 @@ const NO_OWNER = "Uten eier";
 // starter først etter 5 sekunder, så her vises den statiske plassholderen.
 const SKELETON_COUNT = 3;
 const LOAD_DELAY_MS = 2000;
-// Så mange ubekreftede eFakturaer vises med en gang «Show on behalf of eInvoices» slås
+// Så mange ubekreftede eFakturaer vises med en gang «Show on behalf of eInvoices tab» slås
 // på, før man trykker «Hent flere».
 const DEFAULT_EFAKTURA_COUNT = 5;
 
@@ -127,7 +127,7 @@ function AmountRangeFilter() {
   );
 }
 
-// «Mottatt eFaktura fra» i filterpanelet, bare når «Show on behalf of eInvoices»
+// «Mottatt eFaktura fra» i filterpanelet, bare når «Show on behalf of eInvoices tab»
 // er på. Lagres som ett filter med eierens navn som verdi, så det blir én tag.
 const RECEIVED_FROM_FILTER_KEY = "/mottatt-fra";
 const RECEIVED_FROM_FILTER_LABEL = "Mottatt eFaktura fra";
@@ -322,7 +322,7 @@ export default function PaymentsOverview() {
   const [updatedAt] = useState(() =>
     new Date().toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" }),
   );
-  // Personene bak «Show on behalf of eInvoices» trekkes én gang og står stabilt resten av
+  // Personene bak «Show on behalf of eInvoices tab» trekkes én gang og står stabilt resten av
   // komponentens liv, så de er de samme hver gang svitsjen slås på. Verdien lages
   // i state-initialisereren, ikke i en effect. Serveren trekker også et sett, men
   // det rendres aldri — første render viser «Laster …» — så Math.random() her kan
@@ -791,6 +791,13 @@ export default function PaymentsOverview() {
         header={`${acct.name} ${acct.number}`}
         rows={txs}
         overlineFor={(tx) => tx.date}
+        footer={
+          // Gjør ingenting ennå — skal etter hvert føre til alle betalinger
+          // på kontoen.
+          <Anchor href="#" onClick={(e: React.MouseEvent) => e.preventDefault()}>
+            Se flere betalinger
+          </Anchor>
+        }
         confirmedIds={confirmedIds}
         onConfirm={noop}
       />
@@ -1365,17 +1372,14 @@ export default function PaymentsOverview() {
                   </P>
                 </div>
                 {/* Oppfordringen til tilbakemelding følger modulen: «tilbakemeldinger»
-                    lenker ned til den, og setningen fjernes når modulen er slått
+                    lenker ned til den, og avsnittet fjernes når modulen er slått
                     av i Tools-menyen. */}
-                <P>
-                  Betalinger du har til forfall frem i tid.
-                  {showFeedback && (
-                    <>
-                      {" "}Gi oss gjerne <Anchor href={`#${FEEDBACK_ID}`}>tilbakemeldinger</Anchor> på hvordan du
-                      opplever den nye oversikten. Forbedringer og nye funksjoner legges til fortløpende.
-                    </>
-                  )}
-                </P>
+                {showFeedback && (
+                  <P>
+                    Gi oss gjerne <Anchor href={`#${FEEDBACK_ID}`}>tilbakemeldinger</Anchor> på hvordan du
+                    opplever den nye oversikten. Forbedringer og nye funksjoner legges til fortløpende.
+                  </P>
+                )}
               </div>
               <div className="po-actions">
                 <Button variant="primary" text="Overfør" icon={transfer} iconPosition="left" />
@@ -1385,8 +1389,8 @@ export default function PaymentsOverview() {
             </div>
 
             {/* Fanerad bare når minst én ekstra fane er slått på i Tools-menyen:
-                «Ubekreftede eFakturaer» følger «Show on behalf of eInvoices»,
-                «Utførte» følger «Show completed». Ellers bare «Til forfall»,
+                «Ubekreftede eFakturaer» følger «Show on behalf of eInvoices tab»,
+                «Utførte» følger «Show completed payments tab». Ellers bare «Til forfall»,
                 uten fanerad. key remounter Tabs når fanesettet endres, så en
                 fane som forsvinner ikke blir stående valgt.
                 Render-funksjonen får TabsSelectedKey (string | number) — ikke
@@ -1438,11 +1442,11 @@ export default function PaymentsOverview() {
               onChange: setShowUnconfirmed,
             },
             {
-              label: "Show on behalf of eInvoices",
+              label: "Show on behalf of eInvoices tab",
               checked: showOnBehalfOf,
               onChange: toggleShowOnBehalfOf,
             },
-            { label: "Show completed", checked: showCompleted, onChange: setShowCompleted },
+            { label: "Show completed payments tab", checked: showCompleted, onChange: setShowCompleted },
             { label: "Show warnings", checked: showWarnings, onChange: setShowWarnings },
             { label: "Show feedback module", checked: showFeedback, onChange: setShowFeedback },
             { label: "Show type toggle buttons", checked: showTypeFilter, onChange: setShowTypeFilter },

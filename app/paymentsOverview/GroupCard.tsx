@@ -36,6 +36,7 @@ export default function GroupCard({
   rows,
   overlineFor,
   sum,
+  footer,
   balanceFor,
   warningFor,
   confirmedIds,
@@ -57,6 +58,10 @@ export default function GroupCard({
    *  first- og last-of-type i containeren, og får dermed alle fire hjørner
    *  avrundet av seg selv (se paymentsOverview.css). */
   sum?: GroupSum;
+  /** Egen rad under betalingsradene, inne i accordionen: den deler
+   *  skillelinje med radene over og skjules når gruppen lukkes. Som egen rad
+   *  utenfor accordionen ble linjen dobbel (accordionens og radens egen). */
+  footer?: React.ReactNode;
   balanceFor?: (tx: Transaction) => number | undefined;
   warningFor?: (tx: Transaction) => string | undefined;
   confirmedIds: Set<string>;
@@ -97,6 +102,11 @@ export default function GroupCard({
                   onClick={onRowClick && (() => onRowClick(tx))}
                 />
               ))}
+              {footer && (
+                <List.Item.Basic className="po-row po-group__footer">
+                  <List.Cell.Title>{footer}</List.Cell.Title>
+                </List.Item.Basic>
+              )}
             </List.Container>
           </List.Item.Accordion.Content>
         </List.Item.Accordion>
