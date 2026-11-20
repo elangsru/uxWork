@@ -26,6 +26,7 @@ import {
   accountKeys,
   accountOptions,
   compareOwners,
+  completedTransactions,
   fmtAmount,
   isoLocalDate,
   makePoolInvoice,
@@ -50,6 +51,7 @@ const getHydratedOnServer = () => false;
 // åpne/lukket-tilstand for samme kontonavn.
 const EFAKTURA_PREFIX = "ef:";
 const EFAKTURA_EIER_PREFIX = "ef-eier:";
+const UTFORT_PREFIX = "utf:";
 
 const NO_OWNER = "Uten eier";
 
@@ -130,36 +132,46 @@ function AmountRangeFilter() {
 const RECEIVED_FROM_FILTER_KEY = "/mottatt-fra";
 const RECEIVED_FROM_FILTER_LABEL = "Mottatt eFaktura fra";
 
-type OwnerOption = { selectedKey: string; content: string | string[] };
+// «Mottaker» i filterpanelet på «Utførte»: alle du har betalt til. Samme
+// lagring som «Mottatt eFaktura fra» — ett filter med navnet som verdi.
+const RECIPIENT_FILTER_KEY = "/mottaker";
+const RECIPIENT_FILTER_LABEL = "Mottaker";
+
+type OwnerOption = {
+  selectedKey: string;
+  selectedValue?: string;
+  content: string | string[];
+};
 
 /**
- * Nedtrekket med fakturaeierne, samme liste som Fakturaeier på eFaktura-tabben.
+ * Nedtrekk med navn i filterpanelet, brukt til «Mottatt eFaktura fra» (samme
+ * liste som Fakturaeier på eFaktura-tabben) og «Mottaker» på «Utførte».
  * Kontrollert via Filter.Root, så krysset på taggen og «Fjern alle» tømmer
  * feltet også. onSelect får navnet før filteret settes, så en person som ennå
  * ikke er lastet kan hentes inn først.
  */
-function ReceivedFromFilter({
+function NameSelectFilter({
+  filterKey,
+  label,
   options,
   onSelect,
 }: {
+  filterKey: string;
+  label: string;
   options: OwnerOption[];
-  onSelect: (owner: string) => void;
+  onSelect?: (name: string) => void;
 }) {
   const { getFilter, setFilter } = Filter.useFilterContext();
-  const current = getFilter(RECEIVED_FROM_FILTER_KEY)?.value;
+  const current = getFilter(filterKey)?.value;
   const selected = typeof current === "string" ? current : undefined;
   return (
-    <Filter.Item
-      label={RECEIVED_FROM_FILTER_LABEL}
-      filterKey={RECEIVED_FROM_FILTER_KEY}
-      defaultOpen
-    >
+    <Filter.Item label={label} filterKey={filterKey} defaultOpen>
       {/* value tar ikke null, og undefined gjør feltet ukontrollert — så
           feltet remountes når filteret endres utenfra (taggen, «Fjern alle»). */}
       <div className="po-receivedfrom">
         <Autocomplete
           key={selected ?? ""}
-          label={RECEIVED_FROM_FILTER_LABEL}
+          label={label}
           labelSrOnly
           size="medium"
           data={options}
@@ -175,17 +187,17 @@ function ReceivedFromFilter({
                 ? String(data.selectedKey)
                 : null;
             if (owner === null) {
-              setFilter(RECEIVED_FROM_FILTER_KEY, undefined);
+              setFilter(filterKey, undefined);
               return;
             }
-            onSelect(owner);
-            setFilter(RECEIVED_FROM_FILTER_KEY, {
+            onSelect?.(owner);
+            setFilter(filterKey, {
               value: owner,
               label: owner,
-              categoryLabel: RECEIVED_FROM_FILTER_LABEL,
+              categoryLabel: label,
             });
           }}
-          onClear={() => setFilter(RECEIVED_FROM_FILTER_KEY, undefined)}
+          onClear={() => setFilter(filterKey, undefined)}
         />
       </div>
     </Filter.Item>
@@ -260,8 +272,13 @@ export default function PaymentsOverview() {
   const today = new Date();
   const inOneYear = new Date(today);
   inOneYear.setFullYear(today.getFullYear() + 1);
+  const oneYearAgo = new Date(today);
+  oneYearAgo.setFullYear(today.getFullYear() - 1);
   const monthName = today.toLocaleDateString(LOCALE, { month: "long" });
   const currentMonthLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+  const prevMonthName = new Date(today.getFullYear(), today.getMonth() - 1, 1)
+    .toLocaleDateString(LOCALE, { month: "long" });
+  const prevMonthLabel = prevMonthName.charAt(0).toUpperCase() + prevMonthName.slice(1);
 
   const [paymentTypes, setPaymentTypes] = useState<string[]>([]);
   const [showSaldo, setShowSaldo] = useState(false);
@@ -287,6 +304,16 @@ export default function PaymentsOverview() {
   const [statuses, setStatuses] = useState<PaymentStatus[]>([]);
   const [receivedFrom, setReceivedFrom] = useState<string | null>(null);
   const [showOnBehalfOf, setShowOnBehalfOf] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [completedGroupBy, setCompletedGroupBy] = useState("konto");
+  // «Utførte» har egen filtertilstand: valgene i «Til forfall» skal ikke følge
+  // med over, og datoene peker motsatt vei (bakover i tid).
+  const [completedAccountKey, setCompletedAccountKey] = useState<AccountKey | null>(null);
+  const [completedStartDate, setCompletedStartDate] = useState("");
+  const [completedEndDate, setCompletedEndDate] = useState("");
+  const [completedTypes, setCompletedTypes] = useState<string[]>([]);
+  const [completedAmountRange, setCompletedAmountRange] = useState<AmountRange>({});
+  const [completedRecipient, setCompletedRecipient] = useState<string | null>(null);
 
   const mounted = useSyncExternalStore(subscribeNever, getHydrated, getHydratedOnServer);
 
@@ -712,6 +739,82 @@ export default function PaymentsOverview() {
     );
   });
 
+  // Alle du har betalt til, alfabetisk, til «Mottaker»-nedtrekket. Kontonummeret
+  // står som andre linje, så det kan søkes på og skiller like navn; feltet
+  // viser bare navnet når det er valgt.
+  const completedRecipientOptions = [
+    ...new Map(completedTransactions.map((t) => [t.recipient, t.toAccount])),
+  ]
+    .sort(([a], [b]) => a.localeCompare(b, LOCALE))
+    .map(([name, account]) => ({
+      selectedKey: name,
+      selectedValue: name,
+      content: account ? [name, account] : name,
+    }));
+
+  // «Utførte», nyeste først, filtrert på samme måte som «Til forfall» — minus
+  // status, siden en utført betaling alltid er gjennomført.
+  const completedSorted = completedTransactions
+    .filter(
+      (t) =>
+        (completedAccountKey === null || t.accountKey === completedAccountKey) &&
+        (completedTypes.length === 0 || completedTypes.includes(t.type)) &&
+        (completedStartDate === "" || t.dateValue >= completedStartDate) &&
+        (completedEndDate === "" || t.dateValue <= completedEndDate) &&
+        (completedAmountRange.min === undefined || t.amountNok >= completedAmountRange.min) &&
+        (completedAmountRange.max === undefined || t.amountNok <= completedAmountRange.max) &&
+        (completedRecipient === null || t.recipient === completedRecipient),
+    )
+    .sort((a, b) => b.dateValue.localeCompare(a.dateValue));
+  const completedKontoKeys = accountKeys.filter((k) =>
+    completedSorted.some((t) => t.accountKey === k),
+  );
+  const completedDateKeys = [...new Set(completedSorted.map((t) => t.dateValue))];
+  const completedGroupKeys = (
+    completedGroupBy === "konto" ? completedKontoKeys : completedDateKeys
+  ).map((k) => `${UTFORT_PREFIX}${k}`);
+
+  // Radene er skrivebeskyttet: ingen godkjenning og ingen betalingsmodal.
+  const noop = () => {};
+
+  // Gruppert på konto. Ingen saldo eller sum-rad her, i motsetning til «Til forfall».
+  const completedKontoGroups = completedKontoKeys.map((accountKey) => {
+    const acct = accountDetails[accountKey];
+    const groupKey = `${UTFORT_PREFIX}${accountKey}`;
+    const txs = completedSorted.filter((t) => t.accountKey === accountKey);
+
+    return (
+      <GroupCard
+        key={groupKey}
+        open={isGroupOpen(groupKey)}
+        onToggle={() => toggleGroup(groupKey)}
+        header={`${acct.name} ${acct.number}`}
+        rows={txs}
+        overlineFor={(tx) => tx.date}
+        confirmedIds={confirmedIds}
+        onConfirm={noop}
+      />
+    );
+  });
+
+  const completedDatoGroups = completedDateKeys.map((dateValue) => {
+    const groupKey = `${UTFORT_PREFIX}${dateValue}`;
+    const txs = completedSorted.filter((t) => t.dateValue === dateValue);
+
+    return (
+      <GroupCard
+        key={groupKey}
+        open={isGroupOpen(groupKey)}
+        onToggle={() => toggleGroup(groupKey)}
+        header={txs[0].date}
+        rows={txs}
+        overlineFor={accountOverline}
+        confirmedIds={confirmedIds}
+        onConfirm={noop}
+      />
+    );
+  });
+
   if (!mounted) {
     return (
       <Theme colorScheme="light">
@@ -911,7 +1014,9 @@ export default function PaymentsOverview() {
             ]}
           />
           {showOnBehalfOf && (
-            <ReceivedFromFilter
+            <NameSelectFilter
+              filterKey={RECEIVED_FROM_FILTER_KEY}
+              label={RECEIVED_FROM_FILTER_LABEL}
               options={receivedFromOptions}
               onSelect={(owner) => {
                 if (owner !== SELF_OWNER && !usedOwners.has(owner)) loadOwners([owner]);
@@ -947,6 +1052,149 @@ export default function PaymentsOverview() {
       />
 
       {groupBy === "konto" ? forfallKontoGroups : forfallDatoGroups}
+    </div>
+  );
+
+  const completedPanel = (
+    <div className="po-tabpanel">
+      <Filter.Root
+        id="po-utforte-filter"
+        onChange={({ filters }) => {
+          const amount = filters[AMOUNT_FILTER_KEY]?.value;
+          setCompletedAmountRange(isAmountRange(amount) ? amount : {});
+          const recipient = filters[RECIPIENT_FILTER_KEY]?.value;
+          setCompletedRecipient(typeof recipient === "string" ? recipient : null);
+          setCompletedTypes(
+            PAYMENT_TYPE_OPTIONS.map((o) => o.value).filter(
+              (v) => `${TYPE_FILTER_KEY}/${v}` in filters,
+            ),
+          );
+        }}
+      >
+      <FilterBox
+        fields={[
+          <Autocomplete
+            key="konto"
+            label="Belastningskonto"
+            size="medium"
+            data={accountOptions}
+            placeholder="Alle"
+            stretch
+            showSubmitButton
+            submitButtonTitle=""
+            onChange={({ data }) => {
+              const key =
+                data && typeof data === "object" && "selectedKey" in data
+                  ? String(data.selectedKey)
+                  : null;
+              setCompletedAccountKey(
+                key === null || key === ALL_ACCOUNTS ? null : (key as AccountKey),
+              );
+            }}
+          />,
+          <div key="dato" className="po-date-filter">
+          <DatePicker
+            label="Belastningsdato"
+            range
+            showInput
+            size="medium"
+            startDate={completedStartDate}
+            endDate={completedEndDate}
+            minDate={isoLocalDate(oneYearAgo)}
+            maxDate={isoLocalDate(today)}
+            stretch
+            submitButtonText="OK"
+            showResetButton
+            resetButtonText="Nullstill"
+            onReset={() => {
+              setCompletedStartDate("");
+              setCompletedEndDate("");
+            }}
+            onChange={({ startDate: s, endDate: e }) => {
+              if (s) setCompletedStartDate(s);
+              if (e) setCompletedEndDate(e);
+            }}
+            shortcuts={[
+              {
+                title: "Siste 90 dg",
+                startDate: () => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - 90);
+                  return d;
+                },
+                endDate: () => new Date(),
+                closeOnSelect: false,
+              },
+              {
+                title: "Siste 30 dg",
+                startDate: () => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - 30);
+                  return d;
+                },
+                endDate: () => new Date(),
+                closeOnSelect: false,
+              },
+              {
+                title: prevMonthLabel,
+                startDate: () => {
+                  const d = new Date();
+                  return new Date(d.getFullYear(), d.getMonth() - 1, 1);
+                },
+                endDate: () => {
+                  const d = new Date();
+                  return new Date(d.getFullYear(), d.getMonth(), 0);
+                },
+                closeOnSelect: false,
+              },
+              {
+                title: currentMonthLabel,
+                startDate: () => {
+                  const d = new Date();
+                  return new Date(d.getFullYear(), d.getMonth(), 1);
+                },
+                endDate: () => new Date(),
+                closeOnSelect: false,
+              },
+            ]}
+          />
+            <Filter.PanelButton />
+          </div>,
+        ]}
+      >
+        <Filter.Panel>
+          <Filter.Selection
+            label={TYPE_FILTER_LABEL}
+            filterKey={TYPE_FILTER_KEY}
+            defaultOpen
+            data={PAYMENT_TYPE_OPTIONS}
+          />
+          <NameSelectFilter
+            filterKey={RECIPIENT_FILTER_KEY}
+            label={RECIPIENT_FILTER_LABEL}
+            options={completedRecipientOptions}
+          />
+          <AmountRangeFilter />
+        </Filter.Panel>
+        {(completedRecipient !== null ||
+          completedAmountRange.min !== undefined ||
+          completedAmountRange.max !== undefined ||
+          completedTypes.length > 0) && <Filter.ActiveFilters />}
+      </FilterBox>
+      </Filter.Root>
+
+      <GroupingRow
+        value={completedGroupBy}
+        onChange={setCompletedGroupBy}
+        options={[
+          { label: "Konto", value: "konto" },
+          { label: "Dato", value: "dato" },
+        ]}
+        allOpen={completedGroupKeys.every((k) => isGroupOpen(k))}
+        onToggleAll={() => toggleAllFor(completedGroupKeys)}
+      />
+
+      {completedGroupBy === "konto" ? completedKontoGroups : completedDatoGroups}
     </div>
   );
 
@@ -1136,30 +1384,41 @@ export default function PaymentsOverview() {
               </div>
             </div>
 
-            {/* Fanene finnes bare når «Show on behalf of eInvoices» er på. Av: bare
-                «Til forfall», uten fanerad.
+            {/* Fanerad bare når minst én ekstra fane er slått på i Tools-menyen:
+                «Ubekreftede eFakturaer» følger «Show on behalf of eInvoices»,
+                «Utførte» følger «Show completed». Ellers bare «Til forfall»,
+                uten fanerad. key remounter Tabs når fanesettet endres, så en
+                fane som forsvinner ikke blir stående valgt.
                 Render-funksjonen får TabsSelectedKey (string | number) — ikke
                 annotér den. */}
-            {showOnBehalfOf ? (
+            {showOnBehalfOf || showCompleted ? (
               <Tabs
+                key={`${showOnBehalfOf}-${showCompleted}`}
                 className="po-tabs"
                 breakout={false}
                 data={[
                   { title: "Til forfall", key: "forfall" },
-                  {
-                    title:
-                      unconfirmedEfakturaCount > 0
-                        ? // «+» så lenge det finnes flere eiere å hente — telleren
-                          // viser da «minst så mange», ikke et endelig antall.
-                          `Ubekreftede eFakturaer (${unconfirmedEfakturaCount}${
-                            remainingOwnerNames.length > 0 ? "+" : ""
-                          })`
-                        : "Ubekreftede eFakturaer",
-                    key: "efakturaer",
-                  },
+                  ...(showOnBehalfOf
+                    ? [
+                        {
+                          title:
+                            unconfirmedEfakturaCount > 0
+                              ? // «+» så lenge det finnes flere eiere å hente — telleren
+                                // viser da «minst så mange», ikke et endelig antall.
+                                `Ubekreftede eFakturaer (${unconfirmedEfakturaCount}${
+                                  remainingOwnerNames.length > 0 ? "+" : ""
+                                })`
+                              : "Ubekreftede eFakturaer",
+                          key: "efakturaer",
+                        },
+                      ]
+                    : []),
+                  ...(showCompleted ? [{ title: "Utførte", key: "utforte" }] : []),
                 ]}
               >
-                {(key) => (key === "forfall" ? forfallPanel : efakturaPanel)}
+                {(key) =>
+                  key === "efakturaer" ? efakturaPanel : key === "utforte" ? completedPanel : forfallPanel
+                }
               </Tabs>
             ) : (
               forfallPanel
@@ -1183,6 +1442,7 @@ export default function PaymentsOverview() {
               checked: showOnBehalfOf,
               onChange: toggleShowOnBehalfOf,
             },
+            { label: "Show completed", checked: showCompleted, onChange: setShowCompleted },
             { label: "Show warnings", checked: showWarnings, onChange: setShowWarnings },
             { label: "Show feedback module", checked: showFeedback, onChange: setShowFeedback },
             { label: "Show type toggle buttons", checked: showTypeFilter, onChange: setShowTypeFilter },

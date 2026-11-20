@@ -201,7 +201,8 @@ export interface Transaction {
       «Ubekreftede eFakturaer»-tabben, og går på tvers av konto. */
   invoiceOwner?: string;
   /** Mottakerens kontonummer, og KID eller melding. Foreløpig bare satt på
-      rader som kan åpnes i betalingsmodalen. */
+      rader som kan åpnes i betalingsmodalen, og på utførte betalinger
+      (kontonummeret vises i «Mottaker»-filteret). */
   toAccount?: string;
   kid?: string;
   message?: string;
@@ -218,6 +219,20 @@ export const transactions: Transaction[] = [
   { id: "dnb-global-index", ...relativeDate(22), recipient: "DNB Global index", amountNok: 2000, accountKey: "lonnskonto", type: "overforing", icon: "funds", kid: "7400318265014" },
   { id: "jose-martinez", ...relativeDate(24), recipient: "José Martinez", amountNok: 5234.98, amountDisplay: "EUR 500,00", accountKey: "felleskonto", type: "betaling", avatarKind: "person", flagIso: "ES" },
   { id: "tibber", ...relativeDate(29), recipient: "Tibber AS", amountNok: 2445, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", toAccount: "1503 40 21187", kid: "0004812753902" },
+];
+
+/** Betalinger og overføringer som allerede er trukket, for «Utførte»-tabben.
+ *  Negative dager = tilbake i tid. Ingen ubekreftede her: en utført betaling er
+ *  per definisjon godkjent. */
+export const completedTransactions: Transaction[] = [
+  { id: "utfort-tibber", ...relativeDate(-1), recipient: "Tibber AS", amountNok: 2318, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", toAccount: "1503 40 21187" },
+  { id: "utfort-sparing", ...relativeDate(-3), recipient: "Sparing bryllup", amountNok: 300, accountKey: "felleskonto", type: "overforing", icon: "savings", toAccount: "1503 24 90215" },
+  { id: "utfort-kari", ...relativeDate(-4), recipient: "Kari Nordmann", amountNok: 450, accountKey: "felleskonto", type: "betaling", avatarKind: "person", message: "Middag", toAccount: "1207 18 66342" },
+  { id: "utfort-telenor", ...relativeDate(-7), recipient: "Telenor Norge AS", amountNok: 649, accountKey: "lonnskonto", type: "avtalegiro", avatarKind: "company", badge: "AvtaleGiro", toAccount: "7058 05 11274" },
+  { id: "utfort-ask", ...relativeDate(-10), recipient: "ASK", amountNok: 1500, accountKey: "lonnskonto", type: "overforing", icon: "investment", toAccount: "1503 61 47820" },
+  { id: "utfort-boliglaanet", ...relativeDate(-12), recipient: "Boliglånet", amountNok: 12345, accountKey: "felleskonto", type: "overforing", icon: "loan", message: "LÅN", toAccount: "1503 87 30196" },
+  { id: "utfort-fremtind", ...relativeDate(-16), recipient: "Fremtind Forsikring AS", amountNok: 1129, accountKey: "lonnskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", toAccount: "1644 02 93518" },
+  { id: "utfort-oslo-kommune", ...relativeDate(-21), recipient: "Oslo Kommune", amountNok: 3870, accountKey: "felleskonto", type: "efaktura", avatarKind: "company", badge: "eFaktura", toAccount: "6345 06 12893" },
 ];
 
 /** Demovarsler, slått på med «Show warnings» i verktøypanelet. Lå tidligere som
