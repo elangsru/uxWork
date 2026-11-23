@@ -780,3 +780,10 @@
 .po-feedback__form > .dnb-textarea {
   align-self: stretch;
 }
+
+/* «Lukk» i kvitteringen er en Anchor som <button>. Eufemia gir button.dnb-anchor
+   linjehøyden til basis-tekst + 2 px, høyere enn FormStatus' small-tekst, så
+   linjen med lenken ble høyere og teksten kom ut av linje med hake-ikonet. */
+.receipt-footer .dnb-form-status__text button.dnb-anchor {
+  line-height: inherit;
+}

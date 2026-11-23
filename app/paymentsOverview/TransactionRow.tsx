@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Form } from "@dnb/eufemia/extensions/forms";
 import { SubmitIndicator } from "@dnb/eufemia/extensions/forms/Form";
-import { Avatar, Badge, Button, CountryFlag, Dialog, Flex, FormStatus, Icon, List } from "@dnb/eufemia/components";
+import { Anchor, Avatar, Badge, Button, CountryFlag, Dialog, Flex, FormStatus, Icon, List } from "@dnb/eufemia/components";
 import { Span } from "@dnb/eufemia/elements";
 import { funds_medium, investment_account_medium, loan_medium, office_buildings, savings_account_medium, transfer_medium } from "@dnb/eufemia/icons";
 
@@ -189,35 +189,35 @@ export default function TransactionRow({
         <List.Cell.Footer
           className={`actions-footer receipt-footer${receipt === "leaving" ? " receipt-footer--leaving" : ""}`}
         >
-          {/* Meldingen venstrestilt, «Lukk» til høyre der «Godkjenn» stod.
-              widthElement av samme grunn som på varselet: ellers låser
-              FormStatus en max-width ut fra teksten ved mount, og boksen brøt
-              før footeren var full. */}
-          <Flex.Horizontal justify="space-between" align="center" wrap={false} style={{ width: "100%" }}>
-            <div ref={receiptWidthRef} style={{ flex: 1, minWidth: 0 }}>
-              <FormStatus
-                state="success"
-                widthElement={receiptWidthRef}
-                text={
-                  <>
-                    Betaling godkjent og lagt til forfall.{" "}
-                    {accountDetails[tx.accountKey].name} vil bli benyttet neste gang du betaler til {tx.recipient}.
-                  </>
-                }
-              />
-            </div>
-            <Button
-              variant="tertiary"
-              text="Lukk"
-              icon="close"
-              iconPosition="left"
-              disabled={receipt === "leaving"}
-              onClick={(e: ButtonClickEvent) => {
-                e.event.stopPropagation();
-                setReceipt("leaving");
-              }}
+          {/* «Lukk» er en vanlig inline-lenke i teksten, som Eufemia
+              dokumenterer for FormStatus. element="button" fordi den lukker
+              meldingen i stedet for å navigere. widthElement av samme grunn
+              som på varselet: ellers låser FormStatus en max-width ut fra
+              teksten ved mount. */}
+          <div ref={receiptWidthRef} style={{ width: "100%" }}>
+            <FormStatus
+              state="success"
+              stretch
+              widthElement={receiptWidthRef}
+              text={
+                <>
+                  Betaling godkjent og lagt til forfall.{" "}
+                  {accountDetails[tx.accountKey].name} vil bli benyttet neste gang du betaler til {tx.recipient}.{" "}
+                  <Anchor
+                    element="button"
+                    type="button"
+                    disabled={receipt === "leaving"}
+                    onClick={(e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      setReceipt("leaving");
+                    }}
+                  >
+                    Lukk
+                  </Anchor>
+                </>
+              }
             />
-          </Flex.Horizontal>
+          </div>
         </List.Cell.Footer>
       )}
       {effectivelyUnconfirmed && !receipt && (
@@ -225,7 +225,7 @@ export default function TransactionRow({
           {/* Høyrestilt, med hovedhandlingen lengst til høyre. Footeren fyller
               ikke bredden av seg selv, så width: 100% trengs for justify. */}
           <Flex.Horizontal justify="flex-end" style={{ width: "100%" }}>
-            <Button variant="tertiary" text="Rediger" icon={false} onClick={edit} />
+            <Button variant="tertiary" text="Rediger" icon="edit" iconPosition="left" onClick={edit} />
             <Button
               variant="secondary"
               disabled={approving}
