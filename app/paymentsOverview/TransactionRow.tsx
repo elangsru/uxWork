@@ -14,8 +14,6 @@ import { APPROVE_DELAY_MS, accountDetails, fmtAmount, fmtNok, type Transaction }
 /** Hvor lenge «Reaktiver» viser spinner før kvitteringen vises. */
 const RESUME_DELAY_MS = 1500;
 
-/** Hvor lenge kvitteringen etter «Godkjenn» står før den fader bort. */
-const RECEIPT_VISIBLE_MS = 5000;
 /** Samme varighet som transition på .receipt-footer--leaving i CSS-en. */
 const RECEIPT_LEAVE_MS = 400;
 
@@ -54,8 +52,9 @@ export default function TransactionRow({
   const [approving, setApproving] = useState(false);
   // Uten onConfirmReceipt vises kvitteringen i raden: footeren blir stående
   // etter godkjenning, med en FormStatus i stedet for knappene. Fasene:
-  // «shown» i RECEIPT_VISIBLE_MS, «leaving» mens den fader og raden krymper,
-  // så null — footeren fjernes.
+  // «shown» til brukeren klikker «Lukk», «leaving» mens den fader og raden
+  // krymper, så null — footeren fjernes. Bare lokal state, så den forsvinner
+  // også ved refresh.
   const [receipt, setReceipt] = useState<"shown" | "leaving" | null>(null);
 
   // Raden kan forsvinne mens godkjenningen pågår — tabbytte, endret filter, eller
@@ -81,18 +80,11 @@ export default function TransactionRow({
   });
 
   useEffect(() => {
-    if (receipt === null) return;
-    const t = setTimeout(
-      () => {
-        if (receipt === "shown") {
-          setReceipt("leaving");
-        } else {
-          setReceipt(null);
-          onReceiptDoneRef.current?.();
-        }
-      },
-      receipt === "shown" ? RECEIPT_VISIBLE_MS : RECEIPT_LEAVE_MS,
-    );
+    if (receipt !== "leaving") return;
+    const t = setTimeout(() => {
+      setReceipt(null);
+      onReceiptDoneRef.current?.();
+    }, RECEIPT_LEAVE_MS);
     return () => clearTimeout(t);
   }, [receipt]);
 
@@ -197,19 +189,33 @@ export default function TransactionRow({
         <List.Cell.Footer
           className={`actions-footer receipt-footer${receipt === "leaving" ? " receipt-footer--leaving" : ""}`}
         >
-          {/* Venstrestilt. widthElement av samme grunn som
-              på varselet: ellers låser FormStatus en max-width ut fra
-              teksten ved mount, og boksen brøt før footeren var full. */}
-          <Flex.Horizontal ref={receiptWidthRef} justify="flex-start" style={{ width: "100%" }}>
-            <FormStatus
-              state="success"
-              widthElement={receiptWidthRef}
-              text={
-                <>
-                  Betaling godkjent og lagt til forfall.{" "}
-                  {accountDetails[tx.accountKey].name} vil bli benyttet neste gang du betaler til {tx.recipient}.
-                </>
-              }
+          {/* Meldingen venstrestilt, «Lukk» til høyre der «Godkjenn» stod.
+              widthElement av samme grunn som på varselet: ellers låser
+              FormStatus en max-width ut fra teksten ved mount, og boksen brøt
+              før footeren var full. */}
+          <Flex.Horizontal justify="space-between" align="center" wrap={false} style={{ width: "100%" }}>
+            <div ref={receiptWidthRef} style={{ flex: 1, minWidth: 0 }}>
+              <FormStatus
+                state="success"
+                widthElement={receiptWidthRef}
+                text={
+                  <>
+                    Betaling godkjent og lagt til forfall.{" "}
+                    {accountDetails[tx.accountKey].name} vil bli benyttet neste gang du betaler til {tx.recipient}.
+                  </>
+                }
+              />
+            </div>
+            <Button
+              variant="tertiary"
+              text="Lukk"
+              icon="close"
+              iconPosition="left"
+              disabled={receipt === "leaving"}
+              onClick={(e: ButtonClickEvent) => {
+                e.event.stopPropagation();
+                setReceipt("leaving");
+              }}
             />
           </Flex.Horizontal>
         </List.Cell.Footer>

@@ -229,9 +229,17 @@ const TYPE_FILTER_LABEL = "Type";
 const PAYMENT_TYPE_OPTIONS = [
   { value: "overforing", label: "Overføring" },
   { value: "betaling", label: "Betaling" },
+  { value: "utland", label: "Betaling utland" },
   { value: "avtalegiro", label: "AvtaleGiro" },
   { value: "efaktura", label: "eFaktura" },
 ];
+
+/** Typen en betaling filtreres på. Utenlandsbetalinger har type «betaling» i
+ *  dataene (samme betalingsmodal-logikk), men kjennes igjen på flagget og har
+ *  sitt eget filter, så «Betaling» betyr innenlands. */
+function filterTypeOf(t: Transaction): string {
+  return t.flagIso ? "utland" : t.type;
+}
 
 /**
  * Filter.Root eier sin egen filter-state, så ved bytte av plassering kopieres
@@ -480,7 +488,7 @@ export default function PaymentsOverview() {
   const visibleTransactions = allTransactions.filter(
     (t) =>
       (selectedAccountKey === null || t.accountKey === selectedAccountKey) &&
-      (paymentTypes.length === 0 || paymentTypes.includes(t.type)) &&
+      (paymentTypes.length === 0 || paymentTypes.includes(filterTypeOf(t))) &&
       // Tom dato = ingen grense i den retningen (etter «Nullstill»).
       (startDate === "" || t.dateValue >= startDate) &&
       (endDate === "" || t.dateValue <= endDate) &&
@@ -758,7 +766,7 @@ export default function PaymentsOverview() {
     .filter(
       (t) =>
         (completedAccountKey === null || t.accountKey === completedAccountKey) &&
-        (completedTypes.length === 0 || completedTypes.includes(t.type)) &&
+        (completedTypes.length === 0 || completedTypes.includes(filterTypeOf(t))) &&
         (completedStartDate === "" || t.dateValue >= completedStartDate) &&
         (completedEndDate === "" || t.dateValue <= completedEndDate) &&
         (completedAmountRange.min === undefined || t.amountNok >= completedAmountRange.min) &&
