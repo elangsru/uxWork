@@ -6,6 +6,7 @@ import { Button, StepIndicator, Autocomplete, Icon, Avatar, Badge, Checkbox, Cou
 // HelpButtonInline eksporteres ikke fra pakkeroten i 11.13.0 — kun HelpButton
 // (som åpner en dialog). Den inline ekspanderbare varianten må dyp-importeres.
 import HelpButtonInline, { HelpButtonInlineContent } from "@dnb/eufemia/components/help-button/HelpButtonInline";
+import ReadOnlyField from "../shared/ReadOnlyField";
 import { H1, H3, P, Hr } from "@dnb/eufemia/elements";
 import {
   fromAccountList,
@@ -786,39 +787,29 @@ export default function InternationalPayment() {
   }
   const shownBankAddress = resolveShownBankAddress();
 
-  // Utfylte, ikke-redigerbare bankfelter vises som label + grå verdi
-  // (Figma «Edit»-tilstand), ikke som disablede inputs.
-  // FormLabel har 8px margin-bottom fra Eufemia. Den nulles her, slik at
-  // avstanden styres av gap alene — ellers ville de summert seg.
+  // Utfylte, ikke-redigerbare bankfelter: ReadOnlyField (label + grå verdi,
+  // Figma «Edit»-tilstand), med skeleton rundt linjene mens banken «slås opp».
+  // dnb-skeleton--font maskerer selve teksten (transparent text-fill +
+  // background-clip). Skeleton-komponenten alene gir kun aria-busy og stripet
+  // bakgrunn, så teksten ville vært lesbar oppå.
+  // Timingen må overstyres på P-en, ikke wrapperen: Eufemia gir P-en klassen
+  // dnb-skeleton, som redeklarerer variablene lokalt og dermed slår ut arvede
+  // verdier. Defaultene (5s delay + 5s sveip fra +30rem til -30rem) er laget
+  // for lange lastinger — stripene ville nådd et felt på denne bredden først
+  // etter ~2s, altså etter at skeletonen vår er borte. 1s sveip gir én synlig
+  // passering i vinduet.
   const readOnlyField = (label: string, lines: string[]) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-xx-small)" }}>
-      <FormLabel style={{ marginBottom: 0 }}>{label}</FormLabel>
-      {/* dnb-skeleton--font maskerer selve teksten (transparent text-fill +
-          background-clip). Skeleton-komponenten alene gir kun aria-busy og
-          stripet bakgrunn, så teksten ville vært lesbar oppå.
-          Timingen må overstyres på P-en, ikke wrapperen: Eufemia gir P-en
-          klassen dnb-skeleton, som redeklarerer variablene lokalt og dermed
-          slår ut arvede verdier. Defaultene (5s delay + 5s sveip fra +30rem
-          til -30rem) er laget for lange lastinger — stripene ville nådd et
-          felt på denne bredden først etter ~2s, altså etter at skeletonen
-          vår er borte. 1s sveip gir én synlig passering i vinduet. */}
-      <Skeleton show={bankSkeleton} className={bankSkeleton ? "dnb-skeleton--font" : undefined}>
-        <div style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-          {lines.map((line) => (
-            <P
-              key={line}
-              style={{
-                color: "inherit",
-                "--skeleton-delay": "0s",
-                animationDuration: "1s",
-              } as CSSProperties}
-            >
-              {line}
-            </P>
-          ))}
-        </div>
-      </Skeleton>
-    </div>
+    <ReadOnlyField
+      label={label}
+      lines={lines}
+      lineStyle={{ "--skeleton-delay": "0s", animationDuration: "1s" } as CSSProperties}
+    >
+      {(content) => (
+        <Skeleton show={bankSkeleton} className={bankSkeleton ? "dnb-skeleton--font" : undefined}>
+          {content}
+        </Skeleton>
+      )}
+    </ReadOnlyField>
   );
 
   // Skillelinje mellom de read-only bankradene. Går kant til kant, så den
