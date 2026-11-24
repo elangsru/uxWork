@@ -19,6 +19,7 @@ import GroupingRow from "./GroupingRow";
 import ToolsPanel from "./ToolsPanel";
 import { useDelayedFilters } from "./useDelayedFilters";
 import { useDelayedValue } from "./useDelayedValue";
+import { DEFAULT_FIELD_STATUS, FIELD_LABELS, FIELD_STATUS_OPTIONS, type FieldStatus, type FieldStatusMap } from "./fieldStatus";
 import {
   ALL_ACCOUNTS,
   DEMO_WARNINGS,
@@ -363,6 +364,12 @@ export default function PaymentsOverview() {
   const [showSaldoSwitch, setShowSaldoSwitch] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  // Field status (Tools-menyen): status per felt i redigeringsskjemaene.
+  // activeFieldStatus er undefined når bryteren er av, og skjemaene følger da
+  // sine egne regler. Valgene beholdes når bryteren slås av og på igjen.
+  const [fieldStatusEnabled, setFieldStatusEnabled] = useState(false);
+  const [fieldStatus, setFieldStatus] = useState<FieldStatusMap>(DEFAULT_FIELD_STATUS);
+  const activeFieldStatus = fieldStatusEnabled ? fieldStatus : undefined;
   // Response delay (Tools-menyen): kunstig forsinkelse i hele sekunder, for å
   // se hvordan interaksjoner oppfører seg med ventetid (f.eks. ventespinner).
   // "0" = None: ingen lastetilstand. Foreløpig koblet til «Godkjenn» på
@@ -1665,6 +1672,20 @@ export default function PaymentsOverview() {
               },
             },
             { label: "Dark mode", checked: darkMode, onChange: setDarkMode },
+          ]}
+          groups={[
+            {
+              label: "Field status",
+              checked: fieldStatusEnabled,
+              onChange: setFieldStatusEnabled,
+              selects: FIELD_LABELS.map(({ key, label }) => ({
+                label,
+                value: fieldStatus[key],
+                options: FIELD_STATUS_OPTIONS,
+                onChange: (value: string) =>
+                  setFieldStatus((prev) => ({ ...prev, [key]: value as FieldStatus })),
+              })),
+            },
           ]}
           selects={[
             {

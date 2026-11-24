@@ -626,6 +626,19 @@
   padding: var(--spacing-small);
 }
 
+/* Bryter med underrader i Tools-menyen (Field status): underradene rykkes
+   inn så de leses som del av gruppen. Gruppen er en flex-kolonne med samme
+   gap som panelet, så avstanden mellom radene blir lik. */
+.po-tools__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-small);
+}
+
+.po-tools__row--sub {
+  margin-left: var(--spacing-large);
+}
+
 /* Nedtrekk i Tools-menyen (f.eks. Response delay): smal, som på International
    payments, i stedet for Dropdowns standardbredde. */
 .po-tools__select.dnb-dropdown {

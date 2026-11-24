@@ -19,6 +19,14 @@ export type ToolsSelect = {
   onChange: (value: string) => void;
 };
 
+/** Bryter med underrader (nedtrekk) som bare vises når bryteren er på. */
+export type ToolsGroup = {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  selects: ToolsSelect[];
+};
+
 /**
  * Overlegg for utprøving — ikke en del av DNB-designet. Skrur på varsler,
  * ubekreftede eFakturaer og dark mode under demoing.
@@ -32,11 +40,14 @@ export default function ToolsPanel({
   open,
   onOpenChange,
   toggles,
+  groups = [],
   selects = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   toggles: ToolsToggle[];
+  /** Vises mellom bryterne og nedtrekkene. */
+  groups?: ToolsGroup[];
   /** Vises etter bryterne. */
   selects?: ToolsSelect[];
 }) {
@@ -51,6 +62,37 @@ export default function ToolsPanel({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, onOpenChange]);
+
+  const toggleRow = (t: ToolsToggle) => (
+    <div key={t.label} className="po-tools__row">
+      <P size="basis">{t.label}</P>
+      <Switch
+        label={t.label}
+        labelSrOnly
+        checked={t.checked}
+        onChange={({ checked }) => t.onChange(checked)}
+      />
+    </div>
+  );
+
+  // Samme oppsett som nedtrekkene i Tools-menyen på International payments:
+  // liten Dropdown med skjult label, teksten står i raden.
+  const selectRow = (s: ToolsSelect, sub = false) => (
+    <div key={s.label} className={sub ? "po-tools__row po-tools__row--sub" : "po-tools__row"}>
+      <P size="basis">{s.label}</P>
+      <Dropdown
+        className="po-tools__select"
+        label={s.label}
+        labelSrOnly
+        size="small"
+        value={s.value}
+        data={s.options.map((o) => ({ selectedKey: o.value, content: o.label }))}
+        onChange={({ data }) => {
+          if (typeof data?.selectedKey === "string") s.onChange(data.selectedKey);
+        }}
+      />
+    </div>
+  );
 
   return (
     <>
@@ -82,36 +124,16 @@ export default function ToolsPanel({
             <P size="basis" className="po-tools__subtitle">For experimenting and simulation purpose - not visible to end user.</P>
           </div>
 
-          {toggles.map((t) => (
-            <div key={t.label} className="po-tools__row">
-              <P size="basis">{t.label}</P>
-              <Switch
-                label={t.label}
-                labelSrOnly
-                checked={t.checked}
-                onChange={({ checked }) => t.onChange(checked)}
-              />
+          {toggles.map((t) => toggleRow(t))}
+
+          {groups.map((g) => (
+            <div key={g.label} className="po-tools__group">
+              {toggleRow(g)}
+              {g.checked && g.selects.map((s) => selectRow(s, true))}
             </div>
           ))}
 
-          {/* Samme oppsett som nedtrekkene i Tools-menyen på International
-              payments: liten Dropdown med skjult label, teksten står i raden. */}
-          {selects.map((s) => (
-            <div key={s.label} className="po-tools__row">
-              <P size="basis">{s.label}</P>
-              <Dropdown
-                className="po-tools__select"
-                label={s.label}
-                labelSrOnly
-                size="small"
-                value={s.value}
-                data={s.options.map((o) => ({ selectedKey: o.value, content: o.label }))}
-                onChange={({ data }) => {
-                  if (typeof data?.selectedKey === "string") s.onChange(data.selectedKey);
-                }}
-              />
-            </div>
-          ))}
+          {selects.map((s) => selectRow(s))}
         </div>
       )}
     </>
