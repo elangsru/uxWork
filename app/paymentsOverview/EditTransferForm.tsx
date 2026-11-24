@@ -7,6 +7,7 @@ import { P } from "@dnb/eufemia/elements";
 import { fromAccountList, fromAccounts } from "../internationalPayment/paymentData";
 import type { Transaction } from "./data";
 import EditPaymentActions from "./EditPaymentActions";
+import { ConfigurableField, accountText, amountText, dateText, resolveFieldStatus, type FieldKey, type FieldStatusMap } from "./fieldStatus";
 
 /** Samme grense som meldingsfeltet på /domesticPayment. */
 const messageMaxLength = 70;
@@ -41,6 +42,7 @@ export default function EditTransferForm({
   onClose,
   initiallyStopped = false,
   readOnly = false,
+  fieldStatus,
 }: {
   tx: Transaction;
   /** Kontonavnet fra betalingsoversikten, for å forhåndsvelge «Fra konto». */
@@ -50,6 +52,9 @@ export default function EditTransferForm({
   /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
   initiallyStopped?: boolean;
   readOnly?: boolean;
+  /** Field status fra Tools-menyen. Satt: overstyrer readOnly, fond og KID-
+   *  regelen per felt. Utelatt: feltene følger reglene over. */
+  fieldStatus?: FieldStatusMap;
 }) {
   const indexOf = (name: string) => {
     const i = toAccountList.findIndex((a) => a.content[0] === name);
@@ -66,6 +71,7 @@ export default function EditTransferForm({
   const isFund = tx.icon === "funds";
   // Overføring til aksjesparekonto (ASK) har verken melding eller KID.
   const isAsk = tx.icon === "investment";
+  const status = (key: FieldKey, legacyDisabled = false) => resolveFieldStatus(fieldStatus, key, legacyDisabled);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
@@ -75,95 +81,126 @@ export default function EditTransferForm({
         {/* Uten mottakerboks står varselet øverst i skjemaet. */}
         {stopped && <FormStatus state="warning" text="Overføringen er stoppet." stretch />}
 
-        <Autocomplete
+        <ConfigurableField
+          status={status("fromAccount", readOnly)}
           label="Fra konto"
-          size="medium"
-          data={fromAccounts}
-          placeholder="Velg konto"
-          stretch
-          disabled={readOnly}
-          showSubmitButton
-          submitButtonTitle=""
-          value={selectedFromKey ?? undefined}
-          onChange={({ selectedItem }) =>
-            setSelectedFromKey(typeof selectedItem === "number" ? String(selectedItem) : null)
-          }
-        />
+          value={accountText(fromAccountList, selectedFromKey)}
+        >
+          {(disabled) => (
+            <Autocomplete
+              label="Fra konto"
+              size="medium"
+              data={fromAccounts}
+              placeholder="Velg konto"
+              stretch
+              disabled={disabled}
+              showSubmitButton
+              submitButtonTitle=""
+              value={selectedFromKey ?? undefined}
+              onChange={({ selectedItem }) =>
+                setSelectedFromKey(typeof selectedItem === "number" ? String(selectedItem) : null)
+              }
+            />
+          )}
+        </ConfigurableField>
 
-        <Autocomplete
+        {/* Et fondskjøp går alltid til samme fondskonto. */}
+        <ConfigurableField
+          status={status("toAccount", readOnly || isFund)}
           label="Til konto"
-          size="medium"
-          data={toAccounts}
-          placeholder="Velg konto"
-          stretch
-          // Et fondskjøp går alltid til samme fondskonto.
-          disabled={readOnly || isFund}
-          showSubmitButton
-          submitButtonTitle=""
-          value={selectedToKey ?? undefined}
-          onChange={({ selectedItem }) =>
-            setSelectedToKey(typeof selectedItem === "number" ? String(selectedItem) : null)
-          }
-        />
+          value={accountText(toAccountList, selectedToKey)}
+        >
+          {(disabled) => (
+            <Autocomplete
+              label="Til konto"
+              size="medium"
+              data={toAccounts}
+              placeholder="Velg konto"
+              stretch
+              disabled={disabled}
+              showSubmitButton
+              submitButtonTitle=""
+              value={selectedToKey ?? undefined}
+              onChange={({ selectedItem }) =>
+                setSelectedToKey(typeof selectedItem === "number" ? String(selectedItem) : null)
+              }
+            />
+          )}
+        </ConfigurableField>
 
-        <InputMasked
-          label="Beløp"
-          size="medium"
-          stretch
-          disabled={readOnly}
-          numberMask={{
-            suffix: " kr",
-            allowDecimal: true,
-            decimalLimit: 2,
-            thousandsSeparatorSymbol: " ",
-            decimalSymbol: ",",
-          }}
-          placeholder="kr"
-          value={amount}
-          onChange={({ numberValue }) =>
-            setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")
-          }
-        />
-
-        {tx.kid ? (
-          <Input
-            label="KID"
-            size="medium"
-            stretch
-            // KID identifiserer fondskjøpet og kan ikke endres.
-            disabled
-            value={tx.kid}
-          />
-        ) : !isAsk && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <Textarea
-              label="Melding"
+        <ConfigurableField status={status("amount", readOnly)} label="Beløp" value={amountText(amount)}>
+          {(disabled) => (
+            <InputMasked
+              label="Beløp"
               size="medium"
               stretch
-              disabled={readOnly}
-              rows={1}
-              autoResize
-              autoResizeMaxRows={6}
-              value={message}
-              maxLength={messageMaxLength}
-              onChange={({ value }) => setMessage(value)}
+              disabled={disabled}
+              numberMask={{
+                suffix: " kr",
+                allowDecimal: true,
+                decimalLimit: 2,
+                thousandsSeparatorSymbol: " ",
+                decimalSymbol: ",",
+              }}
+              placeholder="kr"
+              value={amount}
+              onChange={({ numberValue }) =>
+                setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")
+              }
             />
-            <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-              {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
-            </P>
-          </div>
+          )}
+        </ConfigurableField>
+
+        {/* KID identifiserer fondskjøpet og kan ikke endres (uten Field status). */}
+        {tx.kid ? (
+          <ConfigurableField status={status("kid", true)} label="KID" value={tx.kid}>
+            {(disabled) => <Input label="KID" size="medium" stretch disabled={disabled} value={tx.kid} />}
+          </ConfigurableField>
+        ) : !isAsk && (
+          <ConfigurableField status={status("message", readOnly)} label="Melding" value={message}>
+            {(disabled) => (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <Textarea
+                  label="Melding"
+                  size="medium"
+                  stretch
+                  disabled={disabled}
+                  rows={1}
+                  autoResize
+                  autoResizeMaxRows={6}
+                  value={message}
+                  maxLength={messageMaxLength}
+                  onChange={({ value }) => setMessage(value)}
+                />
+                {/* Telleren hører til et felt man kan skrive i. */}
+                {!disabled && (
+                  <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                    {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
+                  </P>
+                )}
+              </div>
+            )}
+          </ConfigurableField>
         )}
 
-        <DatePicker
+        <ConfigurableField
+          status={status("paymentDate", readOnly)}
           label="Betalingsdato"
-          size="medium"
-          showInput
-          disabled={readOnly}
-          date={paymentDate}
-          onChange={({ date }) => {
-            if (date) setPaymentDate(date);
-          }}
-        />
+          value={dateText(paymentDate)}
+        >
+          {(disabled) => (
+            <DatePicker
+              label="Betalingsdato"
+              size="medium"
+              showInput
+              disabled={disabled}
+              date={paymentDate}
+              onChange={({ date }) => {
+                if (date) setPaymentDate(date);
+              }}
+            />
+          )}
+        </ConfigurableField>
       </div>
 
       <EditPaymentActions

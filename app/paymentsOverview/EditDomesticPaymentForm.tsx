@@ -8,6 +8,7 @@ import { ainvoice_medium, attachment_medium, office_buildings } from "@dnb/eufem
 import { fromAccountList, fromAccounts } from "../internationalPayment/paymentData";
 import type { Transaction } from "./data";
 import EditPaymentActions from "./EditPaymentActions";
+import { ConfigurableField, accountText, amountText, dateText, resolveFieldStatus, type FieldKey, type FieldStatusMap } from "./fieldStatus";
 
 /** Samme grense som meldingsfeltet på /domesticPayment. */
 const messageMaxLength = 70;
@@ -23,6 +24,7 @@ export default function EditDomesticPaymentForm({
   accountName,
   onClose,
   initiallyStopped = false,
+  fieldStatus,
 }: {
   tx: Transaction;
   /** Kontonavnet fra betalingsoversikten, for å forhåndsvelge «Fra konto». */
@@ -31,6 +33,9 @@ export default function EditDomesticPaymentForm({
   onClose: () => void;
   /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
   initiallyStopped?: boolean;
+  /** Field status fra Tools-menyen. Satt: overstyrer KID-regelen per felt.
+   *  Utelatt: feltene følger dagens regler. */
+  fieldStatus?: FieldStatusMap;
 }) {
   const [selectedFromKey, setSelectedFromKey] = useState<string | null>(() => {
     const i = fromAccountList.findIndex((a) => a.content[0] === accountName);
@@ -43,6 +48,7 @@ export default function EditDomesticPaymentForm({
 
   // Egne id-er, så de ikke kolliderer med feltene på /domesticPayment.
   const fromAccountFieldId = "edit-domestic-payment-from-account";
+  const status = (key: FieldKey, legacyDisabled = false) => resolveFieldStatus(fieldStatus, key, legacyDisabled);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
@@ -98,80 +104,104 @@ export default function EditDomesticPaymentForm({
           </List.Container>
         </div>
 
-        <div>
-          <FormLabel forId={fromAccountFieldId} style={{ marginBottom: "0.5rem" }}>
-            Fra konto
-          </FormLabel>
-          <Autocomplete
-            id={fromAccountFieldId}
-            size="medium"
-            data={fromAccounts}
-            placeholder="Velg konto"
-            stretch
-            showSubmitButton
-            submitButtonTitle=""
-            value={selectedFromKey ?? undefined}
-            onChange={({ selectedItem }) =>
-              setSelectedFromKey(typeof selectedItem === "number" ? String(selectedItem) : null)
-            }
-          />
-        </div>
+        {/* FormLabel står utenfor feltet; i read only erstatter ReadOnlyField
+            hele blokken, så etiketten ikke står to ganger. */}
+        <ConfigurableField
+          status={status("fromAccount")}
+          label="Fra konto"
+          value={accountText(fromAccountList, selectedFromKey)}
+        >
+          {(disabled) => (
+            <div>
+              <FormLabel forId={fromAccountFieldId} style={{ marginBottom: "0.5rem" }}>
+                Fra konto
+              </FormLabel>
+              <Autocomplete
+                id={fromAccountFieldId}
+                size="medium"
+                data={fromAccounts}
+                placeholder="Velg konto"
+                stretch
+                disabled={disabled}
+                showSubmitButton
+                submitButtonTitle=""
+                value={selectedFromKey ?? undefined}
+                onChange={({ selectedItem }) =>
+                  setSelectedFromKey(typeof selectedItem === "number" ? String(selectedItem) : null)
+                }
+              />
+            </div>
+          )}
+        </ConfigurableField>
 
-        <InputMasked
-          label="Beløp"
-          size="medium"
-          stretch
-          numberMask={{
-            suffix: " kr",
-            allowDecimal: true,
-            decimalLimit: 2,
-            thousandsSeparatorSymbol: " ",
-            decimalSymbol: ",",
-          }}
-          placeholder="kr"
-          value={amount}
-          onChange={({ numberValue }) =>
-            setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")
-          }
-        />
-
-        {tx.kid ? (
-          <Input
-            label="KID"
-            size="medium"
-            stretch
-            // KID kommer fra fakturaen og kan ikke endres.
-            disabled
-            value={tx.kid}
-          />
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <Textarea
-              label="Melding"
+        <ConfigurableField status={status("amount")} label="Beløp" value={amountText(amount)}>
+          {(disabled) => (
+            <InputMasked
+              label="Beløp"
               size="medium"
               stretch
-              rows={1}
-              autoResize
-              autoResizeMaxRows={6}
-              value={message}
-              maxLength={messageMaxLength}
-              onChange={({ value }) => setMessage(value)}
+              disabled={disabled}
+              numberMask={{
+                suffix: " kr",
+                allowDecimal: true,
+                decimalLimit: 2,
+                thousandsSeparatorSymbol: " ",
+                decimalSymbol: ",",
+              }}
+              placeholder="kr"
+              value={amount}
+              onChange={({ numberValue }) =>
+                setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")
+              }
             />
-            <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-              {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
-            </P>
-          </div>
+          )}
+        </ConfigurableField>
+
+        {/* KID kommer fra fakturaen og kan ikke endres (uten Field status). */}
+        {tx.kid ? (
+          <ConfigurableField status={status("kid", true)} label="KID" value={tx.kid}>
+            {(disabled) => <Input label="KID" size="medium" stretch disabled={disabled} value={tx.kid} />}
+          </ConfigurableField>
+        ) : (
+          <ConfigurableField status={status("message")} label="Melding" value={message}>
+            {(disabled) => (
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                <Textarea
+                  label="Melding"
+                  size="medium"
+                  stretch
+                  disabled={disabled}
+                  rows={1}
+                  autoResize
+                  autoResizeMaxRows={6}
+                  value={message}
+                  maxLength={messageMaxLength}
+                  onChange={({ value }) => setMessage(value)}
+                />
+                {!disabled && (
+                  <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                    {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
+                  </P>
+                )}
+              </div>
+            )}
+          </ConfigurableField>
         )}
 
-        <DatePicker
-          label="Betalingsdato"
-          size="medium"
-          showInput
-          date={paymentDate}
-          onChange={({ date }) => {
-            if (date) setPaymentDate(date);
-          }}
-        />
+        <ConfigurableField status={status("paymentDate")} label="Betalingsdato" value={dateText(paymentDate)}>
+          {(disabled) => (
+            <DatePicker
+              label="Betalingsdato"
+              size="medium"
+              showInput
+              disabled={disabled}
+              date={paymentDate}
+              onChange={({ date }) => {
+                if (date) setPaymentDate(date);
+              }}
+            />
+          )}
+        </ConfigurableField>
 
       </div>
 

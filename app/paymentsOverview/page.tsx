@@ -1718,6 +1718,7 @@ export default function PaymentsOverview() {
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
                 initiallyStopped={statusOf(editPayment) === "stoppet"}
+                fieldStatus={activeFieldStatus}
                 // Avdrag på lån kan verken endres, stoppes eller slettes her.
                 readOnly={editPayment.icon === "loan"}
               />
@@ -1727,6 +1728,7 @@ export default function PaymentsOverview() {
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
                 initiallyStopped={statusOf(editPayment) === "stoppet"}
+                fieldStatus={activeFieldStatus}
               />
             ) : (
               <EditDomesticPaymentForm
@@ -1734,6 +1736,7 @@ export default function PaymentsOverview() {
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
                 initiallyStopped={statusOf(editPayment) === "stoppet"}
+                fieldStatus={activeFieldStatus}
               />
             ))}
         </Dialog>

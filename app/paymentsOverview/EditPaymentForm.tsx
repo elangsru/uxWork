@@ -19,6 +19,7 @@ import {
 } from "../internationalPayment/paymentData";
 import type { Transaction } from "./data";
 import EditPaymentActions from "./EditPaymentActions";
+import { ConfigurableField, accountText, amountText, dateText, resolveFieldStatus, type FieldKey, type FieldStatusMap } from "./fieldStatus";
 
 // Betalingsoversikten skriver «José», mottakerlisten «Jose». Aksentene fjernes
 // før sammenligning, så navnet treffer uansett skrivemåte.
@@ -44,6 +45,7 @@ export default function EditPaymentForm({
   accountName,
   onClose,
   initiallyStopped = false,
+  fieldStatus,
 }: {
   tx: Transaction;
   /** Kontonavnet fra betalingsoversikten, for å forhåndsvelge «Fra konto». */
@@ -52,6 +54,9 @@ export default function EditPaymentForm({
   onClose: () => void;
   /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
   initiallyStopped?: boolean;
+  /** Field status fra Tools-menyen. Satt: overstyrer regelen om at valuta
+   *  krever mottaker. Utelatt: feltene følger dagens regler. */
+  fieldStatus?: FieldStatusMap;
 }) {
   const parsed = parseAmountDisplay(tx.amountDisplay);
 
@@ -79,6 +84,7 @@ export default function EditPaymentForm({
   const currencyFieldId = "edit-payment-currency";
   const amountFieldId = "edit-payment-amount";
   const messageFieldId = "edit-payment-message";
+  const status = (key: FieldKey, legacyDisabled = false) => resolveFieldStatus(fieldStatus, key, legacyDisabled);
 
   const amountHint = (() => {
     const amountNum = parseFloat(amount.replace(",", ".")) || 0;
@@ -132,108 +138,152 @@ export default function EditPaymentForm({
             </List.Container>
           </div>
         )}
-        <div>
-          <FormLabel forId={fromAccountFieldId} style={{ marginBottom: "0.5rem" }}>
-            Fra konto
-          </FormLabel>
-          <Autocomplete
-            id={fromAccountFieldId}
-            size="medium"
-            data={fromAccounts}
-            placeholder="Velg konto"
-            stretch
-            showSubmitButton
-            submitButtonTitle=""
-            value={selectedFromKey ?? undefined}
-            onChange={({ selectedItem }) =>
-              setSelectedFromKey(typeof selectedItem === "number" ? String(selectedItem) : null)
-            }
-          />
-        </div>
+        {/* Feltene med egen FormLabel: i read only erstatter ReadOnlyField hele
+            blokken, så etiketten ikke står to ganger. */}
+        <ConfigurableField
+          status={status("fromAccount")}
+          label="Fra konto"
+          value={accountText(fromAccountList, selectedFromKey)}
+        >
+          {(disabled) => (
+            <div>
+              <FormLabel forId={fromAccountFieldId} style={{ marginBottom: "0.5rem" }}>
+                Fra konto
+              </FormLabel>
+              <Autocomplete
+                id={fromAccountFieldId}
+                size="medium"
+                data={fromAccounts}
+                placeholder="Velg konto"
+                stretch
+                disabled={disabled}
+                showSubmitButton
+                submitButtonTitle=""
+                value={selectedFromKey ?? undefined}
+                onChange={({ selectedItem }) =>
+                  setSelectedFromKey(typeof selectedItem === "number" ? String(selectedItem) : null)
+                }
+              />
+            </div>
+          )}
+        </ConfigurableField>
 
-        <div>
-          <FormLabel forId={currencyFieldId} style={{ marginBottom: "0.5rem" }}>
-            Valuta som sendes
-          </FormLabel>
-          <Autocomplete
-            id={currencyFieldId}
-            size="medium"
-            data={filteredCurrencies}
-            placeholder="Velg valuta"
-            stretch
-            disabled={!selectedRecipient}
-            showSubmitButton
-            submitButtonTitle=""
-            icon={selectedCurrency ? <CountryFlag iso={selectedCurrency.iso} size="small" /> : undefined}
-            value={selectedCurrency?.code ?? undefined}
-            onChange={({ selectedItem }) => {
-              const code = typeof selectedItem === "number" ? filteredCurrencies[selectedItem]?.selectedKey : undefined;
-              setSelectedCurrency(currencyList.find((c) => c.code === code) ?? null);
-            }}
-          />
-        </div>
+        {/* Uten Field status krever valuta en mottaker. */}
+        <ConfigurableField
+          status={status("currency", !selectedRecipient)}
+          label="Valuta som sendes"
+          value={selectedCurrency?.code ?? ""}
+        >
+          {(disabled) => (
+            <div>
+              <FormLabel forId={currencyFieldId} style={{ marginBottom: "0.5rem" }}>
+                Valuta som sendes
+              </FormLabel>
+              <Autocomplete
+                id={currencyFieldId}
+                size="medium"
+                data={filteredCurrencies}
+                placeholder="Velg valuta"
+                stretch
+                disabled={disabled}
+                showSubmitButton
+                submitButtonTitle=""
+                icon={selectedCurrency ? <CountryFlag iso={selectedCurrency.iso} size="small" /> : undefined}
+                value={selectedCurrency?.code ?? undefined}
+                onChange={({ selectedItem }) => {
+                  const code = typeof selectedItem === "number" ? filteredCurrencies[selectedItem]?.selectedKey : undefined;
+                  setSelectedCurrency(currencyList.find((c) => c.code === code) ?? null);
+                }}
+              />
+            </div>
+          )}
+        </ConfigurableField>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <div>
-            <FormLabel forId={amountFieldId} style={{ marginBottom: "0.5rem" }}>
-              Beløp
-            </FormLabel>
-            <InputMasked
-              id={amountFieldId}
+        <ConfigurableField
+          status={status("amount")}
+          label="Beløp"
+          value={amountText(amount, selectedCurrency?.code ?? "NOK")}
+        >
+          {(disabled) => (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div>
+                <FormLabel forId={amountFieldId} style={{ marginBottom: "0.5rem" }}>
+                  Beløp
+                </FormLabel>
+                <InputMasked
+                  id={amountFieldId}
+                  size="medium"
+                  stretch
+                  disabled={disabled}
+                  numberMask={{
+                    prefix: `${selectedCurrency?.code ?? "NOK"} `,
+                    suffix: "",
+                    allowDecimal: true,
+                    decimalLimit: 2,
+                    thousandsSeparatorSymbol: " ",
+                    decimalSymbol: ",",
+                  }}
+                  placeholder={selectedCurrency?.code ?? ""}
+                  value={amount}
+                  onChange={({ numberValue }) =>
+                    setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")
+                  }
+                />
+              </div>
+              {/* Hintet om kronebeløp hører til et felt man kan skrive i. */}
+              {!disabled && (
+                <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                  {amountHint}
+                </P>
+              )}
+            </div>
+          )}
+        </ConfigurableField>
+
+        <ConfigurableField status={status("message")} label="Melding" value={message}>
+          {(disabled) => (
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div>
+                <FormLabel forId={messageFieldId} style={{ marginBottom: "0.5rem" }}>
+                  Melding
+                </FormLabel>
+                <Textarea
+                  id={messageFieldId}
+                  size="medium"
+                  stretch
+                  disabled={disabled}
+                  rows={1}
+                  autoResize
+                  autoResizeMaxRows={6}
+                  placeholder="Melding til mottaker"
+                  value={message}
+                  maxLength={messageMaxLength}
+                  onChange={({ value }) => setMessage(value)}
+                />
+              </div>
+              {!disabled && (
+                <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
+                  {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
+                </P>
+              )}
+            </div>
+          )}
+        </ConfigurableField>
+
+        <ConfigurableField status={status("paymentDate")} label="Betalingsdato" value={dateText(paymentDate)}>
+          {(disabled) => (
+            <DatePicker
+              label="Betalingsdato"
               size="medium"
-              stretch
-              numberMask={{
-                prefix: `${selectedCurrency?.code ?? "NOK"} `,
-                suffix: "",
-                allowDecimal: true,
-                decimalLimit: 2,
-                thousandsSeparatorSymbol: " ",
-                decimalSymbol: ",",
+              showInput
+              disabled={disabled}
+              date={paymentDate}
+              onChange={({ date }) => {
+                if (date) setPaymentDate(date);
               }}
-              placeholder={selectedCurrency?.code ?? ""}
-              value={amount}
-              onChange={({ numberValue }) =>
-                setAmount(numberValue !== undefined && !isNaN(numberValue) ? String(numberValue) : "")
-              }
             />
-          </div>
-          <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-            {amountHint}
-          </P>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <div>
-            <FormLabel forId={messageFieldId} style={{ marginBottom: "0.5rem" }}>
-              Melding
-            </FormLabel>
-            <Textarea
-              id={messageFieldId}
-              size="medium"
-              stretch
-              rows={1}
-              autoResize
-              autoResizeMaxRows={6}
-              placeholder="Melding til mottaker"
-              value={message}
-              maxLength={messageMaxLength}
-              onChange={({ value }) => setMessage(value)}
-            />
-          </div>
-          <P size="small" style={{ color: "var(--token-color-text-neutral-alternative)" }}>
-            {messageMaxLength - message.length} av {messageMaxLength} tegn gjenstår.
-          </P>
-        </div>
-
-        <DatePicker
-          label="Betalingsdato"
-          size="medium"
-          showInput
-          date={paymentDate}
-          onChange={({ date }) => {
-            if (date) setPaymentDate(date);
-          }}
-        />
+          )}
+        </ConfigurableField>
 
       </div>
 

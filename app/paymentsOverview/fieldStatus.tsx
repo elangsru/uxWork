@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import ReadOnlyField from "../shared/ReadOnlyField";
+import { LOCALE } from "./data";
 
 /**
  * «Field status» i Tools-menyen: hvert felt i redigeringsskjemaene kan settes
@@ -74,4 +75,27 @@ export function ConfigurableField({
 }) {
   if (status === "readOnly") return <ReadOnlyField label={label} lines={[value || "–"]} />;
   return <>{children(status === "disabled")}</>;
+}
+
+// Tekstene som vises i read only. Samme format i alle tre skjemaene.
+
+/** «Felleskonto 1503 24 78612», eller tom streng uten valgt konto. */
+export function accountText(list: { content: string[] }[], key: string | null): string {
+  if (key === null) return "";
+  return list[Number(key)]?.content.join(" ") ?? "";
+}
+
+/** «12 345,00 kr» (eller «EUR 500,00» med valutakode), tom streng uten beløp. */
+export function amountText(amount: string, currencyCode?: string): string {
+  const n = parseFloat(amount);
+  if (isNaN(n)) return "";
+  const formatted = n.toLocaleString(LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return currencyCode ? `${currencyCode} ${formatted}` : `${formatted} kr`;
+}
+
+/** «3. desember 2026» fra ISO-dato (YYYY-MM-DD), lest som lokal dato. */
+export function dateText(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  return new Date(y, m - 1, d).toLocaleDateString(LOCALE, { day: "numeric", month: "long", year: "numeric" });
 }
