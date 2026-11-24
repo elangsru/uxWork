@@ -66,6 +66,9 @@ export default function EditTransferForm({
   const [selectedToKey, setSelectedToKey] = useState<string | null>(() => indexOf(tx.recipient));
   const [amount, setAmount] = useState(String(tx.amountNok));
   const [message, setMessage] = useState(tx.message ?? "");
+  // KID i state, så det brukeren skriver (når Field status gjør feltet
+  // redigerbart) overlever bytte av status og vises i read only.
+  const [kid, setKid] = useState(tx.kid ?? "");
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
   const [stopped, setStopped] = useState(initiallyStopped);
   const isFund = tx.icon === "funds";
@@ -153,8 +156,17 @@ export default function EditTransferForm({
 
         {/* KID identifiserer fondskjøpet og kan ikke endres (uten Field status). */}
         {tx.kid ? (
-          <ConfigurableField status={status("kid", true)} label="KID" value={tx.kid}>
-            {(disabled) => <Input label="KID" size="medium" stretch disabled={disabled} value={tx.kid} />}
+          <ConfigurableField status={status("kid", true)} label="KID" value={kid}>
+            {(disabled) => (
+              <Input
+                label="KID"
+                size="medium"
+                stretch
+                disabled={disabled}
+                value={kid}
+                onChange={({ value }) => setKid(value)}
+              />
+            )}
           </ConfigurableField>
         ) : !isAsk && (
           <ConfigurableField status={status("message", readOnly)} label="Melding" value={message}>

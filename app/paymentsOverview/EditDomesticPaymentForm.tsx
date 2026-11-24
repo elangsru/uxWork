@@ -43,6 +43,9 @@ export default function EditDomesticPaymentForm({
   });
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
   const [message, setMessage] = useState(tx.message ?? "");
+  // KID i state, så det brukeren skriver (når Field status gjør feltet
+  // redigerbart) overlever bytte av status og vises i read only.
+  const [kid, setKid] = useState(tx.kid ?? "");
   const [amount, setAmount] = useState(String(tx.amountNok));
   const [stopped, setStopped] = useState(initiallyStopped);
 
@@ -159,8 +162,17 @@ export default function EditDomesticPaymentForm({
 
         {/* KID kommer fra fakturaen og kan ikke endres (uten Field status). */}
         {tx.kid ? (
-          <ConfigurableField status={status("kid", true)} label="KID" value={tx.kid}>
-            {(disabled) => <Input label="KID" size="medium" stretch disabled={disabled} value={tx.kid} />}
+          <ConfigurableField status={status("kid", true)} label="KID" value={kid}>
+            {(disabled) => (
+              <Input
+                label="KID"
+                size="medium"
+                stretch
+                disabled={disabled}
+                value={kid}
+                onChange={({ value }) => setKid(value)}
+              />
+            )}
           </ConfigurableField>
         ) : (
           <ConfigurableField status={status("message")} label="Melding" value={message}>
