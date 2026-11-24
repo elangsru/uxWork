@@ -38,7 +38,7 @@ export default function TransactionRow({
    *  (alltid i eFaktura-fanen, og med statusfilter i «Til forfall»).
    *  Utelatt: kvitteringen vises som FormStatus i raden i stedet. */
   onConfirmReceipt?: () => void;
-  /** Kalles etter «Reaktiver» på en stoppet betaling. Siden fjerner da
+  /** Kalles etter «Gjenopprett» på en stoppet betaling. Siden fjerner da
    *  varselet; raden viser kvitteringen i stedet, som etter «Godkjenn». */
   onResume?: () => void;
   /** Kalles når kvitteringen i raden er ferdig — eller raden avmonteres
@@ -315,7 +315,7 @@ export default function TransactionRow({
                     }, approveDelayMs);
                   }}
                 >
-                  Reaktiver
+                  Gjenopprett
                   <SubmitIndicator state={resuming ? "pending" : "complete"} />
                 </Button>
               </Flex.Horizontal>

@@ -70,7 +70,7 @@ export default function GroupCard({
   onConfirm: (id: string) => void;
   /** Siden viser kvittering etter «Godkjenn», se TransactionRow. */
   onConfirmReceipt?: (tx: Transaction) => void;
-  /** Se TransactionRow: «Reaktiver» på en stoppet betaling. */
+  /** Se TransactionRow: «Gjenopprett» på en stoppet betaling. */
   onResume?: (id: string) => void;
   /** Se TransactionRow: kvitteringen i raden er ferdig. */
   onReceiptDone?: (tx: Transaction) => void;

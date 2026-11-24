@@ -15,7 +15,7 @@ import { APPROVE_DELAY_MS } from "./data";
  *
  * Ingen av knappene lagrer, stopper eller sletter ennå. Lagre viser spinner
  * like lenge som «Godkjenn» på en eFaktura og lukker så modalen; Slett lukker
- * med en gang; Stopp veksler bare til «Reaktiver» og tilbake, slik at modalen blir
+ * med en gang; Stopp veksler bare til «Gjenopprett» og tilbake, slik at modalen blir
  * stående og brukeren ser at betalingen er stoppet. Tilstanden eies av
  * skjemaet, som også viser varselet under mottakeren.
  */
@@ -66,11 +66,11 @@ export default function EditPaymentActions({
         </Button>
         <Button
           variant="tertiary"
-          text={stopped ? "Reaktiver" : "Stopp"}
+          text={stopped ? "Gjenopprett" : "Stopp"}
           icon={stopped ? refresh : stop}
           iconPosition="left"
           disabled={locked}
-          // Bare på Stopp — Reaktiver har ikke fått noen tekst ennå. Ingen
+          // Bare på Stopp — Gjenopprett har ikke fått noen tekst ennå. Ingen
           // tooltip på deaktivert knapp, den kan ikke få hover eller fokus.
           tooltip={stopped || locked ? undefined : "Stopper betalingen til du gjenopptar"}
           onClick={onToggleStop}
