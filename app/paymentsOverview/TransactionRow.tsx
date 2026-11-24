@@ -1,18 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Form } from "@dnb/eufemia/extensions/forms";
 import { SubmitIndicator } from "@dnb/eufemia/extensions/forms/Form";
-import { Anchor, Avatar, Badge, Button, CountryFlag, Dialog, Flex, FormStatus, Icon, List } from "@dnb/eufemia/components";
+import { Anchor, Avatar, Badge, Button, CountryFlag, Flex, FormStatus, Icon, List } from "@dnb/eufemia/components";
 import { Span } from "@dnb/eufemia/elements";
 import { funds_medium, investment_account_medium, loan_medium, office_buildings, savings_account_medium, transfer_medium } from "@dnb/eufemia/icons";
 
 import type { ButtonClickEvent } from "@dnb/eufemia/components/button/types";
 
-import { APPROVE_DELAY_MS, accountDetails, fmtAmount, fmtNok, type Transaction } from "./data";
-
-/** Hvor lenge «Reaktiver» viser spinner før kvitteringen vises. */
-const RESUME_DELAY_MS = 1500;
+import { accountDetails, fmtAmount, fmtNok, type Transaction } from "./data";
 
 /** Samme varighet som transition på .receipt-footer--leaving i CSS-en. */
 const RECEIPT_LEAVE_MS = 400;
@@ -25,9 +21,11 @@ export default function TransactionRow({
   isConfirmed,
   onConfirm,
   onConfirmReceipt,
+  onResume,
   onReceiptDone,
   collapseOnDone,
   onClick,
+  approveDelayMs = 0,
 }: {
   tx: Transaction;
   overline: string;
@@ -40,6 +38,9 @@ export default function TransactionRow({
    *  (alltid i eFaktura-fanen, og med statusfilter i «Til forfall»).
    *  Utelatt: kvitteringen vises som FormStatus i raden i stedet. */
   onConfirmReceipt?: () => void;
+  /** Kalles etter «Reaktiver» på en stoppet betaling. Siden fjerner da
+   *  varselet; raden viser kvitteringen i stedet, som etter «Godkjenn». */
+  onResume?: () => void;
   /** Kalles når kvitteringen i raden er ferdig — eller raden avmonteres
    *  mens den vises. eFaktura-fanen holder raden i listen til da. */
   onReceiptDone?: () => void;
@@ -48,6 +49,9 @@ export default function TransactionRow({
   collapseOnDone?: boolean;
   /** Klikk på selve raden, og på «Rediger» i footeren. */
   onClick?: () => void;
+  /** Hvor lenge «Godkjenn» viser spinner, fra «Response delay» i Tools-menyen.
+   *  0 (ingen verdi): godkjent med en gang, uten lastetilstand. */
+  approveDelayMs?: number;
 }) {
   const [approving, setApproving] = useState(false);
   // Uten onConfirmReceipt vises kvitteringen i raden: footeren blir stående
@@ -56,6 +60,9 @@ export default function TransactionRow({
   // krymper, så null — footeren fjernes. Bare lokal state, så den forsvinner
   // også ved refresh.
   const [receipt, setReceipt] = useState<"shown" | "leaving" | null>(null);
+  // Hva kvitteringen gjelder: godkjent eFaktura eller reaktivert betaling.
+  const [receiptKind, setReceiptKind] = useState<"approved" | "resumed">("approved");
+  const [resuming, setResuming] = useState(false);
 
   // Raden kan forsvinne mens godkjenningen pågår — tabbytte, endret filter, eller
   // at den forrige godkjenningen fjernet den fra listen. Uten opprydding kjører
@@ -189,9 +196,10 @@ export default function TransactionRow({
         <List.Cell.Footer
           className={`actions-footer receipt-footer${receipt === "leaving" ? " receipt-footer--leaving" : ""}`}
         >
-          {/* «Lukk» er en vanlig inline-lenke i teksten, som Eufemia
-              dokumenterer for FormStatus. element="button" fordi den lukker
-              meldingen i stedet for å navigere. widthElement av samme grunn
+          {/* «Lukk» er en lenke i meldingen, som Eufemia dokumenterer for
+              FormStatus, plassert helt til høyre (receipt-footer__content).
+              element="button" fordi den lukker meldingen i stedet for å
+              navigere. widthElement av samme grunn
               som på varselet: ellers låser FormStatus en max-width ut fra
               teksten ved mount. */}
           <div ref={receiptWidthRef} style={{ width: "100%" }}>
@@ -200,9 +208,20 @@ export default function TransactionRow({
               stretch
               widthElement={receiptWidthRef}
               text={
-                <>
-                  Betaling godkjent og lagt til forfall.{" "}
-                  {accountDetails[tx.accountKey].name} vil bli benyttet neste gang du betaler til {tx.recipient}.{" "}
+                <span className="receipt-footer__content">
+                  <span>
+                  {receiptKind === "resumed" ? (
+                    <>
+                      {tx.type === "overforing" ? "Overføringen" : "Betalingen"} er reaktivert med forfallsdato{" "}
+                      {tx.date}.
+                    </>
+                  ) : (
+                    <>
+                      Betaling godkjent og lagt til forfall.{" "}
+                      {accountDetails[tx.accountKey].name} vil bli benyttet neste gang du betaler til {tx.recipient}.
+                    </>
+                  )}
+                  </span>
                   <Anchor
                     element="button"
                     type="button"
@@ -214,7 +233,7 @@ export default function TransactionRow({
                   >
                     Lukk
                   </Anchor>
-                </>
+                </span>
               }
             />
           </div>
@@ -231,14 +250,24 @@ export default function TransactionRow({
               disabled={approving}
               onClick={(e: ButtonClickEvent) => {
                 e.event.stopPropagation();
+                const done = () => {
+                  onConfirm?.();
+                  if (onConfirmReceipt) onConfirmReceipt();
+                  else {
+                    setReceiptKind("approved");
+                    setReceipt("shown");
+                  }
+                };
+                if (approveDelayMs <= 0) {
+                  done();
+                  return;
+                }
                 setApproving(true);
                 approveTimer.current = setTimeout(() => {
                   approveTimer.current = null;
                   setApproving(false);
-                  onConfirm?.();
-                  if (onConfirmReceipt) onConfirmReceipt();
-                  else setReceipt("shown");
-                }, APPROVE_DELAY_MS);
+                  done();
+                }, approveDelayMs);
               }}
             >
               Godkjenn
@@ -247,7 +276,7 @@ export default function TransactionRow({
           </Flex.Horizontal>
         </List.Cell.Footer>
       )}
-      {warning && (
+      {warning && !receipt && (
         <List.Cell.Footer className="warning-footer">
           {/* Varselet og knappene i samme footer, så de står samlet under raden.
               Knappene følger samme mønster som på ubekreftet eFaktura. */}
@@ -260,41 +289,35 @@ export default function TransactionRow({
               {/* Høyrestilt med hovedhandlingen lengst til høyre, som Rediger +
                   Godkjenn på ubekreftet eFaktura. */}
               <Flex.Horizontal justify="flex-end">
-                <Button variant="tertiary" text="Rediger" icon={false} onClick={edit} />
-                {/* Kvitteringen er en Form.SubmitConfirmation: onSubmit svarer
-                    med en customStatus, og den åpner dialogen i etterkant i
-                    stedet for å spørre før. Wrapperen stopper boblingen —
-                    også fra dialogen, siden React-hendelser bobler gjennom
-                    portalen og ellers ville åpnet raden. */}
-                <div onClick={(e) => e.stopPropagation()}>
-                  <Form.Handler
-                    onSubmit={async () => {
-                      await new Promise((resolve) => setTimeout(resolve, RESUME_DELAY_MS));
-                      return { customStatus: "resumed" };
-                    }}
-                  >
-                    <Form.SubmitButton variant="secondary" text="Reaktiver" icon={false} />
-                    <Form.SubmitConfirmation
-                      onSubmitResult={({ submitState, setConfirmationState }) => {
-                        if (submitState?.customStatus) setConfirmationState("readyToBeSubmitted");
-                      }}
-                      renderWithState={({ connectWithDialog, cancelHandler }) => (
-                        <Dialog
-                          variant="confirmation"
-                          title="Reaktivert"
-                          description={`${tx.type === "overforing" ? "Overføringen" : "Betalingen"} er reaktivert med forfallsdato ${tx.date}.`}
-                          confirmText="Lukk"
-                          hideDecline
-                          {...connectWithDialog}
-                          // «Lukk» skal bare lukke — connectWithDialog sin
-                          // onConfirm ville sendt skjemaet på nytt.
-                          onConfirm={cancelHandler}
-                          onClose={cancelHandler}
-                        />
-                      )}
-                    />
-                  </Form.Handler>
-                </div>
+                <Button variant="tertiary" text="Rediger" icon="edit" iconPosition="left" onClick={edit} />
+                {/* Samme flyt som «Godkjenn» på ubekreftet eFaktura: spinner så
+                    lenge «Response delay» varer, så erstattes varselet av en
+                    kvittering i raden (FormStatus med «Lukk»), ingen dialog. */}
+                <Button
+                  variant="secondary"
+                  disabled={resuming}
+                  onClick={(e: ButtonClickEvent) => {
+                    e.event.stopPropagation();
+                    const done = () => {
+                      setReceiptKind("resumed");
+                      setReceipt("shown");
+                      onResume?.();
+                    };
+                    if (approveDelayMs <= 0) {
+                      done();
+                      return;
+                    }
+                    setResuming(true);
+                    approveTimer.current = setTimeout(() => {
+                      approveTimer.current = null;
+                      setResuming(false);
+                      done();
+                    }, approveDelayMs);
+                  }}
+                >
+                  Reaktiver
+                  <SubmitIndicator state={resuming ? "pending" : "complete"} />
+                </Button>
               </Flex.Horizontal>
             </Flex.Vertical>
           </div>

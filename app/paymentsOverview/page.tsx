@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Theme from "@dnb/eufemia/shared/Theme";
-import { Anchor, Autocomplete, Avatar, Breadcrumb, Button, DatePicker, Dialog, Filter, List, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
+import { Anchor, Autocomplete, Avatar, Breadcrumb, Button, DatePicker, Dialog, Filter, List, ProgressIndicator, Skeleton, Switch, Tabs, TermDefinition, ToggleButton } from "@dnb/eufemia/components";
 import { H1, P } from "@dnb/eufemia/elements";
 import { Field } from "@dnb/eufemia/extensions/forms";
 import { globe, pay_from, refresh, transfer } from "@dnb/eufemia/icons";
@@ -11,11 +11,14 @@ import "./paymentsOverview.css";
 import EditDomesticPaymentForm from "./EditDomesticPaymentForm";
 import EditPaymentForm from "./EditPaymentForm";
 import EditTransferForm from "./EditTransferForm";
+import DelayedSelection from "./DelayedSelection";
 import FilterBox from "./FilterBox";
 import FeedbackModule from "./FeedbackModule";
 import GroupCard from "./GroupCard";
 import GroupingRow from "./GroupingRow";
 import ToolsPanel from "./ToolsPanel";
+import { useDelayedFilters } from "./useDelayedFilters";
+import { useDelayedValue } from "./useDelayedValue";
 import {
   ALL_ACCOUNTS,
   DEMO_WARNINGS,
@@ -84,10 +87,13 @@ function amountRangeLabel({ min, max }: AmountRange) {
  * Min/Maks-feltene i filterpanelet. Leser verdien fra Filter.Root, så «Fjern
  * alle» og krysset på taggen tømmer feltene også.
  */
-function AmountRangeFilter() {
+function AmountRangeFilter({ pending = false }: { pending?: boolean }) {
   const { getFilter, setFilter } = Filter.useFilterContext();
   const current = getFilter(AMOUNT_FILTER_KEY)?.value;
   const range: AmountRange = isAmountRange(current) ? current : {};
+  // Feltet det sist ble skrevet i: spinneren for «Response delay» står der.
+  const [lastEdited, setLastEdited] = useState<"min" | "max">("max");
+  const spinner = <ProgressIndicator size="small" title="Laster" />;
   const update = (next: AmountRange) => {
     const empty = next.min === undefined && next.max === undefined;
     setFilter(
@@ -100,28 +106,42 @@ function AmountRangeFilter() {
   return (
     <Filter.Item label={AMOUNT_FILTER_LABEL} filterKey={AMOUNT_FILTER_KEY} defaultOpen>
       <div className="po-amountfilter">
-        <Field.Currency
-          label="Min"
-          labelSrOnly
-          placeholder="Minimum kr"
-          size="medium"
-          width="stretch"
-          currency="NOK"
-          minimum={0}
-          value={range.min}
-          onChange={(v) => update({ ...range, min: v ?? undefined })}
-        />
-        <Field.Currency
-          label="Maks"
-          labelSrOnly
-          placeholder="Maksimum kr"
-          size="medium"
-          width="stretch"
-          currency="NOK"
-          minimum={0}
-          value={range.max}
-          onChange={(v) => update({ ...range, max: v ?? undefined })}
-        />
+        {/* Spinneren ligger inne i feltet det skrives i, helt til høyre (se
+            CSS), så feltene beholder bredden. */}
+        <div className="po-amountfilter__field">
+          <Field.Currency
+            label="Min"
+            labelSrOnly
+            placeholder="Minimum kr"
+            size="medium"
+            width="stretch"
+            currency="NOK"
+            minimum={0}
+            value={range.min}
+            onChange={(v) => {
+              setLastEdited("min");
+              update({ ...range, min: v ?? undefined });
+            }}
+          />
+          {pending && lastEdited === "min" && spinner}
+        </div>
+        <div className="po-amountfilter__field">
+          <Field.Currency
+            label="Maks"
+            labelSrOnly
+            placeholder="Maksimum kr"
+            size="medium"
+            width="stretch"
+            currency="NOK"
+            minimum={0}
+            value={range.max}
+            onChange={(v) => {
+              setLastEdited("max");
+              update({ ...range, max: v ?? undefined });
+            }}
+          />
+          {pending && lastEdited === "max" && spinner}
+        </div>
       </div>
     </Filter.Item>
   );
@@ -273,6 +293,42 @@ function TypeFilterSync({ inPanel, types }: { inPanel: boolean; types: string[] 
   return null;
 }
 
+type DateRange = { start: string; end: string };
+type DateShortcut = {
+  title: string;
+  startDate: () => Date;
+  endDate: () => Date;
+  closeOnSelect?: boolean;
+};
+
+/** Snarveien som gir akkurat dette datointervallet, eller null (manuelt valg
+ *  i kalenderen). Første treff vinner hvis to snarveier gir samme intervall. */
+function shortcutIndex(shortcuts: DateShortcut[], { start, end }: DateRange): number | null {
+  const i = shortcuts.findIndex(
+    (sc) => isoLocalDate(sc.startDate()) === start && isoLocalDate(sc.endDate()) === end,
+  );
+  return i === -1 ? null : i;
+}
+
+/** Snarveiene med spinner bak navnet på den som venter. DatePicker typer
+ *  title som string, men sender den rett til Button sin text, som tar
+ *  ReactNode — derav casten. */
+function withPendingShortcut(shortcuts: DateShortcut[], pending: number | null) {
+  return shortcuts.map((sc, i) =>
+    i === pending
+      ? {
+          ...sc,
+          title: (
+            <span className="po-pending-label">
+              {sc.title}
+              <ProgressIndicator size="small" title="Laster" />
+            </span>
+          ) as unknown as string,
+        }
+      : sc,
+  );
+}
+
 /** Ankeret innledningsteksten lenker til. */
 const FEEDBACK_ID = "tilbakemelding";
 
@@ -289,11 +345,60 @@ export default function PaymentsOverview() {
   const prevMonthLabel = prevMonthName.charAt(0).toUpperCase() + prevMonthName.slice(1);
 
   const [paymentTypes, setPaymentTypes] = useState<string[]>([]);
+  // Typene listen faktisk filtreres på. Følger paymentTypes, men med
+  // «Response delay» fra Tools-menyen når valget gjøres med ToggleButtons:
+  // knappen viser valget med en gang, listen oppdateres etter forsinkelsen.
+  // pendingType er knappen som venter, og får en spinner bak navnet.
+  const [appliedTypes, setAppliedTypes] = useState<string[]>([]);
+  const [pendingType, setPendingType] = useState<string | null>(null);
+  const typeDelayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (typeDelayTimer.current !== null) clearTimeout(typeDelayTimer.current);
+    },
+    [],
+  );
   const [showSaldo, setShowSaldo] = useState(false);
   const [showTypeFilter, setShowTypeFilter] = useState(false);
   const [showSaldoSwitch, setShowSaldoSwitch] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  // Response delay (Tools-menyen): kunstig forsinkelse i hele sekunder, for å
+  // se hvordan interaksjoner oppfører seg med ventetid (f.eks. ventespinner).
+  // "0" = None: ingen lastetilstand. Foreløpig koblet til «Godkjenn» på
+  // eFaktura (TransactionRow).
+  const [delaySeconds, setDelaySeconds] = useState("0");
+  const responseDelayMs = Number(delaySeconds) * 1000;
+  // Samme forsinkelse for filterpanelene (type, status og beløp), én per
+  // fane siden de har hver sin Filter.Root.
+  const forfallDelay = useDelayedFilters(responseDelayMs, [
+    TYPE_FILTER_KEY,
+    STATUS_FILTER_KEY,
+    AMOUNT_FILTER_KEY,
+  ]);
+  const completedDelay = useDelayedFilters(responseDelayMs, [TYPE_FILTER_KEY, AMOUNT_FILTER_KEY]);
+
+  // Typevalg fra ToggleButtons. Et nytt klikk mens et annet venter starter
+  // ventetiden på nytt med hele det nye valget, så listen hopper ikke innom
+  // et mellomsteg.
+  const changePaymentTypes = (next: string[]) => {
+    const clicked =
+      next.find((v) => !paymentTypes.includes(v)) ?? paymentTypes.find((v) => !next.includes(v)) ?? null;
+    setPaymentTypes(next);
+    if (typeDelayTimer.current !== null) clearTimeout(typeDelayTimer.current);
+    typeDelayTimer.current = null;
+    if (responseDelayMs <= 0) {
+      setPendingType(null);
+      setAppliedTypes(next);
+      return;
+    }
+    setPendingType(clicked);
+    typeDelayTimer.current = setTimeout(() => {
+      typeDelayTimer.current = null;
+      setPendingType(null);
+      setAppliedTypes(next);
+    }, responseDelayMs);
+  };
   const [showWarnings, setShowWarnings] = useState(false);
   const [showFeedback, setShowFeedback] = useState(true);
   const [showUnconfirmed, setShowUnconfirmed] = useState(false);
@@ -302,6 +407,11 @@ export default function PaymentsOverview() {
   // viser bare placeholder.
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  // Datoene listen filtreres på. startDate/endDate er det feltet viser og
+  // følger valget med en gang; disse venter på «Response delay» når valget
+  // kommer fra en snarveisknapp i kalenderen (se forfallDates).
+  const [appliedStartDate, setAppliedStartDate] = useState("");
+  const [appliedEndDate, setAppliedEndDate] = useState("");
   const [groupBy, setGroupBy] = useState("konto");
   const [efakturaGroupBy, setEfakturaGroupBy] = useState("fakturaeier");
   const [efakturaOwnerFilter, setEfakturaOwnerFilter] = useState<string | null>(null);
@@ -317,8 +427,124 @@ export default function PaymentsOverview() {
   // «Utførte» har egen filtertilstand: valgene i «Til forfall» skal ikke følge
   // med over, og datoene peker motsatt vei (bakover i tid).
   const [completedAccountKey, setCompletedAccountKey] = useState<AccountKey | null>(null);
+  // Kontovelgeren: spinner i feltet (i stedet for saldoen) til tiden er ute.
+  const forfallAccount = useDelayedValue<AccountKey | null>(responseDelayMs, setSelectedAccountKey);
+  const completedAccount = useDelayedValue<AccountKey | null>(responseDelayMs, setCompletedAccountKey);
   const [completedStartDate, setCompletedStartDate] = useState("");
   const [completedEndDate, setCompletedEndDate] = useState("");
+  const [appliedCompletedStartDate, setAppliedCompletedStartDate] = useState("");
+  const [appliedCompletedEndDate, setAppliedCompletedEndDate] = useState("");
+  // Snarveisknappene i datovelgerne. Definert her så onChange kan kjenne igjen
+  // hvilken knapp som ble trykket (se shortcutIndex).
+  const forfallShortcuts: DateShortcut[] = [
+    {
+      title: "Neste 30 dg",
+      startDate: () => new Date(),
+      endDate: () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 30);
+        return d;
+      },
+      closeOnSelect: false,
+    },
+    {
+      title: currentMonthLabel,
+      startDate: () => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1);
+      },
+      endDate: () => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      },
+      closeOnSelect: false,
+    },
+    {
+      title: "Neste 7 dg",
+      startDate: () => new Date(),
+      endDate: () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d;
+      },
+      closeOnSelect: false,
+    },
+    {
+      title: "Denne uken",
+      startDate: () => {
+        const d = new Date();
+        const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
+        d.setDate(d.getDate() + diff);
+        return d;
+      },
+      endDate: () => {
+        const d = new Date();
+        const diff = d.getDay() === 0 ? 0 : 7 - d.getDay();
+        d.setDate(d.getDate() + diff);
+        return d;
+      },
+      closeOnSelect: false,
+    },
+  ];
+  const completedShortcuts: DateShortcut[] = [
+    {
+      title: "Siste 90 dg",
+      startDate: () => {
+        const d = new Date();
+        d.setDate(d.getDate() - 90);
+        return d;
+      },
+      endDate: () => new Date(),
+      closeOnSelect: false,
+    },
+    {
+      title: "Siste 30 dg",
+      startDate: () => {
+        const d = new Date();
+        d.setDate(d.getDate() - 30);
+        return d;
+      },
+      endDate: () => new Date(),
+      closeOnSelect: false,
+    },
+    {
+      title: prevMonthLabel,
+      startDate: () => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth() - 1, 1);
+      },
+      endDate: () => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 0);
+      },
+      closeOnSelect: false,
+    },
+    {
+      title: currentMonthLabel,
+      startDate: () => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1);
+      },
+      endDate: () => new Date(),
+      closeOnSelect: false,
+    },
+  ];
+
+  // Datovelgeren: snarveisknappene i kalenderen venter på «Response delay» og
+  // viser spinner bak navnet; pendingShortcut er indeksen til knappen som venter.
+  // Manuelle valg i kalenderen og «Nullstill» brukes med en gang.
+  const [forfallPendingShortcut, setForfallPendingShortcut] = useState<number | null>(null);
+  const [completedPendingShortcut, setCompletedPendingShortcut] = useState<number | null>(null);
+  const forfallDates = useDelayedValue<DateRange>(responseDelayMs, ({ start, end }) => {
+    setAppliedStartDate(start);
+    setAppliedEndDate(end);
+    setForfallPendingShortcut(null);
+  });
+  const completedDates = useDelayedValue<DateRange>(responseDelayMs, ({ start, end }) => {
+    setAppliedCompletedStartDate(start);
+    setAppliedCompletedEndDate(end);
+    setCompletedPendingShortcut(null);
+  });
   const [completedTypes, setCompletedTypes] = useState<string[]>([]);
   const [completedAmountRange, setCompletedAmountRange] = useState<AmountRange>({});
   const [completedRecipient, setCompletedRecipient] = useState<string | null>(null);
@@ -368,8 +594,14 @@ export default function PaymentsOverview() {
    *  ubekreftet til å begynne med. */
   const isSettled = (t: Transaction) => !t.unconfirmed || confirmedIds.has(t.id);
 
+  // Stoppede betalinger som er reaktivert i raden: varselet forsvinner og
+  // status blir aktiv. Bare i minnet, som confirmedIds.
+  const [resumedIds, setResumedIds] = useState<Set<string>>(new Set());
+  const resume = (id: string) => setResumedIds((prev) => new Set([...prev, id]));
+  const isStopped = (t: Transaction) => showWarnings && !!DEMO_WARNINGS[t.id] && !resumedIds.has(t.id);
+
   const statusOf = (t: Transaction): PaymentStatus =>
-    !isSettled(t) ? "ubekreftet" : showWarnings && DEMO_WARNINGS[t.id] ? "stoppet" : "aktiv";
+    !isSettled(t) ? "ubekreftet" : isStopped(t) ? "stoppet" : "aktiv";
 
   const confirm = (id: string) => setConfirmedIds((prev) => new Set([...prev, id]));
   // eFakturaer i eFaktura-fanen som er godkjent, men som fortsatt viser
@@ -488,10 +720,10 @@ export default function PaymentsOverview() {
   const visibleTransactions = allTransactions.filter(
     (t) =>
       (selectedAccountKey === null || t.accountKey === selectedAccountKey) &&
-      (paymentTypes.length === 0 || paymentTypes.includes(filterTypeOf(t))) &&
+      (appliedTypes.length === 0 || appliedTypes.includes(filterTypeOf(t))) &&
       // Tom dato = ingen grense i den retningen (etter «Nullstill»).
-      (startDate === "" || t.dateValue >= startDate) &&
-      (endDate === "" || t.dateValue <= endDate) &&
+      (appliedStartDate === "" || t.dateValue >= appliedStartDate) &&
+      (appliedEndDate === "" || t.dateValue <= appliedEndDate) &&
       (amountRange.min === undefined || t.amountNok >= amountRange.min) &&
       (amountRange.max === undefined || t.amountNok <= amountRange.max) &&
       (statuses.length === 0 || statuses.includes(statusOf(t))) &&
@@ -625,7 +857,9 @@ export default function PaymentsOverview() {
     `${accountDetails[tx.accountKey].name} ${accountDetails[tx.accountKey].number}`;
 
   const rowBalance = showSaldo ? (tx: Transaction) => runningBalanceMap[tx.id] : undefined;
-  const rowWarning = showWarnings ? (tx: Transaction) => DEMO_WARNINGS[tx.id] : undefined;
+  const rowWarning = showWarnings
+    ? (tx: Transaction) => (isStopped(tx) ? DEMO_WARNINGS[tx.id] : undefined)
+    : undefined;
 
   // «Til forfall», gruppert på konto. Eneste gruppering med sum-rad: den viser
   // hva som er igjen på kontoen etter at betalingene er trukket fra.
@@ -648,6 +882,7 @@ export default function PaymentsOverview() {
         overlineFor={(tx) => tx.date}
         balanceFor={rowBalance}
         warningFor={rowWarning}
+        onResume={resume}
         // Sum-raden vises alltid. «Penger til overs» og saldoen etter
         // trekk hører til svitsjen.
         sum={
@@ -668,6 +903,7 @@ export default function PaymentsOverview() {
         }
         confirmedIds={confirmedIds}
         onConfirm={confirm}
+        approveDelayMs={responseDelayMs}
         // Ingen onConfirmReceipt: «Til forfall» tester kvittering som
         // FormStatus i raden i stedet for dialog. eFaktura-fanen har fortsatt
         // dialogen, der faller raden ut av listen ved godkjenning.
@@ -691,8 +927,10 @@ export default function PaymentsOverview() {
         overlineFor={accountOverline}
         balanceFor={rowBalance}
         warningFor={rowWarning}
+        onResume={resume}
         confirmedIds={confirmedIds}
         onConfirm={confirm}
+        approveDelayMs={responseDelayMs}
         onRowClick={openPayment}
       />
     );
@@ -717,6 +955,7 @@ export default function PaymentsOverview() {
           overlineFor={(tx) => tx.date}
           confirmedIds={confirmedIds}
           onConfirm={efakturaConfirm}
+          approveDelayMs={responseDelayMs}
           onReceiptDone={receiptDone}
           collapseOnDone
           onRowClick={openPayment}
@@ -740,6 +979,7 @@ export default function PaymentsOverview() {
         overlineFor={(tx) => `${tx.date} · ${accountOverline(tx)}`}
         confirmedIds={confirmedIds}
         onConfirm={efakturaConfirm}
+        approveDelayMs={responseDelayMs}
         onReceiptDone={receiptDone}
         collapseOnDone
         onRowClick={openPayment}
@@ -767,8 +1007,8 @@ export default function PaymentsOverview() {
       (t) =>
         (completedAccountKey === null || t.accountKey === completedAccountKey) &&
         (completedTypes.length === 0 || completedTypes.includes(filterTypeOf(t))) &&
-        (completedStartDate === "" || t.dateValue >= completedStartDate) &&
-        (completedEndDate === "" || t.dateValue <= completedEndDate) &&
+        (appliedCompletedStartDate === "" || t.dateValue >= appliedCompletedStartDate) &&
+        (appliedCompletedEndDate === "" || t.dateValue <= appliedCompletedEndDate) &&
         (completedAmountRange.min === undefined || t.amountNok >= completedAmountRange.min) &&
         (completedAmountRange.max === undefined || t.amountNok <= completedAmountRange.max) &&
         (completedRecipient === null || t.recipient === completedRecipient),
@@ -854,7 +1094,7 @@ export default function PaymentsOverview() {
           forfallsdato, mens panelet åpnes i full bredde nederst i boksen. */}
       <Filter.Root
         id="po-forfall-filter"
-        onChange={({ filters }) => {
+        onChange={({ filters }) => forfallDelay.onFilters(filters, () => {
           const amount = filters[AMOUNT_FILTER_KEY]?.value;
           setAmountRange(isAmountRange(amount) ? amount : {});
           setStatuses(
@@ -864,37 +1104,47 @@ export default function PaymentsOverview() {
           setReceivedFrom(typeof from === "string" ? from : null);
           // Bare når typen bor i panelet; ellers styres den av ToggleButtons.
           if (!showTypeFilter) {
-            setPaymentTypes(
-              PAYMENT_TYPE_OPTIONS.map((o) => o.value).filter(
-                (v) => `${TYPE_FILTER_KEY}/${v}` in filters,
-              ),
+            const types = PAYMENT_TYPE_OPTIONS.map((o) => o.value).filter(
+              (v) => `${TYPE_FILTER_KEY}/${v}` in filters,
             );
+            // Typen bor nå i panelet; en ventende knapp fra ToggleButtons
+            // skal ikke overstyre valget når timeren går ut.
+            if (typeDelayTimer.current !== null) clearTimeout(typeDelayTimer.current);
+            typeDelayTimer.current = null;
+            setPendingType(null);
+            setPaymentTypes(types);
+            setAppliedTypes(types);
           }
-        }}
+        })}
       >
       <TypeFilterSync inPanel={!showTypeFilter} types={paymentTypes} />
       <ReceivedFromSync active={showOnBehalfOf} />
       <FilterBox
         fields={[
-          <Autocomplete
+          // Spinneren ligger oppå saldoen i feltet, og saldoen skjules så
+          // lenge kontovalget venter på «Response delay» (se CSS).
+          <div
             key="konto"
-            label="Belastningskonto"
-            size="medium"
-            data={accountOptions}
-            placeholder="Alle"
-            stretch
-            showSubmitButton
-            submitButtonTitle=""
-            onChange={({ data }) => {
-              const key =
-                data && typeof data === "object" && "selectedKey" in data
-                  ? String(data.selectedKey)
-                  : null;
-              setSelectedAccountKey(
-                key === null || key === ALL_ACCOUNTS ? null : (key as AccountKey),
-              );
-            }}
-          />,
+            className={forfallAccount.pending ? "po-account-picker po-account-picker--pending" : "po-account-picker"}
+          >
+            <Autocomplete
+              label="Belastningskonto"
+              size="medium"
+              data={accountOptions}
+              placeholder="Alle"
+              stretch
+              showSubmitButton
+              submitButtonTitle=""
+              onChange={({ data }) => {
+                const key =
+                  data && typeof data === "object" && "selectedKey" in data
+                    ? String(data.selectedKey)
+                    : null;
+                forfallAccount.set(key === null || key === ALL_ACCOUNTS ? null : (key as AccountKey));
+              }}
+            />
+            {forfallAccount.pending && <ProgressIndicator size="small" title="Laster" />}
+          </div>,
           <div key="dato" className="po-date-filter">
           <DatePicker
             label="Forfallsdato"
@@ -914,61 +1164,19 @@ export default function PaymentsOverview() {
             onReset={() => {
               setStartDate("");
               setEndDate("");
+              setForfallPendingShortcut(null);
+              forfallDates.setNow({ start: "", end: "" });
             }}
             onChange={({ startDate: s, endDate: e }) => {
               if (s) setStartDate(s);
               if (e) setEndDate(e);
+              const next = { start: s || startDate, end: e || endDate };
+              const i = shortcutIndex(forfallShortcuts, next);
+              setForfallPendingShortcut(i);
+              if (i === null) forfallDates.setNow(next);
+              else forfallDates.set(next);
             }}
-            shortcuts={[
-              {
-                title: "Neste 30 dg",
-                startDate: () => new Date(),
-                endDate: () => {
-                  const d = new Date();
-                  d.setDate(d.getDate() + 30);
-                  return d;
-                },
-                closeOnSelect: false,
-              },
-              {
-                title: currentMonthLabel,
-                startDate: () => {
-                  const d = new Date();
-                  return new Date(d.getFullYear(), d.getMonth(), 1);
-                },
-                endDate: () => {
-                  const d = new Date();
-                  return new Date(d.getFullYear(), d.getMonth() + 1, 0);
-                },
-                closeOnSelect: false,
-              },
-              {
-                title: "Neste 7 dg",
-                startDate: () => new Date(),
-                endDate: () => {
-                  const d = new Date();
-                  d.setDate(d.getDate() + 7);
-                  return d;
-                },
-                closeOnSelect: false,
-              },
-              {
-                title: "Denne uken",
-                startDate: () => {
-                  const d = new Date();
-                  const diff = d.getDay() === 0 ? -6 : 1 - d.getDay();
-                  d.setDate(d.getDate() + diff);
-                  return d;
-                },
-                endDate: () => {
-                  const d = new Date();
-                  const diff = d.getDay() === 0 ? 0 : 7 - d.getDay();
-                  d.setDate(d.getDate() + diff);
-                  return d;
-                },
-                closeOnSelect: false,
-              },
-            ]}
+            shortcuts={withPendingShortcut(forfallShortcuts, forfallDates.pending ? forfallPendingShortcut : null)}
           />
             <Filter.PanelButton />
           </div>,
@@ -983,15 +1191,30 @@ export default function PaymentsOverview() {
                 label={TYPE_FILTER_LABEL}
                 multiselect
                 values={paymentTypes}
-                onChange={({ values }) => setPaymentTypes(values as string[])}
+                onChange={({ values }) => changePaymentTypes(values as string[])}
               >
-                {PAYMENT_TYPE_OPTIONS.map((o) => (
-                  <ToggleButton
-                    key={o.value}
-                    text={o.value === "efaktura" ? efakturaLabel : o.label}
-                    value={o.value}
-                  />
-                ))}
+                {PAYMENT_TYPE_OPTIONS.map((o) => {
+                  const label = o.value === "efaktura" ? efakturaLabel : o.label;
+                  const pending = pendingType === o.value;
+                  return (
+                    <ToggleButton
+                      key={o.value}
+                      // Spinneren står i teksten, ikke i icon: ikonslottet gir
+                      // SVG-en fill: currentcolor, som fyller ringen helt.
+                      text={
+                        pending ? (
+                          <span className="po-pending-label">
+                            {label}
+                            <ProgressIndicator size="small" title="Laster" />
+                          </span>
+                        ) : (
+                          label
+                        )
+                      }
+                      value={o.value}
+                    />
+                  );
+                })}
               </ToggleButton.Group>
             )}
             {showSaldoSwitch && (
@@ -1011,17 +1234,19 @@ export default function PaymentsOverview() {
         )}
         <Filter.Panel>
           {!showTypeFilter && (
-            <Filter.Selection
+            <DelayedSelection
               label={TYPE_FILTER_LABEL}
               filterKey={TYPE_FILTER_KEY}
               defaultOpen
               data={PAYMENT_TYPE_OPTIONS}
+              pendingValue={forfallDelay.pendingIn(TYPE_FILTER_KEY)}
             />
           )}
-          <Filter.Selection
+          <DelayedSelection
             label="Status"
             filterKey={STATUS_FILTER_KEY}
             defaultOpen
+            pendingValue={forfallDelay.pendingIn(STATUS_FILTER_KEY)}
             data={[
               { value: "ubekreftet", label: "eFaktura til godkjenning" },
               { value: "aktiv", label: "Aktive betalinger" },
@@ -1038,7 +1263,7 @@ export default function PaymentsOverview() {
               }}
             />
           )}
-          <AmountRangeFilter />
+          <AmountRangeFilter pending={forfallDelay.isPending(AMOUNT_FILTER_KEY)} />
         </Filter.Panel>
         {/* Aktive valg fra filterpanelet som tags, uten kategorinavn — bare
             selve verdien. Leser samme state via Filter.Root. Står under
@@ -1074,7 +1299,7 @@ export default function PaymentsOverview() {
     <div className="po-tabpanel">
       <Filter.Root
         id="po-utforte-filter"
-        onChange={({ filters }) => {
+        onChange={({ filters }) => completedDelay.onFilters(filters, () => {
           const amount = filters[AMOUNT_FILTER_KEY]?.value;
           setCompletedAmountRange(isAmountRange(amount) ? amount : {});
           const recipient = filters[RECIPIENT_FILTER_KEY]?.value;
@@ -1084,29 +1309,34 @@ export default function PaymentsOverview() {
               (v) => `${TYPE_FILTER_KEY}/${v}` in filters,
             ),
           );
-        }}
+        })}
       >
       <FilterBox
         fields={[
-          <Autocomplete
+          // Spinneren ligger oppå saldoen i feltet, og saldoen skjules så
+          // lenge kontovalget venter på «Response delay» (se CSS).
+          <div
             key="konto"
-            label="Belastningskonto"
-            size="medium"
-            data={accountOptions}
-            placeholder="Alle"
-            stretch
-            showSubmitButton
-            submitButtonTitle=""
-            onChange={({ data }) => {
-              const key =
-                data && typeof data === "object" && "selectedKey" in data
-                  ? String(data.selectedKey)
-                  : null;
-              setCompletedAccountKey(
-                key === null || key === ALL_ACCOUNTS ? null : (key as AccountKey),
-              );
-            }}
-          />,
+            className={completedAccount.pending ? "po-account-picker po-account-picker--pending" : "po-account-picker"}
+          >
+            <Autocomplete
+              label="Belastningskonto"
+              size="medium"
+              data={accountOptions}
+              placeholder="Alle"
+              stretch
+              showSubmitButton
+              submitButtonTitle=""
+              onChange={({ data }) => {
+                const key =
+                  data && typeof data === "object" && "selectedKey" in data
+                    ? String(data.selectedKey)
+                    : null;
+                completedAccount.set(key === null || key === ALL_ACCOUNTS ? null : (key as AccountKey));
+              }}
+            />
+            {completedAccount.pending && <ProgressIndicator size="small" title="Laster" />}
+          </div>,
           <div key="dato" className="po-date-filter">
           <DatePicker
             label="Belastningsdato"
@@ -1124,72 +1354,38 @@ export default function PaymentsOverview() {
             onReset={() => {
               setCompletedStartDate("");
               setCompletedEndDate("");
+              setCompletedPendingShortcut(null);
+              completedDates.setNow({ start: "", end: "" });
             }}
             onChange={({ startDate: s, endDate: e }) => {
               if (s) setCompletedStartDate(s);
               if (e) setCompletedEndDate(e);
+              const next = { start: s || completedStartDate, end: e || completedEndDate };
+              const i = shortcutIndex(completedShortcuts, next);
+              setCompletedPendingShortcut(i);
+              if (i === null) completedDates.setNow(next);
+              else completedDates.set(next);
             }}
-            shortcuts={[
-              {
-                title: "Siste 90 dg",
-                startDate: () => {
-                  const d = new Date();
-                  d.setDate(d.getDate() - 90);
-                  return d;
-                },
-                endDate: () => new Date(),
-                closeOnSelect: false,
-              },
-              {
-                title: "Siste 30 dg",
-                startDate: () => {
-                  const d = new Date();
-                  d.setDate(d.getDate() - 30);
-                  return d;
-                },
-                endDate: () => new Date(),
-                closeOnSelect: false,
-              },
-              {
-                title: prevMonthLabel,
-                startDate: () => {
-                  const d = new Date();
-                  return new Date(d.getFullYear(), d.getMonth() - 1, 1);
-                },
-                endDate: () => {
-                  const d = new Date();
-                  return new Date(d.getFullYear(), d.getMonth(), 0);
-                },
-                closeOnSelect: false,
-              },
-              {
-                title: currentMonthLabel,
-                startDate: () => {
-                  const d = new Date();
-                  return new Date(d.getFullYear(), d.getMonth(), 1);
-                },
-                endDate: () => new Date(),
-                closeOnSelect: false,
-              },
-            ]}
+            shortcuts={withPendingShortcut(completedShortcuts, completedDates.pending ? completedPendingShortcut : null)}
           />
             <Filter.PanelButton />
           </div>,
         ]}
       >
         <Filter.Panel>
-          <Filter.Selection
+          <DelayedSelection
             label={TYPE_FILTER_LABEL}
             filterKey={TYPE_FILTER_KEY}
             defaultOpen
             data={PAYMENT_TYPE_OPTIONS}
+            pendingValue={completedDelay.pendingIn(TYPE_FILTER_KEY)}
           />
           <NameSelectFilter
             filterKey={RECIPIENT_FILTER_KEY}
             label={RECIPIENT_FILTER_LABEL}
             options={completedRecipientOptions}
           />
-          <AmountRangeFilter />
+          <AmountRangeFilter pending={completedDelay.isPending(AMOUNT_FILTER_KEY)} />
         </Filter.Panel>
         {(completedRecipient !== null ||
           completedAmountRange.min !== undefined ||
@@ -1457,7 +1653,7 @@ export default function PaymentsOverview() {
             { label: "Show completed payments tab", checked: showCompleted, onChange: setShowCompleted },
             { label: "Show warnings", checked: showWarnings, onChange: setShowWarnings },
             { label: "Show feedback module", checked: showFeedback, onChange: setShowFeedback },
-            { label: "Show type toggle buttons", checked: showTypeFilter, onChange: setShowTypeFilter },
+            { label: "Show toggle buttons (type)", checked: showTypeFilter, onChange: setShowTypeFilter },
             {
               label: "Show money left over",
               checked: showSaldoSwitch,
@@ -1469,6 +1665,17 @@ export default function PaymentsOverview() {
               },
             },
             { label: "Dark mode", checked: darkMode, onChange: setDarkMode },
+          ]}
+          selects={[
+            {
+              label: "Response delay",
+              value: delaySeconds,
+              options: [
+                { value: "0", label: "None" },
+                ...[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: `${n} sek` })),
+              ],
+              onChange: setDelaySeconds,
+            },
           ]}
         />
 

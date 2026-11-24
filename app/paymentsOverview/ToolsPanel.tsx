@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Button, Switch } from "@dnb/eufemia/components";
+import { Button, Dropdown, Switch } from "@dnb/eufemia/components";
 import { P } from "@dnb/eufemia/elements";
 import { close, filter } from "@dnb/eufemia/icons";
 
@@ -9,6 +9,14 @@ export type ToolsToggle = {
   label: string;
   checked: boolean;
   onChange: (checked: boolean) => void;
+};
+
+/** Rad med liten nedtrekksmeny i stedet for bryter. */
+export type ToolsSelect = {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
 };
 
 /**
@@ -24,10 +32,13 @@ export default function ToolsPanel({
   open,
   onOpenChange,
   toggles,
+  selects = [],
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   toggles: ToolsToggle[];
+  /** Vises etter bryterne. */
+  selects?: ToolsSelect[];
 }) {
   // Escape lukker. setState skjer i en event-callback, ikke synkront i
   // effect-kroppen, som er nettopp mønsteret react-hooks/set-state-in-effect
@@ -79,6 +90,25 @@ export default function ToolsPanel({
                 labelSrOnly
                 checked={t.checked}
                 onChange={({ checked }) => t.onChange(checked)}
+              />
+            </div>
+          ))}
+
+          {/* Samme oppsett som nedtrekkene i Tools-menyen på International
+              payments: liten Dropdown med skjult label, teksten står i raden. */}
+          {selects.map((s) => (
+            <div key={s.label} className="po-tools__row">
+              <P size="basis">{s.label}</P>
+              <Dropdown
+                className="po-tools__select"
+                label={s.label}
+                labelSrOnly
+                size="small"
+                value={s.value}
+                data={s.options.map((o) => ({ selectedKey: o.value, content: o.label }))}
+                onChange={({ data }) => {
+                  if (typeof data?.selectedKey === "string") s.onChange(data.selectedKey);
+                }}
               />
             </div>
           ))}

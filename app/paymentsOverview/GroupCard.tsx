@@ -42,9 +42,11 @@ export default function GroupCard({
   confirmedIds,
   onConfirm,
   onConfirmReceipt,
+  onResume,
   onReceiptDone,
   collapseOnDone,
   onRowClick,
+  approveDelayMs,
 }: {
   open: boolean;
   onToggle: () => void;
@@ -68,10 +70,14 @@ export default function GroupCard({
   onConfirm: (id: string) => void;
   /** Siden viser kvittering etter «Godkjenn», se TransactionRow. */
   onConfirmReceipt?: (tx: Transaction) => void;
+  /** Se TransactionRow: «Reaktiver» på en stoppet betaling. */
+  onResume?: (id: string) => void;
   /** Se TransactionRow: kvitteringen i raden er ferdig. */
   onReceiptDone?: (tx: Transaction) => void;
   collapseOnDone?: boolean;
   onRowClick?: (tx: Transaction) => void;
+  /** Se TransactionRow: spinnertid på «Godkjenn». */
+  approveDelayMs?: number;
 }) {
   return (
     <div className="po-group">
@@ -97,9 +103,11 @@ export default function GroupCard({
                   isConfirmed={confirmedIds.has(tx.id)}
                   onConfirm={() => onConfirm(tx.id)}
                   onConfirmReceipt={onConfirmReceipt && (() => onConfirmReceipt(tx))}
+                  onResume={onResume && (() => onResume(tx.id))}
                   onReceiptDone={onReceiptDone && (() => onReceiptDone(tx))}
                   collapseOnDone={collapseOnDone}
                   onClick={onRowClick && (() => onRowClick(tx))}
+                  approveDelayMs={approveDelayMs}
                 />
               ))}
               {footer && (

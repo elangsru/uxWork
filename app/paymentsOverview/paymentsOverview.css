@@ -224,6 +224,21 @@
 .warning-footer .dnb-form-status__text,
 .receipt-footer .dnb-form-status__text {
   max-width: none;
+  /* Fyller boksen, så «Lukk» kan stå helt til høyre. */
+  flex-grow: 1;
+}
+
+/* Meldingen til venstre, «Lukk» helt til høyre. Brytes meldingen over flere
+   linjer, står lenken på første linje. */
+.receipt-footer__content {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-medium);
+}
+
+.receipt-footer__content > .dnb-anchor {
+  flex-shrink: 0;
 }
 
 /* Saldomarkøren langs radens venstrekant. */
@@ -396,6 +411,14 @@
    innhold — da havner switchen på knappenes senterlinje.
    Merk: .dnb-toggle-button-group har flex-grow: 1 fra Eufemia, så på smale
    skjermer bryter switchen til egen linje under knappene. */
+/* Typeknapp eller filtervalg som venter på «Response delay»: spinner bak
+   navnet (ToggleButton over listen, DelayedSelection i filterpanelet). */
+.po-pending-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-x-small);
+}
+
 .po-typefilter {
   display: flex;
   flex-wrap: wrap;
@@ -603,6 +626,12 @@
   padding: var(--spacing-small);
 }
 
+/* Nedtrekk i Tools-menyen (f.eks. Response delay): smal, som på International
+   payments, i stedet for Dropdowns standardbredde. */
+.po-tools__select.dnb-dropdown {
+  --dropdown-width: 8rem;
+}
+
 .po-tools__row p,
 .po-tools__title {
   margin: 0;
@@ -638,6 +667,41 @@
 
 .po-amountfilter > * {
   flex: 1 1 10rem;
+}
+
+/* Kontovelgeren mens valget venter på «Response delay»: spinneren ligger
+   der saldoen står (rett til venstre for nedtrekksknappen), og saldoen
+   skjules. Knappen er 40 px; spinneren står 16 px innenfor den, som saldoen.
+   bottom: 20px er halve felthøyden (40 px), så spinneren står midt i feltet
+   og ikke midt i feltet + labelen. */
+.po-account-picker {
+  position: relative;
+}
+
+.po-account-picker--pending .dnb-autocomplete__suffix-value {
+  visibility: hidden;
+}
+
+.po-account-picker > .dnb-progress-indicator {
+  position: absolute;
+  right: calc(40px + var(--spacing-small));
+  bottom: 20px;
+  transform: translateY(50%);
+  pointer-events: none;
+}
+
+/* Spinneren for «Response delay» inne i feltet det skrives i, helt til
+   høyre. Den ligger oppå feltet, så feltene beholder bredden. */
+.po-amountfilter__field {
+  position: relative;
+}
+
+.po-amountfilter__field > .dnb-progress-indicator {
+  position: absolute;
+  top: 50%;
+  right: var(--spacing-small);
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 /* Mottakerboksen i betalingsmodalen. List.Container har 16px padding-right
@@ -697,9 +761,10 @@
 
 /* Tilbakemeldingsmodulen nederst i kortet (FeedbackModule). Smalere enn
    listene og sentrert.
-   Bakgrunnen er warmgreen-50 (#f2f4ec), som i nettbankens modul. Det var
-   info-subtle før Eufemia 11.17.0; ingen token peker dit lenger, så
-   palettfargen brukes direkte. Kanten (stroke-neutral-subtle) og den hvite
+   Bakgrunnen er background-neutral-subtle (greyscale-50 i lys modus,
+   greyscale-900 i mørk). Den var warmgreen-50 som i nettbankens modul, men
+   palettfargen ble stående lys i mørk modus, og ingen semantisk token gir
+   den grønnfargen. Kanten (stroke-neutral-subtle) og den hvite
    skjemadelen vises bare når et svar er valgt. */
 .po-feedback {
   /* width: kortet er en flex-kolonne, og uten den krymper modulen til innholdet. */
@@ -727,7 +792,7 @@
 
 .po-feedback__top {
   padding: var(--spacing-large) var(--spacing-medium) var(--spacing-x-large);
-  background: var(--dnb-warmgreen-50);
+  background: var(--token-color-background-neutral-subtle);
   text-align: center;
 }
 
