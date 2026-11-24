@@ -54,7 +54,7 @@ export default function EditPaymentForm({
   onClose: () => void;
   /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
   initiallyStopped?: boolean;
-  /** Field status fra Tools-menyen. Satt: overstyrer regelen om at valuta
+  /** Form state fra Tools-menyen. Satt: overstyrer regelen om at valuta
    *  krever mottaker. Utelatt: feltene følger dagens regler. */
   fieldStatus?: FieldStatusMap;
 }) {
@@ -168,7 +168,7 @@ export default function EditPaymentForm({
           )}
         </ConfigurableField>
 
-        {/* Uten Field status krever valuta en mottaker. */}
+        {/* Uten Form state krever valuta en mottaker. */}
         <ConfigurableField
           status={status("currency", !selectedRecipient)}
           label="Valuta som sendes"

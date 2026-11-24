@@ -364,7 +364,7 @@ export default function PaymentsOverview() {
   const [showSaldoSwitch, setShowSaldoSwitch] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  // Field status (Tools-menyen): status per felt i redigeringsskjemaene.
+  // Form state (Tools-menyen): status per felt i redigeringsskjemaene.
   // activeFieldStatus er undefined når bryteren er av, og skjemaene følger da
   // sine egne regler. Valgene beholdes når bryteren slås av og på igjen.
   const [fieldStatusEnabled, setFieldStatusEnabled] = useState(false);
@@ -1675,7 +1675,7 @@ export default function PaymentsOverview() {
           ]}
           groups={[
             {
-              label: "Field status",
+              label: "Form state",
               checked: fieldStatusEnabled,
               onChange: setFieldStatusEnabled,
               selects: FIELD_LABELS.map(({ key, label }) => ({

@@ -52,7 +52,7 @@ export default function EditTransferForm({
   /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
   initiallyStopped?: boolean;
   readOnly?: boolean;
-  /** Field status fra Tools-menyen. Satt: overstyrer readOnly, fond og KID-
+  /** Form state fra Tools-menyen. Satt: overstyrer readOnly, fond og KID-
    *  regelen per felt. Utelatt: feltene følger reglene over. */
   fieldStatus?: FieldStatusMap;
 }) {
@@ -66,7 +66,7 @@ export default function EditTransferForm({
   const [selectedToKey, setSelectedToKey] = useState<string | null>(() => indexOf(tx.recipient));
   const [amount, setAmount] = useState(String(tx.amountNok));
   const [message, setMessage] = useState(tx.message ?? "");
-  // KID i state, så det brukeren skriver (når Field status gjør feltet
+  // KID i state, så det brukeren skriver (når Form state gjør feltet
   // redigerbart) overlever bytte av status og vises i read only.
   const [kid, setKid] = useState(tx.kid ?? "");
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
@@ -154,7 +154,7 @@ export default function EditTransferForm({
           )}
         </ConfigurableField>
 
-        {/* KID identifiserer fondskjøpet og kan ikke endres (uten Field status). */}
+        {/* KID identifiserer fondskjøpet og kan ikke endres (uten Form state). */}
         {tx.kid ? (
           <ConfigurableField status={status("kid", true)} label="KID" value={kid}>
             {(disabled) => (

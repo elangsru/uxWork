@@ -6,7 +6,7 @@ import ReadOnlyField from "../shared/ReadOnlyField";
 import { LOCALE } from "./data";
 
 /**
- * «Field status» i Tools-menyen: hvert felt i redigeringsskjemaene kan settes
+ * «Form state» i Tools-menyen: hvert felt i redigeringsskjemaene kan settes
  * til redigerbart, deaktivert eller read only, for å simulere ulike UI-er.
  * Når statusene er satt, overstyrer de skjemaenes egne regler (låst KID,
  * låst lån, låst til-konto for fond).
@@ -44,7 +44,7 @@ export const DEFAULT_FIELD_STATUS: FieldStatusMap = {
 };
 
 /**
- * Statusen et felt faktisk får: fra Field status når den er slått på, ellers
+ * Statusen et felt faktisk får: fra Form state når den er slått på, ellers
  * skjemaets egen regel (`legacyDisabled`), som før funksjonen fantes.
  */
 export function resolveFieldStatus(

@@ -626,7 +626,7 @@
   padding: var(--spacing-small);
 }
 
-/* Bryter med underrader i Tools-menyen (Field status): underradene rykkes
+/* Bryter med underrader i Tools-menyen (Form state): underradene rykkes
    inn så de leses som del av gruppen. Gruppen er en flex-kolonne med samme
    gap som panelet, så avstanden mellom radene blir lik. */
 .po-tools__group {
@@ -639,7 +639,7 @@
   margin-left: var(--spacing-large);
 }
 
-/* Nedtrekk i Tools-menyen (Response delay, Field status): smalere enn
+/* Nedtrekk i Tools-menyen (Response delay, Form state): smalere enn
    Dropdowns standardbredde, som på International payments. 10rem gir plass
    til det lengste valget («Read only») med haken på valgt rad; med 8rem
    brøt teksten over to linjer. */

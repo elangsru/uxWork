@@ -33,7 +33,7 @@ export default function EditDomesticPaymentForm({
   onClose: () => void;
   /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
   initiallyStopped?: boolean;
-  /** Field status fra Tools-menyen. Satt: overstyrer KID-regelen per felt.
+  /** Form state fra Tools-menyen. Satt: overstyrer KID-regelen per felt.
    *  Utelatt: feltene følger dagens regler. */
   fieldStatus?: FieldStatusMap;
 }) {
@@ -43,7 +43,7 @@ export default function EditDomesticPaymentForm({
   });
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
   const [message, setMessage] = useState(tx.message ?? "");
-  // KID i state, så det brukeren skriver (når Field status gjør feltet
+  // KID i state, så det brukeren skriver (når Form state gjør feltet
   // redigerbart) overlever bytte av status og vises i read only.
   const [kid, setKid] = useState(tx.kid ?? "");
   const [amount, setAmount] = useState(String(tx.amountNok));
@@ -160,7 +160,7 @@ export default function EditDomesticPaymentForm({
           )}
         </ConfigurableField>
 
-        {/* KID kommer fra fakturaen og kan ikke endres (uten Field status). */}
+        {/* KID kommer fra fakturaen og kan ikke endres (uten Form state). */}
         {tx.kid ? (
           <ConfigurableField status={status("kid", true)} label="KID" value={kid}>
             {(disabled) => (

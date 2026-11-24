@@ -7,7 +7,7 @@ import { P } from "@dnb/eufemia/elements";
 /**
  * Utfylt felt som ikke kan endres: etikett + verdien som grå tekst (Figma
  * «Edit»-tilstand), ikke et deaktivert input. Brukt av bankinfoen i «Rediger
- * mottaker» på /internationalPayment og av «Field status» → Read only i
+ * mottaker» på /internationalPayment og av «Form state» → Read only i
  * redigeringsskjemaene på /paymentsOverview.
  *
  * FormLabel har 8 px margin-bottom fra Eufemia. Den nulles, så avstanden
