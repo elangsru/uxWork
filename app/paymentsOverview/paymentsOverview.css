@@ -639,10 +639,12 @@
   margin-left: var(--spacing-large);
 }
 
-/* Nedtrekk i Tools-menyen (f.eks. Response delay): smal, som på International
-   payments, i stedet for Dropdowns standardbredde. */
+/* Nedtrekk i Tools-menyen (Response delay, Field status): smalere enn
+   Dropdowns standardbredde, som på International payments. 10rem gir plass
+   til det lengste valget («Read only») med haken på valgt rad; med 8rem
+   brøt teksten over to linjer. */
 .po-tools__select.dnb-dropdown {
-  --dropdown-width: 8rem;
+  --dropdown-width: 10rem;
 }
 
 .po-tools__row p,
