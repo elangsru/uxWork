@@ -9,17 +9,16 @@ import { LOCALE } from "./data";
  * «Form state» i Tools-menyen: hvert felt i redigeringsskjemaene kan settes
  * til redigerbart, deaktivert eller read only, for å simulere ulike UI-er.
  * Når statusene er satt, overstyrer de skjemaenes egne regler (låst KID,
- * låst lån, låst til-konto for fond).
+ * låst lån).
  */
 
-export type FieldKey = "fromAccount" | "toAccount" | "currency" | "amount" | "message" | "kid" | "paymentDate";
+export type FieldKey = "fromAccount" | "currency" | "amount" | "message" | "kid" | "paymentDate";
 export type FieldStatus = "editable" | "disabled" | "readOnly";
 export type FieldStatusMap = Record<FieldKey, FieldStatus>;
 
 /** Rekkefølgen i Tools-menyen. */
 export const FIELD_LABELS: { key: FieldKey; label: string }[] = [
   { key: "fromAccount", label: "Fra konto" },
-  { key: "toAccount", label: "Til konto" },
   { key: "currency", label: "Valuta" },
   { key: "amount", label: "Beløp" },
   { key: "message", label: "Melding" },
@@ -35,7 +34,6 @@ export const FIELD_STATUS_OPTIONS: { value: FieldStatus; label: string }[] = [
 
 export const DEFAULT_FIELD_STATUS: FieldStatusMap = {
   fromAccount: "editable",
-  toAccount: "editable",
   currency: "editable",
   amount: "editable",
   message: "editable",
