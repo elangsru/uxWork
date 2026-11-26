@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Autocomplete, DatePicker, FormStatus, Input, InputMasked, Textarea } from "@dnb/eufemia/components";
+import { Autocomplete, DatePicker, FormStatus, Icon, Input, InputMasked, List, Textarea } from "@dnb/eufemia/components";
 import { P } from "@dnb/eufemia/elements";
+import { funds_medium, investment_account_medium, loan_medium, savings_account_medium, transfer_medium } from "@dnb/eufemia/icons";
 
 import { fromAccountList, fromAccounts } from "../internationalPayment/paymentData";
 import type { Transaction } from "./data";
@@ -26,14 +27,23 @@ const savingsAccountList = [
 // Til-listen er egne kontoer pluss sparekontoene. Nøklene fortsetter etter
 // fromAccounts, så en indeks peker på samme konto i begge listene.
 const toAccountList = [...fromAccountList, ...savingsAccountList];
-const toAccounts = toAccountList.map((a, i) => ({ ...a, selectedKey: String(i) }));
+
+/** Samme ikoner som radene i oversikten (TransactionRow). */
+const transferIcons = {
+  transfer: transfer_medium,
+  loan: loan_medium,
+  savings: savings_account_medium,
+  investment: investment_account_medium,
+  funds: funds_medium,
+};
 
 /**
- * Overføring mellom egne kontoer. I stedet for mottakerboksen i de andre
- * modalene velges både fra- og til-konto, ellers samme felt og knapper.
+ * Overføring mellom egne kontoer. Til-kontoen vises i samme mottakerboks
+ * som i betalingsmodalene, med kontoikonet (uten avatarsirkel) og kontonummeret
+ * under navnet. Ellers samme felt og knapper.
  * `readOnly` brukes for avdrag på lån (Boliglånet): alle felt er låst, og
- * Stopp og Slett er ikke tillatt. Fondskjøp (DNB Global index) har låst
- * til-konto og KID i stedet for melding, som en eFaktura. ASK har ingen
+ * Stopp og Slett er ikke tillatt. Fondskjøp (DNB Global index) har
+ * KID i stedet for melding, som en eFaktura. ASK har ingen
  * melding.
  */
 export default function EditTransferForm({
@@ -62,8 +72,9 @@ export default function EditTransferForm({
   };
 
   const [selectedFromKey, setSelectedFromKey] = useState<string | null>(() => indexOf(accountName));
-  // Mottakeren på en overføring er navnet på til-kontoen.
-  const [selectedToKey, setSelectedToKey] = useState<string | null>(() => indexOf(tx.recipient));
+  // Mottakeren på en overføring er navnet på til-kontoen; kontonummeret
+  // hentes fra kontolisten når transaksjonen ikke har det selv.
+  const toAccountNumber = tx.toAccount ?? toAccountList.find((a) => a.content[0] === tx.recipient)?.content[1];
   const [amount, setAmount] = useState(String(tx.amountNok));
   const [message, setMessage] = useState(tx.message ?? "");
   // KID i state, så det brukeren skriver (når Form state gjør feltet
@@ -71,7 +82,6 @@ export default function EditTransferForm({
   const [kid, setKid] = useState(tx.kid ?? "");
   const [paymentDate, setPaymentDate] = useState(tx.dateValue);
   const [stopped, setStopped] = useState(initiallyStopped);
-  const isFund = tx.icon === "funds";
   // Overføring til aksjesparekonto (ASK) har verken melding eller KID.
   const isAsk = tx.icon === "investment";
   const status = (key: FieldKey, legacyDisabled = false) => resolveFieldStatus(fieldStatus, key, legacyDisabled);
@@ -81,8 +91,33 @@ export default function EditTransferForm({
       {/* 488px er bredden på skjemaet på /domesticPayment. Knapperaden under
           ligger utenfor, så den kan gå over hele modalens bredde. */}
       <div style={{ display: "flex", flexDirection: "column", gap: "32px", maxWidth: "488px" }}>
-        {/* Uten mottakerboks står varselet øverst i skjemaet. */}
-        {stopped && <FormStatus state="warning" text="Overføringen er stoppet." stretch />}
+        {/* Samme mottakerboks som i EditDomesticPaymentForm. Varselet ligger
+            i mottakerraden, som i betalingsmodalene. */}
+        <div className="po-edit-recipient">
+          <List.Container>
+            <List.Item.Basic>
+              <List.Cell.Start>
+                {/* Ikon uten sirkel, som radene for overføringer i oversikten.
+                    Der farger List.Item.Action ikonet med icon-action; denne
+                    raden er List.Item.Basic og ville arvet tekstfargen. */}
+                <Icon
+                  icon={transferIcons[tx.icon ?? "transfer"]}
+                  size="medium"
+                  style={{ color: "var(--token-color-icon-action)" }}
+                />
+              </List.Cell.Start>
+              <List.Cell.Title>
+                {tx.recipient}
+                {toAccountNumber && <List.Cell.Title.Subline>{toAccountNumber}</List.Cell.Title.Subline>}
+              </List.Cell.Title>
+              {stopped && (
+                <List.Cell.Footer>
+                  <FormStatus state="warning" text="Overføringen er stoppet." stretch />
+                </List.Cell.Footer>
+              )}
+            </List.Item.Basic>
+          </List.Container>
+        </div>
 
         <ConfigurableField
           status={status("fromAccount", readOnly)}
@@ -102,30 +137,6 @@ export default function EditTransferForm({
               value={selectedFromKey ?? undefined}
               onChange={({ selectedItem }) =>
                 setSelectedFromKey(typeof selectedItem === "number" ? String(selectedItem) : null)
-              }
-            />
-          )}
-        </ConfigurableField>
-
-        {/* Et fondskjøp går alltid til samme fondskonto. */}
-        <ConfigurableField
-          status={status("toAccount", readOnly || isFund)}
-          label="Til konto"
-          value={accountText(toAccountList, selectedToKey)}
-        >
-          {(disabled) => (
-            <Autocomplete
-              label="Til konto"
-              size="medium"
-              data={toAccounts}
-              placeholder="Velg konto"
-              stretch
-              disabled={disabled}
-              showSubmitButton
-              submitButtonTitle=""
-              value={selectedToKey ?? undefined}
-              onChange={({ selectedItem }) =>
-                setSelectedToKey(typeof selectedItem === "number" ? String(selectedItem) : null)
               }
             />
           )}

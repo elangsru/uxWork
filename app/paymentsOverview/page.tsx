@@ -636,7 +636,7 @@ export default function PaymentsOverview() {
   const [editTitle, setEditTitle] = useState("Betaling til");
   const openPayment = (tx: Transaction) => {
     if (!["jose-martinez", "tibber", "happybytes", "kim-olsen", "intro-aksel", "ask", "dnb-global-index", "boliglaanet"].includes(tx.id)) return;
-    setEditTitle(tx.type === "overforing" ? "Overføring" : "Betaling til");
+    setEditTitle(tx.type === "overforing" ? "Overføring til" : "Betaling til");
     setEditPayment(tx);
   };
 
