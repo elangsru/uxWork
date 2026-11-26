@@ -45,6 +45,7 @@ export default function EditPaymentForm({
   accountName,
   onClose,
   initiallyStopped = false,
+  disabled = false,
   fieldStatus,
 }: {
   tx: Transaction;
@@ -54,8 +55,10 @@ export default function EditPaymentForm({
   onClose: () => void;
   /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
   initiallyStopped?: boolean;
-  /** Form state fra Tools-menyen. Satt: overstyrer regelen om at valuta
-   *  krever mottaker. Utelatt: feltene følger dagens regler. */
+  /** Alle felt deaktivert (José Martinez). Stopp og Slett er fortsatt tilgjengelige. */
+  disabled?: boolean;
+  /** Form state fra Tools-menyen. Satt: overstyrer `disabled` og regelen om
+   *  at valuta krever mottaker. Utelatt: feltene følger dagens regler. */
   fieldStatus?: FieldStatusMap;
 }) {
   const parsed = parseAmountDisplay(tx.amountDisplay);
@@ -84,7 +87,8 @@ export default function EditPaymentForm({
   const currencyFieldId = "edit-payment-currency";
   const amountFieldId = "edit-payment-amount";
   const messageFieldId = "edit-payment-message";
-  const status = (key: FieldKey, legacyDisabled = false) => resolveFieldStatus(fieldStatus, key, legacyDisabled);
+  const status = (key: FieldKey, legacyDisabled = false) =>
+    resolveFieldStatus(fieldStatus, key, disabled || legacyDisabled);
 
   const amountHint = (() => {
     const amountNum = parseFloat(amount.replace(",", ".")) || 0;

@@ -1729,6 +1729,8 @@ export default function PaymentsOverview() {
                 onClose={() => setEditPayment(null)}
                 initiallyStopped={statusOf(editPayment) === "stoppet"}
                 fieldStatus={activeFieldStatus}
+                // Betalingen til José Martinez kan ikke endres: alle felt deaktivert.
+                disabled={editPayment.id === "jose-martinez"}
               />
             ) : (
               <EditDomesticPaymentForm
