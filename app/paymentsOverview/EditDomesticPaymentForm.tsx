@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Autocomplete, Avatar, DatePicker, FormLabel, FormStatus, Input, InputMasked, List, Textarea } from "@dnb/eufemia/components";
 import { P } from "@dnb/eufemia/elements";
-import { ainvoice_medium, attachment_medium, office_buildings } from "@dnb/eufemia/icons";
+import { ainvoice_medium, attachment_medium, einvoice_medium, office_buildings } from "@dnb/eufemia/icons";
 
 import { fromAccountList, fromAccounts } from "../internationalPayment/paymentData";
 import type { Transaction } from "./data";
@@ -102,6 +102,19 @@ export default function EditDomesticPaymentForm({
                 rel="noopener noreferrer"
                 icon={tx.type === "efaktura" ? attachment_medium : ainvoice_medium}
                 title={tx.type === "efaktura" ? "eFakturavedlegg" : "AvtaleGiro-avtale"}
+              />
+            )}
+            {/* eFakturahistorikk under vedlegget, med samme lenke som i
+                transaksjonsdetaljene. attachment_medium over er arket med
+                binders; her brukes eFaktura-ikonet. */}
+            {tx.type === "efaktura" && (
+              <List.Item.Action
+                className="po-edit-attachment"
+                href="https://www.dnb.no/segp/ps/applikasjoner/payment-agreements/einvoice/mine/issuers/917245975"
+                target="_blank"
+                rel="noopener noreferrer"
+                icon={einvoice_medium}
+                title="eFakturahistorikk"
               />
             )}
           </List.Container>
