@@ -61,6 +61,12 @@ export const accountOptions = [
   })),
 ];
 
+/** Samme valg uten saldo, for «Utførte»: der er saldoen ikke relevant. */
+export const accountOptionsWithoutBalance = accountOptions.map((option) => ({
+  selectedKey: option.selectedKey,
+  content: option.content,
+}));
+
 /** Innehaveren av nettbanken. Står alltid øverst blant fakturaeierne. */
 export const SELF_OWNER = "Espen Langsrud (deg)";
 

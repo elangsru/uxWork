@@ -10,14 +10,27 @@ import { Grid } from "@dnb/eufemia/components";
  * `fields` legges i grid-cellene (én kolonne hver på store skjermer, full bredde
  * på mindre). `children` legges under gridet, som søsken i boksens flex-kolonne;
  * «Til forfall» bruker det til betalingstype-filteret.
+ *
+ * `layout="row"` legger feltene i én flex-rad i stedet for gridet, f.eks. når
+ * en celle skal ta resten av bredden og en annen bare det den trenger.
  */
 export default function FilterBox({
   fields,
   children,
+  layout = "grid",
 }: {
   fields: React.ReactNode[];
   children?: React.ReactNode;
+  layout?: "grid" | "row";
 }) {
+  if (layout === "row") {
+    return (
+      <div className="po-filterbox">
+        <div className="po-filterbox__row">{fields}</div>
+        {children}
+      </div>
+    );
+  }
   return (
     <div className="po-filterbox">
       <Grid.Container

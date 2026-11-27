@@ -29,6 +29,7 @@ import {
   accountDetails,
   accountKeys,
   accountOptions,
+  accountOptionsWithoutBalance,
   compareOwners,
   completedTransactions,
   fmtAmount,
@@ -153,8 +154,8 @@ function AmountRangeFilter({ pending = false }: { pending?: boolean }) {
 const RECEIVED_FROM_FILTER_KEY = "/mottatt-fra";
 const RECEIVED_FROM_FILTER_LABEL = "Mottatt eFaktura fra";
 
-// «Mottaker» i filterpanelet på «Utførte»: alle du har betalt til. Samme
-// lagring som «Mottatt eFaktura fra» — ett filter med navnet som verdi.
+// «Mottaker» i filterboksen på «Utførte»: alle du har betalt til. Hver valgt
+// mottaker lagres som «/mottaker/<navn>», så de blir hver sin tag.
 const RECIPIENT_FILTER_KEY = "/mottaker";
 const RECIPIENT_FILTER_LABEL = "Mottaker";
 
@@ -166,7 +167,7 @@ type OwnerOption = {
 
 /**
  * Nedtrekk med navn i filterpanelet, brukt til «Mottatt eFaktura fra» (samme
- * liste som Fakturaeier på eFaktura-tabben) og «Mottaker» på «Utførte».
+ * liste som Fakturaeier på eFaktura-tabben).
  * Kontrollert via Filter.Root, så krysset på taggen og «Fjern alle» tømmer
  * feltet også. onSelect får navnet før filteret settes, så en person som ennå
  * ikke er lastet kan hentes inn først.
@@ -182,18 +183,41 @@ function NameSelectFilter({
   options: OwnerOption[];
   onSelect?: (name: string) => void;
 }) {
+  return (
+    <Filter.Item label={label} filterKey={filterKey} defaultOpen>
+      <div className="po-receivedfrom">
+        <NameSelectField filterKey={filterKey} label={label} options={options} onSelect={onSelect} labelSrOnly />
+      </div>
+    </Filter.Item>
+  );
+}
+
+/** Selve nedtrekket i NameSelectFilter. Koblet til Filter.Root, så det gir
+ *  tag og tømmes av «Fjern alle». */
+function NameSelectField({
+  filterKey,
+  label,
+  options,
+  onSelect,
+  labelSrOnly = false,
+}: {
+  filterKey: string;
+  label: string;
+  options: OwnerOption[];
+  onSelect?: (name: string) => void;
+  labelSrOnly?: boolean;
+}) {
   const { getFilter, setFilter } = Filter.useFilterContext();
   const current = getFilter(filterKey)?.value;
   const selected = typeof current === "string" ? current : undefined;
   return (
-    <Filter.Item label={label} filterKey={filterKey} defaultOpen>
+    <>
       {/* value tar ikke null, og undefined gjør feltet ukontrollert — så
           feltet remountes når filteret endres utenfra (taggen, «Fjern alle»). */}
-      <div className="po-receivedfrom">
         <Autocomplete
           key={selected ?? ""}
           label={label}
-          labelSrOnly
+          labelSrOnly={labelSrOnly}
           size="medium"
           data={options}
           value={selected}
@@ -220,8 +244,52 @@ function NameSelectFilter({
           }}
           onClear={() => setFilter(filterKey, undefined)}
         />
-      </div>
-    </Filter.Item>
+    </>
+  );
+}
+
+/** Nedtrekk der man kan velge flere navn, ett om gangen. Hvert valg blir
+ *  et eget filter «<filterKey>/<navn>», og dermed en egen tag med kryss —
+ *  samme lagring som Filter.Selection. Feltet tømmes etter hvert valg, og navn
+ *  som allerede er valgt tas ut av listen. */
+function MultiNameSelectField({
+  filterKey,
+  label,
+  options,
+}: {
+  filterKey: string;
+  label: string;
+  options: OwnerOption[];
+}) {
+  const { filters, setFilter } = Filter.useFilterContext();
+  // Remount etter hvert valg, så feltet står tomt og klart for neste navn.
+  const [resetKey, setResetKey] = useState(0);
+  const prefix = `${filterKey}/`;
+  const available = options.filter((o) => !(`${prefix}${o.selectedKey}` in filters));
+  return (
+    <Autocomplete
+      key={resetKey}
+      label={label}
+      size="medium"
+      data={available}
+      placeholder={available.length < options.length ? "Legg til flere" : "Alle"}
+      stretch
+      showSubmitButton
+      submitButtonTitle=""
+      onChange={({ data }) => {
+        const name =
+          data && typeof data === "object" && "selectedKey" in data
+            ? String(data.selectedKey)
+            : null;
+        if (name === null) return;
+        setFilter(`${prefix}${name}`, {
+          value: name,
+          label: name,
+          categoryLabel: label,
+        });
+        setResetKey((k) => k + 1);
+      }}
+    />
   );
 }
 
@@ -554,7 +622,7 @@ export default function PaymentsOverview() {
   });
   const [completedTypes, setCompletedTypes] = useState<string[]>([]);
   const [completedAmountRange, setCompletedAmountRange] = useState<AmountRange>({});
-  const [completedRecipient, setCompletedRecipient] = useState<string | null>(null);
+  const [completedRecipients, setCompletedRecipients] = useState<string[]>([]);
 
   const mounted = useSyncExternalStore(subscribeNever, getHydrated, getHydratedOnServer);
 
@@ -1018,7 +1086,7 @@ export default function PaymentsOverview() {
         (appliedCompletedEndDate === "" || t.dateValue <= appliedCompletedEndDate) &&
         (completedAmountRange.min === undefined || t.amountNok >= completedAmountRange.min) &&
         (completedAmountRange.max === undefined || t.amountNok <= completedAmountRange.max) &&
-        (completedRecipient === null || t.recipient === completedRecipient),
+        (completedRecipients.length === 0 || completedRecipients.includes(t.recipient)),
     )
     .sort((a, b) => b.dateValue.localeCompare(a.dateValue));
   const completedKontoKeys = accountKeys.filter((k) =>
@@ -1318,8 +1386,11 @@ export default function PaymentsOverview() {
         onChange={({ filters }) => completedDelay.onFilters(filters, () => {
           const amount = filters[AMOUNT_FILTER_KEY]?.value;
           setCompletedAmountRange(isAmountRange(amount) ? amount : {});
-          const recipient = filters[RECIPIENT_FILTER_KEY]?.value;
-          setCompletedRecipient(typeof recipient === "string" ? recipient : null);
+          setCompletedRecipients(
+            Object.keys(filters)
+              .filter((k) => k.startsWith(`${RECIPIENT_FILTER_KEY}/`))
+              .map((k) => k.slice(RECIPIENT_FILTER_KEY.length + 1)),
+          );
           setCompletedTypes(
             PAYMENT_TYPE_OPTIONS.map((o) => o.value).filter(
               (v) => `${TYPE_FILTER_KEY}/${v}` in filters,
@@ -1327,64 +1398,73 @@ export default function PaymentsOverview() {
           );
         })}
       >
+      {/* Én rad i stedet for FilterBox-gridet: Belastningskonto og Mottaker
+          deler bredden likt, knappene står til høyre. Ingen saldo i
+          kontovelgeren her. */}
       <FilterBox
+        layout="row"
         fields={[
-          // Spinneren ligger oppå saldoen i feltet, og saldoen skjules så
-          // lenge kontovalget venter på «Response delay» (se CSS).
-          <div
-            key="konto"
-            className={completedAccount.pending ? "po-account-picker po-account-picker--pending" : "po-account-picker"}
-          >
-            <Autocomplete
-              label="Belastningskonto"
-              size="medium"
-              data={accountOptions}
-              placeholder="Alle"
-              stretch
-              showSubmitButton
-              submitButtonTitle=""
-              onChange={({ data }) => {
-                const key =
-                  data && typeof data === "object" && "selectedKey" in data
-                    ? String(data.selectedKey)
-                    : null;
-                completedAccount.set(key === null || key === ALL_ACCOUNTS ? null : (key as AccountKey));
-              }}
+          <div key="felt" className="po-completed-fields">
+            <div
+              className={completedAccount.pending ? "po-account-picker po-account-picker--pending" : "po-account-picker"}
+            >
+              <Autocomplete
+                label="Belastningskonto"
+                size="medium"
+                data={accountOptionsWithoutBalance}
+                placeholder="Alle"
+                stretch
+                showSubmitButton
+                submitButtonTitle=""
+                onChange={({ data }) => {
+                  const key =
+                    data && typeof data === "object" && "selectedKey" in data
+                      ? String(data.selectedKey)
+                      : null;
+                  completedAccount.set(key === null || key === ALL_ACCOUNTS ? null : (key as AccountKey));
+                }}
+              />
+              {completedAccount.pending && <ProgressIndicator size="small" title="Laster" />}
+            </div>
+            <MultiNameSelectField
+              filterKey={RECIPIENT_FILTER_KEY}
+              label={RECIPIENT_FILTER_LABEL}
+              options={completedRecipientOptions}
             />
-            {completedAccount.pending && <ProgressIndicator size="small" title="Laster" />}
           </div>,
-          <div key="dato" className="po-date-filter">
-          <DatePicker
-            label="Belastningsdato"
-            range
-            showInput
-            size="medium"
-            startDate={completedStartDate}
-            endDate={completedEndDate}
-            minDate={isoLocalDate(oneYearAgo)}
-            maxDate={isoLocalDate(today)}
-            stretch
-            submitButtonText="OK"
-            showResetButton
-            resetButtonText="Nullstill"
-            onReset={() => {
-              setCompletedStartDate("");
-              setCompletedEndDate("");
-              setCompletedPendingShortcut(null);
-              completedDates.setNow({ start: "", end: "" });
-            }}
-            onChange={({ startDate: s, endDate: e }) => {
-              if (s) setCompletedStartDate(s);
-              if (e) setCompletedEndDate(e);
-              const next = { start: s || completedStartDate, end: e || completedEndDate };
-              const i = shortcutIndex(completedShortcuts, next);
-              setCompletedPendingShortcut(i);
-              if (i === null) completedDates.setNow(next);
-              else completedDates.set(next);
-            }}
-            shortcuts={withPendingShortcut(completedShortcuts, completedDates.pending ? completedPendingShortcut : null)}
-          />
-            <Filter.PanelButton />
+          // Datoen ligger bak en knapp til venstre for filterknappen.
+          <div key="knapper" className="po-filter-buttons">
+            <DatePicker
+              label="Belastningsdato"
+              labelSrOnly
+              triggerProps={{ variant: "tertiary", text: "Dato", iconPosition: "left" }}
+              range
+              size="medium"
+              startDate={completedStartDate}
+              endDate={completedEndDate}
+              minDate={isoLocalDate(oneYearAgo)}
+              maxDate={isoLocalDate(today)}
+              submitButtonText="OK"
+              showResetButton
+              resetButtonText="Nullstill"
+              onReset={() => {
+                setCompletedStartDate("");
+                setCompletedEndDate("");
+                setCompletedPendingShortcut(null);
+                completedDates.setNow({ start: "", end: "" });
+              }}
+              onChange={({ startDate: s, endDate: e }) => {
+                if (s) setCompletedStartDate(s);
+                if (e) setCompletedEndDate(e);
+                const next = { start: s || completedStartDate, end: e || completedEndDate };
+                const i = shortcutIndex(completedShortcuts, next);
+                setCompletedPendingShortcut(i);
+                if (i === null) completedDates.setNow(next);
+                else completedDates.set(next);
+              }}
+              shortcuts={withPendingShortcut(completedShortcuts, completedDates.pending ? completedPendingShortcut : null)}
+            />
+            <Filter.PanelButton size="medium" />
           </div>,
         ]}
       >
@@ -1396,14 +1476,9 @@ export default function PaymentsOverview() {
             data={PAYMENT_TYPE_OPTIONS}
             pendingValue={completedDelay.pendingIn(TYPE_FILTER_KEY)}
           />
-          <NameSelectFilter
-            filterKey={RECIPIENT_FILTER_KEY}
-            label={RECIPIENT_FILTER_LABEL}
-            options={completedRecipientOptions}
-          />
           <AmountRangeFilter pending={completedDelay.isPending(AMOUNT_FILTER_KEY)} />
         </Filter.Panel>
-        {(completedRecipient !== null ||
+        {(completedRecipients.length > 0 ||
           completedAmountRange.min !== undefined ||
           completedAmountRange.max !== undefined ||
           completedTypes.length > 0) && <Filter.ActiveFilters />}

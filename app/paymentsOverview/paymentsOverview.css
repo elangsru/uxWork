@@ -393,6 +393,29 @@
   gap: var(--spacing-small);
 }
 
+/* «Utførte»: én rad med Belastningskonto og Mottaker (like brede) og dato-
+   og filterknappen til høyre. Knappene brytes under når raden er for smal. */
+.po-filterbox__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--spacing-small) var(--spacing-medium);
+}
+
+.po-completed-fields {
+  flex: 1 1 28rem;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--spacing-small) var(--spacing-medium);
+}
+
+.po-filter-buttons {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-small);
+}
+
 .po-filterbox {
   background: var(--token-color-background-neutral-subtle);
   border: 1px solid var(--token-color-stroke-neutral-alternative);
