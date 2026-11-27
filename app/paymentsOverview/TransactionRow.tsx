@@ -219,7 +219,6 @@ export default function TransactionRow({
           <div ref={receiptWidthRef} style={{ width: "100%" }}>
             <FormStatus
               state="success"
-              stretch
               widthElement={receiptWidthRef}
               text={
                 <>
@@ -300,7 +299,7 @@ export default function TransactionRow({
               resize, aldri vokse igjen. Wrapperen fyller footeren uansett. */}
           <div ref={warningWidthRef} style={{ width: "100%" }}>
             <Flex.Vertical align="stretch" gap="small">
-              <FormStatus state="warning" text={warning} stretch widthElement={warningWidthRef} />
+              <FormStatus state="warning" text={warning} widthElement={warningWidthRef} />
               {/* Høyrestilt med hovedhandlingen lengst til høyre, som Rediger +
                   Godkjenn på ubekreftet eFaktura. */}
               <Flex.Horizontal justify="flex-end">

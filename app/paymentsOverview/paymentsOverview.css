@@ -218,14 +218,6 @@
   }
 }
 
-/* FormStatus begrenser teksten til --prose-max-width (576 px), så den brøt
-   midt i den gule boksen. I radens footer skal den følge boksens bredde.
-   Gjelder også kvitteringen etter «Godkjenn». */
-.warning-footer .dnb-form-status__text,
-.receipt-footer .dnb-form-status__text {
-  max-width: none;
-}
-
 /* Saldomarkøren langs radens venstrekant. */
 .row-balance-positive::before,
 .row-balance-negative::before {
