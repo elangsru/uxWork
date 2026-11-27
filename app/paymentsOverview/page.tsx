@@ -1024,7 +1024,8 @@ export default function PaymentsOverview() {
   const completedKontoKeys = accountKeys.filter((k) =>
     completedSorted.some((t) => t.accountKey === k),
   );
-  const completedDateKeys = [...new Set(completedSorted.map((t) => t.dateValue))];
+  // «Dato»-grupperingen på «Utførte» samler per måned (YYYY-MM), ikke per dag.
+  const completedDateKeys = [...new Set(completedSorted.map((t) => t.dateValue.slice(0, 7)))];
   const completedGroupKeys = (
     completedGroupBy === "konto" ? completedKontoKeys : completedDateKeys
   ).map((k) => `${UTFORT_PREFIX}${k}`);
@@ -1059,18 +1060,26 @@ export default function PaymentsOverview() {
     );
   });
 
-  const completedDatoGroups = completedDateKeys.map((dateValue) => {
-    const groupKey = `${UTFORT_PREFIX}${dateValue}`;
-    const txs = completedSorted.filter((t) => t.dateValue === dateValue);
+  const completedDatoGroups = completedDateKeys.map((monthValue) => {
+    const groupKey = `${UTFORT_PREFIX}${monthValue}`;
+    const txs = completedSorted.filter((t) => t.dateValue.startsWith(monthValue));
+    const [year, month] = monthValue.split("-").map(Number);
+    const monthLabel = new Date(year, month - 1, 1).toLocaleDateString(LOCALE, {
+      month: "long",
+      year: "numeric",
+    });
 
     return (
       <GroupCard
         key={groupKey}
         open={isGroupOpen(groupKey)}
         onToggle={() => toggleGroup(groupKey)}
-        header={txs[0].date}
+        header={monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)}
         rows={txs}
-        overlineFor={accountOverline}
+        // «dd.mm fra <kontonavn> <kontonummer>»
+        overlineFor={(tx) =>
+          `${tx.dateValue.slice(8, 10)}.${tx.dateValue.slice(5, 7)} fra ${accountOverline(tx)}`
+        }
         confirmedIds={confirmedIds}
         onConfirm={noop}
       />
