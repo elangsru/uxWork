@@ -47,6 +47,7 @@ export default function GroupCard({
   collapseOnDone,
   onRowClick,
   approveDelayMs,
+  saveTokens,
 }: {
   open: boolean;
   onToggle: () => void;
@@ -78,6 +79,8 @@ export default function GroupCard({
   onRowClick?: (tx: Transaction) => void;
   /** Se TransactionRow: spinnertid på «Godkjenn». */
   approveDelayMs?: number;
+  /** Se TransactionRow: lagret i modalen, per betalings-id. */
+  saveTokens?: Record<string, number>;
 }) {
   return (
     <div className="po-group">
@@ -108,6 +111,7 @@ export default function GroupCard({
                   collapseOnDone={collapseOnDone}
                   onClick={onRowClick && (() => onRowClick(tx))}
                   approveDelayMs={approveDelayMs}
+                  saveToken={saveTokens?.[tx.id]}
                 />
               ))}
               {footer && (

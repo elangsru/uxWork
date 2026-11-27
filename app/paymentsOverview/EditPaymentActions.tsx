@@ -6,26 +6,31 @@ import { SubmitIndicator } from "@dnb/eufemia/extensions/forms/Form";
 import { Hr } from "@dnb/eufemia/elements";
 import { refresh, stop, trash } from "@dnb/eufemia/icons";
 
-import { APPROVE_DELAY_MS } from "./data";
-
 /**
  * Knapperaden nederst i betalingsmodalen, delt av EditPaymentForm og
  * EditDomesticPaymentForm. Går over hele modalens bredde (ikke bare 488px-
  * feltene), så «Slett» flukter med «Lukk» oppe til høyre.
  *
  * Ingen av knappene lagrer, stopper eller sletter ennå. Lagre viser spinner
- * like lenge som «Godkjenn» på en eFaktura og lukker så modalen; Slett lukker
+ * like lenge som «Response delay» i Tools-menyen (som «Godkjenn») og kaller så onSave (eller onClose
+ * uten den) — siden lukker modalen og viser «Endringen er lagret» i raden; Slett lukker
  * med en gang; Stopp veksler bare til «Gjenopprett» og tilbake, slik at modalen blir
  * stående og brukeren ser at betalingen er stoppet. Tilstanden eies av
  * skjemaet, som også viser varselet under mottakeren.
  */
 export default function EditPaymentActions({
   onClose,
+  onSave,
+  saveDelayMs = 0,
   stopped,
   onToggleStop,
   locked = false,
 }: {
   onClose: () => void;
+  /** Kalles i stedet for onClose når Lagre er ferdig. */
+  onSave?: () => void;
+  /** Spinnertid på Lagre, fra «Response delay». 0: lagret med en gang. */
+  saveDelayMs?: number;
   stopped: boolean;
   onToggleStop: () => void;
   /** Stopp og Slett er ikke tillatt (avdrag på lån). Knappene vises
@@ -45,11 +50,16 @@ export default function EditPaymentActions({
   );
 
   const save = () => {
+    const done = onSave ?? onClose;
+    if (saveDelayMs <= 0) {
+      done();
+      return;
+    }
     setSaving(true);
     saveTimer.current = setTimeout(() => {
       saveTimer.current = null;
-      onClose();
-    }, APPROVE_DELAY_MS);
+      done();
+    }, saveDelayMs);
   };
 
   // Fragment: skillelinjen og knapperaden blir egne elementer i skjemaets

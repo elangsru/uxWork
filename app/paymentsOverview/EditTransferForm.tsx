@@ -50,6 +50,8 @@ export default function EditTransferForm({
   tx,
   accountName,
   onClose,
+  onSave,
+  saveDelayMs,
   initiallyStopped = false,
   readOnly = false,
   fieldStatus,
@@ -59,6 +61,10 @@ export default function EditTransferForm({
   accountName: string;
   /** Knappene i bunnen gjør ingenting ennå utover å lukke modalen. */
   onClose: () => void;
+  /** Se EditPaymentActions: kalles når Lagre er ferdig. */
+  onSave?: () => void;
+  /** Se EditPaymentActions: spinnertid på Lagre. */
+  saveDelayMs?: number;
   /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
   initiallyStopped?: boolean;
   readOnly?: boolean;
@@ -228,6 +234,8 @@ export default function EditTransferForm({
 
       <EditPaymentActions
         onClose={onClose}
+        onSave={onSave}
+        saveDelayMs={saveDelayMs}
         stopped={stopped}
         onToggleStop={() => setStopped(!stopped)}
         locked={readOnly}

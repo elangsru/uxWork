@@ -44,6 +44,8 @@ export default function EditPaymentForm({
   tx,
   accountName,
   onClose,
+  onSave,
+  saveDelayMs,
   initiallyStopped = false,
   disabled = false,
   fieldStatus,
@@ -53,6 +55,10 @@ export default function EditPaymentForm({
   accountName: string;
   /** Knappene i bunnen gjør ingenting ennå utover å lukke modalen. */
   onClose: () => void;
+  /** Se EditPaymentActions: kalles når Lagre er ferdig. */
+  onSave?: () => void;
+  /** Se EditPaymentActions: spinnertid på Lagre. */
+  saveDelayMs?: number;
   /** Stoppet med «Show warnings» i oversikten — modalen åpner da i stoppet tilstand. */
   initiallyStopped?: boolean;
   /** Alle felt deaktivert (José Martinez). Stopp og Slett er fortsatt tilgjengelige. */
@@ -291,7 +297,7 @@ export default function EditPaymentForm({
 
       </div>
 
-      <EditPaymentActions onClose={onClose} stopped={stopped} onToggleStop={() => setStopped(!stopped)} />
+      <EditPaymentActions onClose={onClose} onSave={onSave} saveDelayMs={saveDelayMs} stopped={stopped} onToggleStop={() => setStopped(!stopped)} />
     </div>
   );
 }

@@ -224,21 +224,6 @@
 .warning-footer .dnb-form-status__text,
 .receipt-footer .dnb-form-status__text {
   max-width: none;
-  /* Fyller boksen, så «Lukk» kan stå helt til høyre. */
-  flex-grow: 1;
-}
-
-/* Meldingen til venstre, «Lukk» helt til høyre. Brytes meldingen over flere
-   linjer, står lenken på første linje. */
-.receipt-footer__content {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--spacing-medium);
-}
-
-.receipt-footer__content > .dnb-anchor {
-  flex-shrink: 0;
 }
 
 /* Saldomarkøren langs radens venstrekant. */

@@ -26,6 +26,7 @@ export default function TransactionRow({
   collapseOnDone,
   onClick,
   approveDelayMs = 0,
+  saveToken = 0,
 }: {
   tx: Transaction;
   overline: string;
@@ -52,6 +53,9 @@ export default function TransactionRow({
   /** Hvor lenge «Godkjenn» viser spinner, fra «Response delay» i Tools-menyen.
    *  0 (ingen verdi): godkjent med en gang, uten lastetilstand. */
   approveDelayMs?: number;
+  /** Øker hver gang betalingen er lagret i modalen. En ny verdi viser
+   *  «Endringen er lagret» i raden, som kvitteringen etter «Godkjenn». */
+  saveToken?: number;
 }) {
   const [approving, setApproving] = useState(false);
   // Uten onConfirmReceipt vises kvitteringen i raden: footeren blir stående
@@ -60,8 +64,19 @@ export default function TransactionRow({
   // krymper, så null — footeren fjernes. Bare lokal state, så den forsvinner
   // også ved refresh.
   const [receipt, setReceipt] = useState<"shown" | "leaving" | null>(null);
-  // Hva kvitteringen gjelder: godkjent eFaktura eller reaktivert betaling.
-  const [receiptKind, setReceiptKind] = useState<"approved" | "resumed">("approved");
+  // Hva kvitteringen gjelder: godkjent eFaktura, reaktivert betaling eller
+  // endring lagret i modalen.
+  const [receiptKind, setReceiptKind] = useState<"approved" | "resumed" | "saved">("approved");
+  // Ny saveToken = nettopp lagret. Justeres under render (ikke i en effect),
+  // som React anbefaler for state som følger en prop. Startverdien er dagens
+  // token, så en rad som monteres på nytt (tabbytte, filter) ikke viser
+  // kvitteringen igjen.
+  const [seenSaveToken, setSeenSaveToken] = useState(saveToken);
+  if (saveToken !== seenSaveToken) {
+    setSeenSaveToken(saveToken);
+    setReceiptKind("saved");
+    setReceipt("shown");
+  }
   const [resuming, setResuming] = useState(false);
 
   // Raden kan forsvinne mens godkjenningen pågår — tabbytte, endret filter, eller
@@ -196,10 +211,9 @@ export default function TransactionRow({
         <List.Cell.Footer
           className={`actions-footer receipt-footer${receipt === "leaving" ? " receipt-footer--leaving" : ""}`}
         >
-          {/* «Lukk» er en lenke i meldingen, som Eufemia dokumenterer for
-              FormStatus, plassert helt til høyre (receipt-footer__content).
-              element="button" fordi den lukker meldingen i stedet for å
-              navigere. widthElement av samme grunn
+          {/* «Lukk» er en vanlig inline-lenke rett etter teksten, som Eufemia
+              dokumenterer for FormStatus. element="button" fordi den lukker
+              meldingen i stedet for å navigere. widthElement av samme grunn
               som på varselet: ellers låser FormStatus en max-width ut fra
               teksten ved mount. */}
           <div ref={receiptWidthRef} style={{ width: "100%" }}>
@@ -208,9 +222,10 @@ export default function TransactionRow({
               stretch
               widthElement={receiptWidthRef}
               text={
-                <span className="receipt-footer__content">
-                  <span>
-                  {receiptKind === "resumed" ? (
+                <>
+                  {receiptKind === "saved" ? (
+                    <>Endringen er lagret.</>
+                  ) : receiptKind === "resumed" ? (
                     <>
                       {tx.type === "overforing" ? "Overføringen" : "Betalingen"} er reaktivert med forfallsdato{" "}
                       {tx.date}.
@@ -221,7 +236,7 @@ export default function TransactionRow({
                       {accountDetails[tx.accountKey].name} vil bli benyttet neste gang du betaler til {tx.recipient}.
                     </>
                   )}
-                  </span>
+                  {" "}
                   <Anchor
                     element="button"
                     type="button"
@@ -233,7 +248,7 @@ export default function TransactionRow({
                   >
                     Lukk
                   </Anchor>
-                </span>
+                </>
               }
             />
           </div>

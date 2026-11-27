@@ -702,6 +702,15 @@ export default function PaymentsOverview() {
   // Tittelen settes ved åpning og står igjen når editPayment nullstilles, så
   // den ikke skifter til «Betaling til» mens en overføring lukkes.
   const [editTitle, setEditTitle] = useState("Betaling til");
+  // Teller per betaling for «Lagre» i modalen. Raden viser «Endringen er
+  // lagret» når tallet øker (se TransactionRow).
+  const [saveTokens, setSaveTokens] = useState<Record<string, number>>({});
+  const savePayment = () => {
+    if (editPayment === null) return;
+    const id = editPayment.id;
+    setSaveTokens((prev) => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+    setEditPayment(null);
+  };
   const openPayment = (tx: Transaction) => {
     if (!["jose-martinez", "tibber", "happybytes", "kim-olsen", "intro-aksel", "ask", "dnb-global-index", "boliglaanet"].includes(tx.id)) return;
     setEditTitle(tx.type === "overforing" ? "Overføring til" : "Betaling til");
@@ -958,6 +967,7 @@ export default function PaymentsOverview() {
         balanceFor={rowBalance}
         warningFor={rowWarning}
         onResume={resume}
+        saveTokens={saveTokens}
         // Sum-raden vises alltid. «Penger til overs» og saldoen etter
         // trekk hører til svitsjen.
         sum={
@@ -1003,6 +1013,7 @@ export default function PaymentsOverview() {
         balanceFor={rowBalance}
         warningFor={rowWarning}
         onResume={resume}
+        saveTokens={saveTokens}
         confirmedIds={confirmedIds}
         onConfirm={confirm}
         approveDelayMs={responseDelayMs}
@@ -1437,7 +1448,10 @@ export default function PaymentsOverview() {
             <DatePicker
               label="Belastningsdato"
               labelSrOnly
-              triggerProps={{ variant: "tertiary", text: "Dato", iconPosition: "left" }}
+              // size="default": DatePicker sender sin size="medium" videre til
+              // knappen, og en tertiær medium-knapp er 32 px. Standard er 40 px,
+              // som filterknappen og feltene — da står knappene likt på begge tabbene.
+              triggerProps={{ variant: "tertiary", text: "Dato", iconPosition: "left", size: "default" }}
               range
               size="medium"
               startDate={completedStartDate}
@@ -1464,7 +1478,7 @@ export default function PaymentsOverview() {
               }}
               shortcuts={withPendingShortcut(completedShortcuts, completedDates.pending ? completedPendingShortcut : null)}
             />
-            <Filter.PanelButton size="medium" />
+            <Filter.PanelButton />
           </div>,
         ]}
       >
@@ -1801,6 +1815,8 @@ export default function PaymentsOverview() {
                 tx={editPayment}
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
+                onSave={savePayment}
+                saveDelayMs={responseDelayMs}
                 initiallyStopped={statusOf(editPayment) === "stoppet"}
                 fieldStatus={activeFieldStatus}
                 // Avdrag på lån kan verken endres, stoppes eller slettes her.
@@ -1811,6 +1827,8 @@ export default function PaymentsOverview() {
                 tx={editPayment}
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
+                onSave={savePayment}
+                saveDelayMs={responseDelayMs}
                 initiallyStopped={statusOf(editPayment) === "stoppet"}
                 fieldStatus={activeFieldStatus}
                 // Betalingen til José Martinez kan ikke endres: alle felt deaktivert.
@@ -1821,6 +1839,8 @@ export default function PaymentsOverview() {
                 tx={editPayment}
                 accountName={accountDetails[editPayment.accountKey].name}
                 onClose={() => setEditPayment(null)}
+                onSave={savePayment}
+                saveDelayMs={responseDelayMs}
                 initiallyStopped={statusOf(editPayment) === "stoppet"}
                 fieldStatus={activeFieldStatus}
               />
